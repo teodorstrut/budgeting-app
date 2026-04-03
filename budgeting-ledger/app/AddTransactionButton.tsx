@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useTheme } from './ThemeProvider';
 
 export const AddTransactionButton: React.FC = () => {
+  const router = useRouter();
   const { theme } = useTheme();
 
   return (
@@ -10,7 +12,7 @@ export const AddTransactionButton: React.FC = () => {
       position: 'absolute',
       left: 16,
       right: 16,
-      bottom: 80,
+      bottom: 106,
       borderRadius: 28,
       paddingVertical: 14,
       paddingHorizontal: 16,
@@ -18,7 +20,7 @@ export const AddTransactionButton: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'space-between',
       backgroundColor: theme.colors.surfaceContainerHigh,
-      shadowColor: '#000',
+      shadowColor: theme.colors.outline,
       shadowOpacity: 0.1,
       shadowOffset: { width: 0, height: 3 },
       shadowRadius: 6,
@@ -53,11 +55,11 @@ export const AddTransactionButton: React.FC = () => {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: theme.colors.primary,
-      }} onPress={() => {}}>
+      }} onPress={() => router.push('/add')}>
         <Text style={{
           fontSize: 22,
           fontWeight: 'bold',
-          color: '#1f2937',
+          color: theme.colors.onPrimary,
         }}>
           +
         </Text>

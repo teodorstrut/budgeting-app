@@ -1,11 +1,38 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Appearance, ColorSchemeName } from 'react-native';
+import React, { createContext, useContext, useState } from 'react';
+import { Appearance } from 'react-native';
 import { Theme, themes } from './styles';
+import db from '../database/connection';
+
+type AppColorScheme = 'light' | 'dark';
+
+const getSystemColorScheme = (): AppColorScheme =>
+  Appearance.getColorScheme() === 'light' ? 'light' : 'dark';
+
+const getStoredColorScheme = (): AppColorScheme => {
+  try {
+    const result = db.getFirstSync('SELECT value FROM settings WHERE key = ?', ['theme']);
+    return result?.value === 'light' ? 'light' : result?.value === 'dark' ? 'dark' : getSystemColorScheme();
+  } catch {
+    return getSystemColorScheme();
+  }
+};
+
+const persistColorScheme = (scheme: AppColorScheme) => {
+  try {
+    db.runSync(
+      'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+      ['theme', scheme]
+    );
+  } catch {
+    // Ignore persistence failures and fall back to in-memory state.
+  }
+};
 
 const ThemeContext = createContext<{
   theme: Theme;
-  colorScheme: ColorSchemeName;
+  colorScheme: AppColorScheme;
   toggleTheme: () => void;
+  setColorScheme: (scheme: AppColorScheme) => void;
 } | null>(null);
 
 export const useTheme = () => {
@@ -17,25 +44,21 @@ export const useTheme = () => {
 };
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [colorScheme, setColorScheme] = useState<ColorSchemeName>(Appearance.getColorScheme());
+  const [colorScheme, setColorSchemeState] = useState<AppColorScheme>(getStoredColorScheme);
 
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setColorScheme(colorScheme);
-    });
-    return () => subscription?.remove();
-  }, []);
+  const theme = themes[colorScheme];
 
-  const theme = themes[colorScheme === 'dark' ? 'dark' : 'light'];
+  const setColorScheme = (scheme: AppColorScheme) => {
+    setColorSchemeState(scheme);
+    persistColorScheme(scheme);
+  };
 
   const toggleTheme = () => {
-    // For manual toggle, but since we follow system, perhaps not needed, but for settings
-    // For now, just log or something
-    console.log('Toggle theme');
+    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, colorScheme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, colorScheme, toggleTheme, setColorScheme }}>
       {children}
     </ThemeContext.Provider>
   );

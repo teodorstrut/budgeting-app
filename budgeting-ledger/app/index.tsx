@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from './ThemeProvider';
+import { useRouter } from 'expo-router';
 import { transactionService } from '../services/transactionService';
 import { SummaryTile } from '../components/ui/SummaryTile';
 import { TransactionList } from '../components/data/TransactionList';
@@ -11,6 +12,7 @@ import { AddTransactionButton } from './AddTransactionButton';
 
 export default function Index() {
   const { theme } = useTheme();
+  const router = useRouter();
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, balance: 0 });
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
 
@@ -29,7 +31,7 @@ export default function Index() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Header />
+        <Header title="Ledger" rightIconName="cog" onRightPress={() => router.push('/settings')} />
 
         <Text style={[styles.currentBalanceLabel, { color: theme.colors.outline }]}>Current Balance</Text>
 

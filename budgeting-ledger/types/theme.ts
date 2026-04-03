@@ -11,9 +11,11 @@ export interface ThemeColors {
   primaryContainer: string;
   onPrimary: string;
   secondary: string;
+  onSecondary?: string;
   secondaryContainer?: string;
   tertiary?: string;
   tertiaryContainer: string;
+  onSurface?: string;
   onSurfaceVariant: string;
   outline: string;
   outlineVariant: string;

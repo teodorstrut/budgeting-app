@@ -20,9 +20,7 @@ export const createTables = () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       emoji TEXT,
       name TEXT NOT NULL,
-      type TEXT NOT NULL, -- 'income' or 'expense'
-      color TEXT,
-      budget REAL DEFAULT 0
+      type TEXT NOT NULL -- 'income' or 'expense'
     );
   `);
 
@@ -33,7 +31,6 @@ export const createTables = () => {
       amount REAL NOT NULL,
       type TEXT NOT NULL, -- 'income' or 'expense'
       categoryId INTEGER,
-      name TEXT,
       note TEXT,
       date TEXT NOT NULL, -- ISO date string
       createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -76,19 +73,35 @@ export const createTables = () => {
   `);
 };
 
-// Initialize database
-export const initDatabase = () => {
-  createTables();
-
-  // Seed default data when database is empty
+const seedData = () => {
   const categoryCount = db.getFirstSync('SELECT COUNT(*) AS count FROM categories');
   const categoriesAreEmpty = !categoryCount || categoryCount.count === 0;
 
   if (categoriesAreEmpty) {
-    db.runSync(`INSERT INTO categories (emoji, name, type, color, budget) VALUES (?, ?, ?, ?, ?)`, ['🍎', 'Groceries', 'expense', '#34D399', 500]);
-    db.runSync(`INSERT INTO categories (emoji, name, type, color, budget) VALUES (?, ?, ?, ?, ?)`, ['🏠', 'Rent', 'expense', '#60A5FA', 1200]);
-    db.runSync(`INSERT INTO categories (emoji, name, type, color, budget) VALUES (?, ?, ?, ?, ?)`, ['💡', 'Utilities', 'expense', '#FBBF24', 250]);
-    db.runSync(`INSERT INTO categories (emoji, name, type, color, budget) VALUES (?, ?, ?, ?, ?)`, ['💼', 'Salary', 'income', '#0EA5E9', 0]);
+    // Expense categories
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🍎', 'Groceries', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🏠', 'Rent', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['💡', 'Utilities', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🍽️', 'Dining Out', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🚗', 'Transport', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🎬', 'Entertainment', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['💊', 'Health', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🏋️', 'Fitness', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['👕', 'Clothing', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['💇', 'Personal Care', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['📚', 'Education', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['✈️', 'Travel', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🛡️', 'Insurance', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['📱', 'Subscriptions', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🔧', 'Home Maintenance', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['⛽', 'Fuel', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🐾', 'Pets', 'expense']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🎁', 'Gifts', 'expense']);
+    // Income categories
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['💼', 'Salary', 'income']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['💻', 'Freelance', 'income']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['📈', 'Investments', 'income']);
+    db.runSync(`INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`, ['🎁', 'Gifts Received', 'income']);
   }
 
   const transactionCount = db.getFirstSync('SELECT COUNT(*) AS count FROM transactions');
@@ -101,24 +114,38 @@ export const initDatabase = () => {
     const salaryCat = db.getFirstSync('SELECT id FROM categories WHERE name = ?', ['Salary'])?.id;
 
     db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
-      [1500, 'income', salaryCat, 'April paycheck', 'Direct deposit', new Date().toISOString().split('T')[0]]
+      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      [1500, 'income', salaryCat, 'Direct deposit', new Date().toISOString().split('T')[0]]
     );
     db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
-      [45, 'expense', groceriesCat, 'Weekly groceries', 'Trader Joe\'s', new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
+      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      [45, 'expense', groceriesCat, 'Trader Joe\'s', new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
     );
     db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
-      [1200, 'expense', rentCat, 'Monthly rent', 'April rent', new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
+      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      [1200, 'expense', rentCat, 'April rent', new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
     );
     db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
-      [90, 'expense', utilitiesCat, 'Electricity bill', 'Utility bill due', new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
+      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      [90, 'expense', utilitiesCat, 'Utility bill due', new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
     );
     db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
-      [18, 'expense', groceriesCat, 'Coffee and snacks', 'Starbucks', new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
+      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      [18, 'expense', groceriesCat, 'Starbucks', new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
     );
   }
+};
+
+// Initialize database
+export const initDatabase = () => {
+  createTables();
+  seedData();
+};
+
+// Clear all data and re-seed (for dev/reset purposes)
+export const resetAndReseed = () => {
+  db.execSync('DELETE FROM transactions;');
+  db.execSync('DELETE FROM categories;');
+  db.execSync('DELETE FROM sqlite_sequence WHERE name = "transactions" OR name = "categories";');
+  seedData();
 };

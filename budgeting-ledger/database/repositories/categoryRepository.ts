@@ -5,15 +5,13 @@ export interface Category {
   emoji?: string;
   name: string;
   type: 'income' | 'expense';
-  color?: string;
-  budget?: number;
 }
 
 export const categoryRepository = {
   create: (category: Omit<Category, 'id'>) => {
     const result = db.runSync(
-      `INSERT INTO categories (emoji, name, type, color, budget) VALUES (?, ?, ?, ?, ?)`,
-      [category.emoji, category.name, category.type, category.color, category.budget]
+      `INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`,
+      [category.emoji, category.name, category.type]
     );
     return result.lastInsertRowId;
   },
@@ -42,14 +40,6 @@ export const categoryRepository = {
     if (category.type !== undefined) {
       fields.push('type = ?');
       values.push(category.type);
-    }
-    if (category.color !== undefined) {
-      fields.push('color = ?');
-      values.push(category.color);
-    }
-    if (category.budget !== undefined) {
-      fields.push('budget = ?');
-      values.push(category.budget);
     }
     values.push(id);
     db.runSync(`UPDATE categories SET ${fields.join(', ')} WHERE id = ?`, values);

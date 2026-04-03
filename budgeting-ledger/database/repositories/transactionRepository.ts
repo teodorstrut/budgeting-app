@@ -5,7 +5,6 @@ export interface Transaction {
   amount: number;
   type: 'income' | 'expense';
   categoryId?: number;
-  name?: string;
   note?: string;
   date: string; // ISO string
   createdAt?: string;
@@ -15,8 +14,8 @@ export interface Transaction {
 export const transactionRepository = {
   create: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
     const result = db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
-      [transaction.amount, transaction.type, transaction.categoryId, transaction.name, transaction.note, transaction.date]
+      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      [transaction.amount, transaction.type, transaction.categoryId, transaction.note, transaction.date]
     );
     return result.lastInsertRowId;
   },
@@ -45,10 +44,6 @@ export const transactionRepository = {
     if (transaction.categoryId !== undefined) {
       fields.push('categoryId = ?');
       values.push(transaction.categoryId);
-    }
-    if (transaction.name !== undefined) {
-      fields.push('name = ?');
-      values.push(transaction.name);
     }
     if (transaction.note !== undefined) {
       fields.push('note = ?');

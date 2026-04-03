@@ -19,6 +19,7 @@ export const colorSchemes = {
     primary: '#6feee1',
     primaryContainer: '#4fd1c5',
     onPrimary: '#003733',
+    onSecondary: '#482900',
 
     // Secondary
     secondary: '#ffb866',
@@ -27,6 +28,7 @@ export const colorSchemes = {
     tertiaryContainer: '#ffa2c5',
 
     // Variants
+    onSurface: '#dde2f3',
     onSurfaceVariant: '#bbc9c7',
     outline: '#869491',
     outlineVariant: '#3c4947',
@@ -44,6 +46,7 @@ export const colorSchemes = {
     primary: '#006b5f',
     primaryContainer: '#16b8a6',
     onPrimary: '#ffffff',
+    onSecondary: '#ffffff',
 
     // Secondary
     secondary: '#a43c12',
@@ -54,6 +57,7 @@ export const colorSchemes = {
     tertiaryContainer: '#c1a200',
 
     // Variants
+    onSurface: '#0f172a',
     onSurfaceVariant: '#3c4947',
     outline: '#bbcac6',
     outlineVariant: '#bbcac6',

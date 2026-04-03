@@ -1,8 +1,9 @@
 import React from 'react';
-import { FlatList, View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Transaction } from '../../database/repositories/transactionRepository';
 import { TransactionItem } from './TransactionItem';
 import { useTheme } from '../../app/ThemeProvider';
+import { categoryRepository } from '../../database/repositories/categoryRepository';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -11,6 +12,9 @@ interface TransactionListProps {
 
 export const TransactionList: React.FC<TransactionListProps> = ({ transactions, title }) => {
   const { theme } = useTheme();
+  const categoriesById = new Map(
+    categoryRepository.getAll().map((category) => [category.id, category])
+  );
 
   if (transactions.length === 0) {
     return (
@@ -23,12 +27,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
   return (
     <View style={styles.container}>
       {title && <Text style={[styles.title, { color: theme.colors.onSurfaceVariant }]}>{title}</Text>}
-      <FlatList
-        data={transactions}
-        keyExtractor={(item) => item.id?.toString() || Math.random().toString()}
-        renderItem={({ item }) => <TransactionItem transaction={item} />}
-        showsVerticalScrollIndicator={false}
-      />
+      {transactions.map((item) => (
+        <TransactionItem
+          key={item.id?.toString() || `${item.amount}-${item.date}`}
+          transaction={item}
+          categoryEmoji={item.categoryId != null ? categoriesById.get(item.categoryId)?.emoji : undefined}
+          categoryName={item.categoryId != null ? categoriesById.get(item.categoryId)?.name : undefined}
+        />
+      ))}
     </View>
   );
 };

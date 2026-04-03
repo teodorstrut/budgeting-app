@@ -10,7 +10,7 @@ this app has the following techical requirements:
 
 this app has the following functional requirements:
 - transactions management: add/modify/delete transactions
-  - transactions have: type(income/expense), name, category(user-definable), note, sum, date and time of transaction
+  - transactions have: type(income/expense), note, category(user-definable), sum, date and time of transaction
   - categories have: emoji, name and type(income/expense)
 - budget definition: ability to define a budget for the existing categories
 - historical data: ability to view current month's data and every past month's data

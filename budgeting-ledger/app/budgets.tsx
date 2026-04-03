@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from './ThemeProvider';
+import { NavBar } from './NavBar';
 
 export default function Budgets() {
   const { theme } = useTheme();
@@ -9,6 +10,7 @@ export default function Budgets() {
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       <Text style={[styles.text, { color: theme.colors.onSurfaceVariant }]}>Budgets Screen</Text>
       <Text style={[styles.subtext, { color: theme.colors.outline }]}>Coming soon...</Text>
+      <NavBar />
     </View>
   );
 }
