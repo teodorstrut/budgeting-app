@@ -1,14 +1,21 @@
 import { Stack } from "expo-router";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { ThemeProvider } from "./ThemeProvider";
-import { initDatabase } from "../database/schema";
+import { Platform } from "react-native";
 
-// Initialize database
-initDatabase();
+// Initialize database only on native platforms
+if (Platform.OS !== 'web') {
+  import("../database/schema").then(({ initDatabase }) => {
+    initDatabase();
+  });
+}
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <Stack />
-    </ThemeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeProvider>
+        <Stack />
+      </ThemeProvider>
+    </GestureHandlerRootView>
   );
 }

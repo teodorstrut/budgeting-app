@@ -79,6 +79,46 @@ export const createTables = () => {
 // Initialize database
 export const initDatabase = () => {
   createTables();
-  // Insert default data if needed
-  // For example, default categories
+
+  // Seed default data when database is empty
+  const categoryCount = db.getFirstSync('SELECT COUNT(*) AS count FROM categories');
+  const categoriesAreEmpty = !categoryCount || categoryCount.count === 0;
+
+  if (categoriesAreEmpty) {
+    db.runSync(`INSERT INTO categories (emoji, name, type, color, budget) VALUES (?, ?, ?, ?, ?)`, ['🍎', 'Groceries', 'expense', '#34D399', 500]);
+    db.runSync(`INSERT INTO categories (emoji, name, type, color, budget) VALUES (?, ?, ?, ?, ?)`, ['🏠', 'Rent', 'expense', '#60A5FA', 1200]);
+    db.runSync(`INSERT INTO categories (emoji, name, type, color, budget) VALUES (?, ?, ?, ?, ?)`, ['💡', 'Utilities', 'expense', '#FBBF24', 250]);
+    db.runSync(`INSERT INTO categories (emoji, name, type, color, budget) VALUES (?, ?, ?, ?, ?)`, ['💼', 'Salary', 'income', '#0EA5E9', 0]);
+  }
+
+  const transactionCount = db.getFirstSync('SELECT COUNT(*) AS count FROM transactions');
+  const transactionsAreEmpty = !transactionCount || transactionCount.count === 0;
+
+  if (transactionsAreEmpty) {
+    const groceriesCat = db.getFirstSync('SELECT id FROM categories WHERE name = ?', ['Groceries'])?.id;
+    const rentCat = db.getFirstSync('SELECT id FROM categories WHERE name = ?', ['Rent'])?.id;
+    const utilitiesCat = db.getFirstSync('SELECT id FROM categories WHERE name = ?', ['Utilities'])?.id;
+    const salaryCat = db.getFirstSync('SELECT id FROM categories WHERE name = ?', ['Salary'])?.id;
+
+    db.runSync(
+      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
+      [1500, 'income', salaryCat, 'April paycheck', 'Direct deposit', new Date().toISOString().split('T')[0]]
+    );
+    db.runSync(
+      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
+      [45, 'expense', groceriesCat, 'Weekly groceries', 'Trader Joe\'s', new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
+    );
+    db.runSync(
+      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
+      [1200, 'expense', rentCat, 'Monthly rent', 'April rent', new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
+    );
+    db.runSync(
+      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
+      [90, 'expense', utilitiesCat, 'Electricity bill', 'Utility bill due', new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
+    );
+    db.runSync(
+      `INSERT INTO transactions (amount, type, categoryId, name, note, date) VALUES (?, ?, ?, ?, ?, ?)`,
+      [18, 'expense', groceriesCat, 'Coffee and snacks', 'Starbucks', new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]]
+    );
+  }
 };

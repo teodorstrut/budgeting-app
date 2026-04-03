@@ -1,4 +1,4 @@
-import db from './connection';
+import db from '../connection';
 
 export interface Transaction {
   id?: number;

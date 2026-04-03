@@ -89,20 +89,58 @@ budgeting-ledger/
 4. SQLite integration via `expo-sqlite`; create schema (transactions, categories, budgets, settings, sync state).
 5. Create repository interfaces and service layer.
 
-### Phase 2: Core Features
-1. Transactions: add/edit/delete, category assign, date/time, notes.
-2. Category management: CRUD with emoji/name/type and color.
-3. Budget management: per category assignment, total incomes vs expenses.
-4. History view: filter by month, year; month boundary based on monthStartDay.
-5. Sync settings: Google sign-in, sheet select/create, status pages.
+### Phase 2: Page-by-Page Implementation
 
-### Phase 3: Reporting
+#### Phase 2.1: Dashboard
+- Implement dashboard screen with summary tiles (total income, expenses, balance).
+- Add basic navigation structure (tabs for ledger, split, growth, reports).
+- Display recent transactions list.
+- Integrate theme switching.
+
+#### Phase 2.2: Adding a Transaction
+- Create add transaction screen/modal with form inputs (amount, type, category, date, notes).
+- Implement category selection with emoji and color.
+- Add validation and save to database.
+- Integrate FAB for quick access.
+
+#### Phase 2.3: History View
+- Build history screen with transaction list, filtering by month/year.
+- Implement month boundary based on monthStartDay setting.
+- Add search and sort functionality.
+- Display transaction details with edit/delete options.
+
+#### Phase 2.4: Allocating a Budget
+- Create budget management screen for per-category budget assignment.
+- Implement budget CRUD operations.
+- Add budget progress visuals and alerts.
+- Integrate with dashboard summaries.
+
+#### Phase 2.5: Settings Screen
+- Build settings screen with theme switch, month-start-day configuration.
+- Add category and budget management links.
+- Implement user profile basics (name, avatar).
+- Prepare for sync settings integration.
+
+#### Phase 2.6: Bill Splitter
+- Implement bill splitter screen for expense sharing.
+- Add participant management and split calculations.
+- Integrate with transaction creation.
+- Handle split confirmations and settlements.
+
+### Phase 3: Reporting & Charts
 1. Pie chart: expense/income breakdown by category.
 2. Bar chart: monthly evolution, optional budget overlay toggle.
 3. Totals sorted by category for selected month.
 4. Budget progress visuals + alerts on overages.
 
-### Phase 4: Polish & Quality
+### Phase 4: Connectivity - Google Sheets API
+1. Implement Google sign-in and authentication.
+2. Add sheet selection and creation functionality.
+3. Set up automatic row push for transactions.
+4. Handle sync status, conflicts, and error recovery.
+5. Integrate sync settings in the app.
+
+### Phase 5: Polish & Quality
 1. Accessibility + keyboard navigation + screen reader labels.
 2. Localization hooks (currency, date formats).
 3. Offline/resume resilience + syncing queue.
