@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Manage Categories</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary-container": "#463900",
+              "surface-dim": "#d6dade",
+              "on-primary-fixed-variant": "#005048",
+              "on-secondary-fixed-variant": "#822800",
+              "on-error": "#ffffff",
+              "surface-container-lowest": "#ffffff",
+              "on-secondary-fixed": "#380c00",
+              "on-secondary": "#ffffff",
+              "primary": "#006b5f",
+              "surface-container-low": "#f0f4f8",
+              "error-container": "#ffdad6",
+              "on-background": "#171c1f",
+              "secondary-fixed": "#ffdbcf",
+              "outline-variant": "#bbcac6",
+              "secondary-container": "#fe7e4f",
+              "inverse-primary": "#50dbc8",
+              "on-tertiary-fixed-variant": "#544600",
+              "tertiary-container": "#c1a200",
+              "tertiary-fixed": "#ffe16d",
+              "outline": "#6c7a77",
+              "surface-tint": "#006b5f",
+              "surface-container-high": "#e4e9ed",
+              "on-tertiary": "#ffffff",
+              "tertiary": "#705d00",
+              "surface-container-highest": "#dfe3e7",
+              "on-tertiary-fixed": "#221b00",
+              "on-primary-fixed": "#00201c",
+              "inverse-on-surface": "#edf1f5",
+              "primary-fixed-dim": "#50dbc8",
+              "primary-fixed": "#71f8e4",
+              "surface": "#f6fafe",
+              "inverse-surface": "#2c3134",
+              "surface-variant": "#dfe3e7",
+              "on-primary": "#ffffff",
+              "background": "#f6fafe",
+              "secondary": "#a43c12",
+              "on-secondary-container": "#6b1f00",
+              "on-primary-container": "#00423b",
+              "on-error-container": "#93000a",
+              "error": "#ba1a1a",
+              "surface-bright": "#f6fafe",
+              "on-surface": "#171c1f",
+              "surface-container": "#eaeef2",
+              "tertiary-fixed-dim": "#e9c400",
+              "secondary-fixed-dim": "#ffb59c",
+              "primary-container": "#16b8a6",
+              "on-surface-variant": "#3c4947"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .drag-handle { cursor: grab; }
+        .drag-handle:active { cursor: grabbing; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface font-body text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface-bright/60 backdrop-blur-xl">
+<div class="flex items-center px-6 h-16 w-full max-w-7xl mx-auto">
+<button class="mr-4 p-2 rounded-full hover:bg-[#333946]/5 transition-colors active:scale-95 duration-150">
+<span class="material-symbols-outlined text-primary" data-icon="arrow_back">arrow_back</span>
+</button>
+<h1 class="text-xl font-headline font-bold tracking-tight text-on-surface">Manage Categories</h1>
+</div>
+</header>
+<main class="pt-20 px-6 max-w-2xl mx-auto">
+<!-- Editorial Section Header -->
+<div class="mb-8">
+<p class="text-on-surface-variant text-sm font-medium tracking-wide uppercase font-label">Personalize</p>
+<h2 class="text-3xl font-headline font-bold text-on-surface mt-1">Organize your flows</h2>
+</div>
+<!-- Segmented Toggle -->
+<div class="bg-surface-container-low p-1.5 rounded-full flex items-center mb-8">
+<button class="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold transition-all duration-200 text-on-surface-variant hover:text-on-surface">
+                Income
+            </button>
+<button class="flex-1 py-2.5 px-4 rounded-full text-sm font-semibold transition-all duration-200 bg-gradient-to-br from-primary to-primary-container text-white shadow-md">
+                Expenses
+            </button>
+</div>
+<!-- Category List -->
+<div class="space-y-3">
+<!-- Dining Item -->
+<div class="group flex items-center justify-between p-4 bg-surface-container-lowest rounded-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="restaurant" data-weight="fill" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+</div>
+<span class="font-semibold text-on-surface">Dining</span>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors rounded-full hover:bg-error-container/20">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+<!-- Shopping Item -->
+<div class="group flex items-center justify-between p-4 bg-surface-container-lowest rounded-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="shopping_bag" data-weight="fill" style="font-variation-settings: 'FILL' 1;">shopping_bag</span>
+</div>
+<span class="font-semibold text-on-surface">Shopping</span>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors rounded-full hover:bg-error-container/20">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+<!-- Travel Item -->
+<div class="group flex items-center justify-between p-4 bg-surface-container-lowest rounded-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="flight" data-weight="fill" style="font-variation-settings: 'FILL' 1;">flight</span>
+</div>
+<span class="font-semibold text-on-surface">Travel</span>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors rounded-full hover:bg-error-container/20">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+<!-- Grocery Item -->
+<div class="group flex items-center justify-between p-4 bg-surface-container-lowest rounded-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="local_grocery_store" data-weight="fill" style="font-variation-settings: 'FILL' 1;">local_grocery_store</span>
+</div>
+<span class="font-semibold text-on-surface">Grocery</span>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors rounded-full hover:bg-error-container/20">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+<!-- Fun Item (Tertiary Accented) -->
+<div class="group flex items-center justify-between p-4 bg-surface-container-lowest rounded-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 border-l-4 border-tertiary">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary relative">
+<span class="material-symbols-outlined" data-icon="celebration" data-weight="fill" style="font-variation-settings: 'FILL' 1;">celebration</span>
+<span class="absolute -top-1 -right-1 w-3 h-3 bg-tertiary rounded-full animate-pulse shadow-[0_0_8px_rgba(112,93,0,0.5)]"></span>
+</div>
+<span class="font-semibold text-on-surface">Fun</span>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors rounded-full hover:bg-error-container/20">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+<!-- Rent Item -->
+<div class="group flex items-center justify-between p-4 bg-surface-container-lowest rounded-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="home" data-weight="fill" style="font-variation-settings: 'FILL' 1;">home</span>
+</div>
+<span class="font-semibold text-on-surface">Rent</span>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors rounded-full hover:bg-error-container/20">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+<!-- Utilities Item -->
+<div class="group flex items-center justify-between p-4 bg-surface-container-lowest rounded-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 border-l-4 border-primary">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="bolt" data-weight="fill" style="font-variation-settings: 'FILL' 1;">bolt</span>
+</div>
+<span class="font-semibold text-on-surface">Utilities</span>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-error transition-colors rounded-full hover:bg-error-container/20">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+</button>
+</div>
+</div>
+<!-- Add New Category Field -->
+<div class="sticky bottom-32 z-40 bg-surface/80 backdrop-blur-md py-4 mt-8">
+<div class="p-2 bg-surface-container-low rounded-full flex items-center shadow-lg">
+<div class="w-12 h-12 rounded-full bg-surface-container-lowest flex items-center justify-center text-outline ml-1">
+<span class="material-symbols-outlined" data-icon="category">category</span>
+</div>
+<input class="flex-1 bg-transparent border-none focus:ring-0 px-4 text-on-surface font-medium placeholder:text-outline-variant" placeholder="Add New Category" type="text"/>
+<button class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary-container text-white flex items-center justify-center hover:scale-105 transition-transform active:scale-95">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+<!-- Descriptive Visual Graphic (Placeholder for spacing/context) -->
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-[#0d131f] rounded-t-[32px] z-50 shadow-[0_-8px_48px_rgba(111,238,225,0.08)]">
+<a class="flex flex-col items-center justify-center text-[#bbc9c7] px-5 py-2 hover:text-white transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="text-[11px] font-semibold font-plus-jakarta-sans">Budget</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#bbc9c7] px-5 py-2 hover:text-white transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="query_stats">query_stats</span>
+<span class="text-[11px] font-semibold font-plus-jakarta-sans">Trends</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-gradient-to-br from-[#4fd1c5] to-[#6feee1] text-[#003733] rounded-full px-5 py-2 active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="category" data-weight="fill" style="font-variation-settings: 'FILL' 1;">category</span>
+<span class="text-[11px] font-semibold font-plus-jakarta-sans">Categories</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#bbc9c7] px-5 py-2 hover:text-white transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="person">person</span>
+<span class="text-[11px] font-semibold font-plus-jakarta-sans">Profile</span>
+</a>
+</nav>
+</body></html>

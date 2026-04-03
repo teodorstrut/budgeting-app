@@ -1,0 +1,230 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Ledger - Add Transaction</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-dim": "#f6fafe",
+                        "inverse-primary": "#50dbc8",
+                        "tertiary": "#705d00",
+                        "tertiary-container": "#ffe16d",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "surface-container-high": "#e4e9ed",
+                        "on-background": "#171c1f",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed": "#380c00",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#ffe16d",
+                        "secondary-fixed": "#ffdbcf",
+                        "on-error-container": "#410002",
+                        "surface-variant": "#dfe3e7",
+                        "on-primary-fixed-variant": "#005048",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#6b1f00",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-highest": "#dfe3e7",
+                        "primary-container": "#16b8a6",
+                        "primary-fixed": "#71f8e4",
+                        "on-surface-variant": "#3c4947",
+                        "tertiary-fixed-dim": "#e9c400",
+                        "on-primary-fixed": "#00201c",
+                        "outline-variant": "#bbcac6",
+                        "primary": "#006b5f",
+                        "on-primary-container": "#00423b",
+                        "surface-container-low": "#f0f4f8",
+                        "error": "#ba1a1a",
+                        "on-tertiary-fixed": "#221b00",
+                        "on-secondary-fixed-variant": "#822800",
+                        "secondary": "#a43c12",
+                        "inverse-surface": "#2c3134",
+                        "surface-container": "#eaeef2",
+                        "outline": "#6c7a77",
+                        "on-tertiary-container": "#463900",
+                        "on-surface": "#171c1f",
+                        "secondary-container": "#fe7e4f",
+                        "surface-bright": "#f6fafe",
+                        "surface": "#f6fafe",
+                        "on-tertiary-fixed-variant": "#544600",
+                        "background": "#f6fafe",
+                        "surface-tint": "#006b5f",
+                        "inverse-on-surface": "#edf1f5",
+                        "primary-fixed-dim": "#50dbc8",
+                        "secondary-fixed-dim": "#ffb59c"
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: { "DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen pb-40">
+<!-- TopAppBar -->
+<header class="sticky top-0 z-50 flex items-center justify-between w-[calc(100%-2rem)] max-w-7xl mx-auto rounded-full mt-4 mx-4 px-4 h-16 bg-surface-container-low/80 backdrop-blur-xl shadow-sm">
+<div class="flex items-center gap-3">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors active:scale-95 duration-200 text-on-surface-variant" style="">
+<span class="material-symbols-outlined" data-icon="close" style="">close</span>
+</button>
+<h1 class="font-headline tracking-[-0.04em] font-bold text-xl text-primary" style="">Add Transaction</h1>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors active:scale-95 duration-200 text-primary" style="">
+<span class="material-symbols-outlined" data-icon="history" style="">history</span>
+</button>
+</div>
+</header>
+<main class="max-w-xl mx-auto px-6 pt-8 space-y-8">
+<!-- Amount Hero Section -->
+<section class="text-center space-y-2">
+<label class="text-on-surface-variant font-medium text-sm tracking-wider uppercase" style="">Amount</label>
+<div class="flex items-center justify-center gap-2">
+<span class="text-secondary text-4xl font-bold tracking-tighter" style="">$</span>
+<span class="text-7xl font-extrabold tracking-tighter text-on-surface" style="">0.00</span>
+</div>
+<button class="mt-4 mx-auto flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors text-xs font-bold uppercase tracking-widest" id="toggle-keypad" style="">
+<span class="material-symbols-outlined text-sm" style="">keyboard_hide</span>
+                Hide Keypad
+            </button>
+</section>
+<!-- Form Canvas -->
+<div class="space-y-6">
+<!-- Category Selector -->
+<div class="space-y-4">
+<div class="flex items-center justify-between px-2">
+<h2 class="text-headline-md font-bold text-on-surface" style="">Category</h2>
+<span class="text-primary text-sm font-semibold" style="">See all</span>
+</div>
+<div class="flex gap-4 pb-2 grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6">
+<!-- Dining -->
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container shadow-lg shadow-secondary/20 active:scale-90 transition-transform cursor-pointer">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: &quot;FILL&quot; 1;">restaurant</span>
+</div>
+<span class="text-xs font-semibold text-secondary" style="">Dining</span>
+</div>
+<!-- Shopping -->
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-90 cursor-pointer">
+<span class="material-symbols-outlined text-2xl" style="">shopping_bag</span>
+</div>
+<span class="text-xs font-semibold text-on-surface-variant" style="">Shopping</span>
+</div>
+<!-- Travel -->
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-90 cursor-pointer">
+<span class="material-symbols-outlined text-2xl" style="">flight</span>
+</div>
+<span class="text-xs font-semibold text-on-surface-variant" style="">Travel</span>
+</div>
+<!-- Grocery -->
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-90 cursor-pointer">
+<span class="material-symbols-outlined text-2xl" style="">local_grocery_store</span>
+</div>
+<span class="text-xs font-semibold text-on-surface-variant" style="">Grocery</span>
+</div>
+<!-- Entertainment -->
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors active:scale-90 cursor-pointer">
+<span class="material-symbols-outlined text-2xl" style="">theater_comedy</span>
+</div>
+<span class="text-xs font-semibold text-on-surface-variant" style="">Fun</span>
+</div>
+<!-- Add New Category -->
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-16 h-16 rounded-full border-2 border-dashed border-outline-variant flex items-center justify-center text-outline-variant hover:border-primary hover:text-primary transition-all active:scale-90 cursor-pointer">
+<span class="material-symbols-outlined text-2xl" style="">add</span>
+</div>
+<span class="text-xs font-semibold text-on-surface-variant" style="">Add</span>
+</div>
+</div>
+</div>
+<!-- Contextual Fields Grid -->
+<div class="grid grid-cols-1 gap-4">
+<!-- Date Picker Field -->
+<div class="bg-surface-container-lowest p-5 rounded-lg flex items-center justify-between shadow-sm shadow-on-surface/5 hover:bg-surface-container transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" data-icon="calendar_today" style="">calendar_today</span>
+</div>
+<div>
+<p class="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase" style="">WHEN</p>
+<p class="text-on-surface font-semibold" style="">Today, 4:20 PM</p>
+</div>
+</div>
+</div>
+<!-- DESCRIPTION Card -->
+<div class="bg-surface-container-low p-5 rounded-xl space-y-2">
+<label class="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold px-1" style="">Description</label>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-outline" data-icon="edit_note" style="">edit_note</span>
+<input class="bg-transparent border-none focus:ring-0 text-on-surface placeholder:text-outline w-full p-0 font-medium" placeholder="What was this for?" type="text">
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Keypad & Save Section -->
+<div class="fixed bottom-0 left-0 w-full bg-white rounded-t-[32px] shadow-[0_-8px_32px_rgba(23,28,31,0.08)] z-50">
+<!-- Keypad Grid -->
+<div class="p-6 grid grid-cols-4 gap-2">
+<!-- Row 1 -->
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">1</button>
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">2</button>
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">3</button>
+<button class="h-14 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-low rounded-xl transition-all" style=""><span class="material-symbols-outlined" style="">backspace</span></button>
+<!-- Row 2 -->
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">4</button>
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">5</button>
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">6</button>
+<button class="h-14 flex items-center justify-center text-2xl font-medium text-primary hover:bg-surface-container-low rounded-xl transition-all" style="">+</button>
+<!-- Row 3 -->
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">7</button>
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">8</button>
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">9</button>
+<button class="h-14 flex items-center justify-center text-2xl font-medium text-primary hover:bg-surface-container-low rounded-xl transition-all" style="">−</button>
+<!-- Row 4 -->
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">.</button>
+<button class="h-14 flex items-center justify-center text-xl font-bold text-on-surface hover:bg-surface-container-low rounded-xl transition-all" style="">0</button>
+<button class="col-span-2 h-14 bg-primary text-on-primary font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center" style="">DONE</button>
+</div>
+<!-- Primary Action Button -->
+<div class="px-6 pb-8">
+<button class="w-full h-16 bg-gradient-to-br from-primary to-primary-container text-white rounded-full font-bold text-lg shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all" style="">
+                Save Transaction
+            </button>
+</div>
+</div>
+</body></html>

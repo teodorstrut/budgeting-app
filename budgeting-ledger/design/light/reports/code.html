@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#16B8A6",
+                        "on-primary": "#FFFFFF",
+                        "primary-container": "#CCFBF1",
+                        "on-primary-container": "#115E59",
+                        "secondary": "#F59E0B",
+                        "secondary-container": "#FEF3C7",
+                        "tertiary": "#F472B6",
+                        "tertiary-container": "#FCE7F3",
+                        "surface": "#F9FAFB",
+                        "on-surface": "#111827",
+                        "surface-variant": "#F3F4F6",
+                        "on-surface-variant": "#4B5563",
+                        "outline": "#D1D5DB",
+                        "outline-variant": "#E5E7EB",
+                        "background": "#FFFFFF",
+                        "surface-container-low": "#F9FAFB",
+                        "surface-container": "#F3F4F6",
+                        "surface-container-high": "#E5E7EB",
+                        "surface-container-highest": "#D1D5DB",
+                    },
+                    fontFamily: {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Plus Jakarta Sans"],
+                        "label": ["Plus Jakarta Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #FFFFFF;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen pb-32">
+<header class="sticky top-0 z-50 flex items-center justify-between w-[calc(100%-2rem)] max-w-7xl mx-auto rounded-full mt-4 mx-4 px-4 h-16 bg-background/80 backdrop-blur-xl shadow-sm border border-outline-variant">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAx_Qtj3odIlxQfBL630nEHN4ZMGZ-c2gq1weRQ2LQ_G6w1RX1FxSkDK9na4i9MNsCcbdAuseApnN5nCKuRIqyFzSWxV2aJ7iXfWDFOz59b0SS5HapG1tC8PAvMV02oTzM0Bm2vNoCfReiXcASTUwVLip9NxdJGLljTvWslgzykEJR6-plkh3VStoLceOS2RDSecyyKK-LKB3TmITtAmUbsur2uGS8xnYqHVmGrsKIbkJ7-1Jxa5El56X1v7nzYLKnS9RzRTQwCatB5"/>
+</div>
+<span class="text-2xl font-bold tracking-tighter text-primary">Ledger</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-on-surface-variant">search</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined text-primary">settings</span>
+</button>
+</div>
+</header>
+<main class="max-w-7xl mx-auto px-6 space-y-8 pt-4">
+<section class="flex items-center justify-between bg-surface-container-low p-2 rounded-full border border-outline-variant mb-8 max-w-md mx-auto shadow-sm">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors active:scale-95 text-on-surface-variant">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<div class="flex flex-col items-center">
+<span class="text-primary font-bold text-lg tracking-tight">July 2026</span>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors active:scale-95 text-on-surface-variant">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<div class="lg:col-span-5 bg-surface-container-low p-8 rounded-lg flex flex-col items-center justify-center min-h-[400px] border border-outline-variant">
+<h3 class="text-on-surface-variant font-bold mb-8 self-start">Monthly Spending</h3>
+<div class="relative w-64 h-64">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<circle cx="18" cy="18" fill="none" r="15.9155" stroke="#E5E7EB" stroke-width="3"></circle>
+<path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#16B8A6" stroke-dasharray="70, 100" stroke-width="3"></path>
+<path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#F59E0B" stroke-dasharray="15, 100" stroke-dashoffset="-70" stroke-width="3"></path>
+<path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#F472B6" stroke-dasharray="15, 100" stroke-dashoffset="-85" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex flex-col items-center justify-center">
+<span class="text-on-surface-variant text-sm font-medium">Total Spent</span>
+<span class="text-on-surface text-3xl font-extrabold tracking-tighter">$3,420</span>
+</div>
+</div>
+<div class="mt-8 grid grid-cols-2 gap-4 w-full">
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-primary"></div>
+<span class="text-xs text-on-surface-variant">Housing (70%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<span class="text-xs text-on-surface-variant">Food (15%)</span>
+</div>
+<div class="flex items-center gap-2">
+<div class="w-3 h-3 rounded-full bg-tertiary"></div>
+<span class="text-xs text-on-surface-variant">Leisure (15%)</span>
+</div>
+</div>
+</div>
+<div class="lg:col-span-7 space-y-6">
+<div class="bg-surface-container p-8 rounded-lg border border-outline-variant">
+<h3 class="text-on-surface-variant font-bold mb-6">All Categories</h3>
+<div class="space-y-6">
+<div class="space-y-2">
+<div class="flex justify-between text-sm">
+<span class="font-bold text-on-surface">Groceries</span>
+<span class="text-on-surface-variant font-medium">$840 / $1,000</span>
+</div>
+<div class="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[84%] rounded-full"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-sm">
+<span class="font-bold text-on-surface">Entertainment</span>
+<span class="text-on-surface-variant font-medium">$420 / $500</span>
+</div>
+<div class="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-secondary w-[84%] rounded-full"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-sm">
+<span class="font-bold text-on-surface">Dining Out</span>
+<span class="text-on-surface-variant font-medium">$310 / $400</span>
+</div>
+<div class="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[77.5%] rounded-full"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-sm">
+<span class="font-bold text-on-surface">Transport</span>
+<span class="text-on-surface-variant font-medium">$180 / $200</span>
+</div>
+<div class="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[90%] rounded-full"></div>
+</div>
+</div>
+<div class="space-y-2">
+<div class="flex justify-between text-sm">
+<span class="font-bold text-on-surface">Subscriptions</span>
+<span class="text-on-surface-variant font-medium">$120 / $150</span>
+</div>
+<div class="h-3 w-full bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-tertiary w-[80%] rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<section class="bg-surface-container-low p-8 rounded-lg space-y-6 border border-outline-variant">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div>
+<h3 class="text-on-surface-variant font-bold">Spending Evolution</h3>
+<p class="text-sm text-on-surface-variant">Track your spending trends over time</p>
+</div>
+<div class="relative min-w-[180px]">
+<select class="w-full bg-surface-container-high border-none rounded-full px-4 py-2 text-sm text-on-surface focus:ring-2 focus:ring-primary appearance-none">
+<option>All Categories</option>
+<option>Groceries</option>
+<option>Entertainment</option>
+<option>Dining Out</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-lg">expand_more</span>
+</div>
+</div>
+<div class="overflow-x-auto hide-scrollbar -mx-2 px-2">
+<div class="flex gap-4 mb-8">
+<button class="flex-shrink-0 px-6 py-2 rounded-full border border-outline text-on-surface-variant text-sm font-semibold hover:border-primary transition-colors">Mar</button>
+<button class="flex-shrink-0 px-6 py-2 rounded-full border border-outline text-on-surface-variant text-sm font-semibold hover:border-primary transition-colors">Apr</button>
+<button class="flex-shrink-0 px-6 py-2 rounded-full border border-outline text-on-surface-variant text-sm font-semibold hover:border-primary transition-colors">May</button>
+<button class="flex-shrink-0 px-6 py-2 rounded-full border border-outline text-on-surface-variant text-sm font-semibold hover:border-primary transition-colors">Jun</button>
+<button class="flex-shrink-0 px-6 py-2 rounded-full bg-primary text-on-primary text-sm font-bold shadow-lg shadow-primary/20">Jul (Today)</button>
+</div>
+</div>
+<div class="h-64 relative w-full pt-4">
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 400 100">
+<defs>
+<lineargradient id="grad1" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#16B8A6;stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:#16B8A6;stop-opacity:0.6"></stop>
+</lineargradient>
+</defs>
+<line stroke="#E5E7EB" stroke-width="1" x1="0" x2="400" y1="20" y2="20"></line>
+<line stroke="#E5E7EB" stroke-width="1" x1="0" x2="400" y1="50" y2="50"></line>
+<line stroke="#E5E7EB" stroke-width="1" x1="0" x2="400" y1="80" y2="80"></line>
+<rect fill="url(#grad1)" height="20" opacity="0.4" rx="4" width="30" x="15" y="80"></rect>
+<rect fill="url(#grad1)" height="35" opacity="0.4" rx="4" width="30" x="95" y="65"></rect>
+<rect fill="url(#grad1)" height="60" opacity="0.6" rx="4" width="30" x="185" y="40"></rect>
+<rect fill="url(#grad1)" height="45" opacity="0.6" rx="4" width="30" x="285" y="55"></rect>
+<rect class="shadow-lg shadow-primary/20" fill="#16B8A6" height="85" rx="4" width="30" x="375" y="15"></rect>
+</svg>
+<div class="flex justify-between mt-4 text-[10px] text-on-surface-variant font-bold px-2">
+<span class="w-[30px] text-center">MAR</span>
+<span class="w-[30px] text-center">APR</span>
+<span class="w-[30px] text-center">MAY</span>
+<span class="w-[30px] text-center">JUN</span>
+<span class="w-[30px] text-center text-primary">JUL</span>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white border-t border-outline-variant rounded-t-[32px] md:hidden shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:text-primary transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold">Ledger</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:text-primary transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold">Split</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:text-primary transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold">Growth</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary text-white rounded-full px-6 py-2 active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold">Reports</span>
+</a>
+</nav>
+</body></html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "surface-dim": "#f1f5f9",
+              "inverse-primary": "#6feee1",
+              "tertiary": "#f472b6",
+              "tertiary-container": "#fbcfe8",
+              "on-primary": "#ffffff",
+              "on-secondary": "#ffffff",
+              "surface-container-high": "#e2e8f0",
+              "on-background": "#0f172a",
+              "error-container": "#fee2e2",
+              "on-secondary-fixed": "#451a03",
+              "on-tertiary": "#ffffff",
+              "tertiary-fixed": "#fce7f3",
+              "secondary-fixed": "#fef3c7",
+              "on-error-container": "#991b1b",
+              "surface-variant": "#f8fafc",
+              "on-primary-fixed-variant": "#0d9488",
+              "on-error": "#ffffff",
+              "on-secondary-container": "#92400e",
+              "surface-container-lowest": "#ffffff",
+              "surface-container-highest": "#cbd5e1",
+              "primary-container": "#99f6e4",
+              "primary-fixed": "#2dd4bf",
+              "on-surface-variant": "#64748b",
+              "tertiary-fixed-dim": "#f9a8d4",
+              "on-primary-fixed": "#134e4a",
+              "outline-variant": "#cbd5e1",
+              "primary": "#0d9488",
+              "on-primary-container": "#134e4a",
+              "surface-container-low": "#f8fafc",
+              "error": "#ef4444",
+              "on-tertiary-fixed": "#500724",
+              "on-secondary-fixed-variant": "#92400e",
+              "secondary": "#d97706",
+              "inverse-surface": "#0f172a",
+              "surface-container": "#ffffff",
+              "outline": "#94a3b8",
+              "on-tertiary-container": "#701a75",
+              "on-surface": "#0f172a",
+              "secondary-container": "#fef3c7",
+              "surface-bright": "#ffffff",
+              "surface": "#f8fafc",
+              "on-tertiary-fixed-variant": "#9d174d",
+              "background": "#f8fafc",
+              "surface-tint": "#0d9488",
+              "inverse-on-surface": "#f8fafc",
+              "primary-fixed-dim": "#5adace",
+              "secondary-fixed-dim": "#fbbf24"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans"],
+              "body": ["Plus Jakarta Sans"],
+              "label": ["Plus Jakarta Sans"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      body { font-family: 'Plus Jakarta Sans', sans-serif; }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(20px);
+      }
+      input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 20px;
+        width: 20px;
+        border-radius: 50%;
+        background: #0d9488;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(13, 148, 136, 0.2);
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- Top Navigation Anchor -->
+<header class="sticky top-0 z-50 flex items-center justify-between w-[calc(100%-2rem)] max-w-7xl mx-auto rounded-full mt-4 px-4 h-16 bg-white/60 backdrop-blur-xl shadow-[0_8px_32px_rgba(13,148,136,0.06)]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container-highest">
+<img class="w-full h-full object-cover" data-alt="professional male portrait with clean lighting and neutral background for user profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAps4BFEXFKh5Ot4YDqPTUo7zCemHjF3ZSb2D_hANKp4EkVIZWo8lBbnLHT8UgQbxQvEeZolLMycgMrdgDm1MpF86m6lr94R5SBAS-M-Tc2AIL3NznKCt4ENRRJinjIR3Z0G65tzAzOuBNIolXWB2_r8F3znVfTaz8dGAYI2Ykoanz3uXXbI1Ao4FDhYCOv9C1JJB6UBnVHXn86_YOUXEUd64rBAIYDKnvf1cY3VL2inUs_d8hs0lEQx1kF8GRz8QbYKgibusnXuIaq"/>
+</div>
+<span class="text-2xl font-bold tracking-tighter text-primary">Ledger</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high/50 transition-colors active:scale-95 duration-200 text-on-surface-variant">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</header>
+<main class="max-w-xl mx-auto px-6 pt-12">
+<!-- Hero Section: Total Amount -->
+<section class="mb-12 text-center">
+<label class="block text-on-surface-variant font-semibold tracking-wide uppercase text-[10px] mb-2">Total Bill Amount</label>
+<div class="relative inline-block">
+<span class="absolute left-0 top-1/2 -translate-y-1/2 text-primary font-extrabold text-4xl">$</span>
+<input class="bg-transparent border-none focus:ring-0 text-6xl font-extrabold tracking-tighter text-on-surface text-center pl-8 w-full max-w-[320px]" type="text" value="1,240.00"/>
+</div>
+</section>
+<!-- Allocation Status -->
+<section class="mb-10 p-6 rounded-lg bg-surface-container border border-surface-container-high shadow-sm">
+<div class="flex justify-between items-end mb-4">
+<div>
+<h2 class="text-headline-md font-bold tracking-tight">Allocation Status</h2>
+<p class="text-on-surface-variant text-sm font-medium">75% Assigned</p>
+</div>
+<div class="text-right">
+<p class="text-secondary font-bold text-lg">$310.00</p>
+<p class="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest">Remaining</p>
+</div>
+</div>
+<div class="h-3 w-full bg-surface-container-high rounded-full overflow-hidden flex">
+<div class="h-full bg-primary" style="width: 45%"></div>
+<div class="h-full bg-tertiary-container" style="width: 20%"></div>
+<div class="h-full bg-secondary-container" style="width: 10%"></div>
+<div class="h-full bg-surface-container-highest" style="width: 25%"></div>
+</div>
+<div class="mt-4 flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+<div class="flex items-center gap-2 flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="text-xs text-on-surface-variant font-semibold">Housing</span>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-tertiary-container"></span>
+<span class="text-xs text-on-surface-variant font-semibold">Utilities</span>
+</div>
+<div class="flex items-center gap-2 flex-shrink-0">
+<span class="w-2 h-2 rounded-full bg-secondary-container"></span>
+<span class="text-xs text-on-surface-variant font-semibold">Dining</span>
+</div>
+</div>
+</section>
+<!-- Split Categories -->
+<div class="space-y-4">
+<!-- Category Card 1 -->
+<div class="p-5 rounded-lg bg-surface-container border border-surface-container-high flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface">Housing</h3>
+<p class="text-xs text-on-surface-variant font-medium">45% of total</p>
+</div>
+</div>
+<div class="text-right">
+<input class="bg-surface-container-high border-none rounded-full w-24 text-right px-3 py-1 font-bold text-sm focus:ring-2 focus:ring-primary" type="text" value="$558.00"/>
+</div>
+</div>
+<input class="w-full h-1.5 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-primary" max="100" min="0" type="range" value="45"/>
+</div>
+<!-- Category Card 2 -->
+<div class="p-5 rounded-lg bg-surface-container border border-surface-container-high flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">electric_bolt</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface">Utilities</h3>
+<p class="text-xs text-on-surface-variant font-medium">20% of total</p>
+</div>
+</div>
+<div class="text-right">
+<input class="bg-surface-container-high border-none rounded-full w-24 text-right px-3 py-1 font-bold text-sm focus:ring-2 focus:ring-primary" type="text" value="$248.00"/>
+</div>
+</div>
+<input class="w-full h-1.5 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-primary" max="100" min="0" type="range" value="20"/>
+</div>
+<!-- Category Card 3 -->
+<div class="p-5 rounded-lg bg-surface-container border border-surface-container-high flex flex-col gap-4">
+<div class="flex justify-between items-center">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-secondary-container/30 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">restaurant</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface">Dining</h3>
+<p class="text-xs text-on-surface-variant font-medium">10% of total</p>
+</div>
+</div>
+<div class="text-right">
+<input class="bg-surface-container-high border-none rounded-full w-24 text-right px-3 py-1 font-bold text-sm focus:ring-2 focus:ring-primary" type="text" value="$124.00"/>
+</div>
+</div>
+<input class="w-full h-1.5 bg-surface-container-high rounded-lg appearance-none cursor-pointer accent-primary" max="100" min="0" type="range" value="10"/>
+</div>
+<!-- Leftovers Action -->
+<button class="w-full py-6 px-5 rounded-lg bg-surface-container-low border-2 border-dashed border-outline-variant flex items-center justify-between group hover:border-primary/50 transition-all">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">add_circle</span>
+</div>
+<div class="text-left">
+<h3 class="font-bold text-on-surface-variant group-hover:text-on-surface">Assign Leftovers</h3>
+<p class="text-xs text-on-surface-variant/60 font-medium">$310.00 unallocated</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</button>
+</div>
+<!-- Finalize Action Container -->
+<div class="mt-12 mb-8">
+<button class="w-full h-16 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white font-bold text-lg flex items-center justify-center gap-2 shadow-[0_16px_32px_rgba(13,148,136,0.2)] active:scale-95 transition-transform">
+<span>Finalize Split</span>
+<span class="material-symbols-outlined">rocket_launch</span>
+</button>
+</div>
+</main>
+<!-- Bottom Navigation Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white border-t border-surface-container-high rounded-t-[32px] shadow-[0_-8px_32px_rgba(0,0,0,0.04)]">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:text-primary transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold">Ledger</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-primary text-white rounded-full px-6 py-2 active:scale-90 duration-200 shadow-lg shadow-primary/20" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold">Split</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:text-primary transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold">Growth</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:text-primary transition-all active:scale-90 duration-200" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold">Reports</span>
+</a>
+</nav>
+</body></html>

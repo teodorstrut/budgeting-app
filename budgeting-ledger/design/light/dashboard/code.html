@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Balance Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              colors: {
+                "on-tertiary": "#ffffff",
+                "surface-container-highest": "#dfe3e7",
+                "primary-fixed": "#71f8e4",
+                "on-tertiary-fixed": "#221b00",
+                "on-primary-fixed": "#00201c",
+                "surface-tint": "#16b8a6",
+                "outline": "#6c7a77",
+                "primary-container": "#16b8a6",
+                "secondary": "#a43c12",
+                "inverse-on-surface": "#edf1f5",
+                "error": "#ba1a1a",
+                "inverse-surface": "#2c3134",
+                "surface-dim": "#f6fafe",
+                "surface-container-lowest": "#ffffff",
+                "primary": "#16b8a6",
+                "surface": "#f6fafe",
+                "outline-variant": "#bbcac6",
+                "on-surface": "#171c1f",
+                "surface-variant": "#dfe3e7",
+                "tertiary-fixed-dim": "#e9c400",
+                "primary-fixed-dim": "#50dbc8",
+                "on-secondary-container": "#6b1f00",
+                "surface-container-low": "#f0f4f8",
+                "secondary-fixed-dim": "#ffb59c",
+                "on-tertiary-fixed-variant": "#544600",
+                "inverse-primary": "#50dbc8",
+                "on-secondary-fixed-variant": "#822800",
+                "tertiary": "#705d00",
+                "secondary-fixed": "#ffdbcf",
+                "on-primary": "#ffffff",
+                "on-error-container": "#93000a",
+                "tertiary-fixed": "#ffe16d",
+                "on-secondary-fixed": "#380c00",
+                "surface-container-high": "#e4e9ed",
+                "on-error": "#ffffff",
+                "tertiary-container": "#c1a200",
+                "on-background": "#171c1f",
+                "surface-bright": "#f6fafe",
+                "on-primary-container": "#00423b",
+                "secondary-container": "#fe7e4f",
+                "surface-container": "#eaeef2",
+                "on-tertiary-container": "#463900",
+                "on-surface-variant": "#3c4947",
+                "on-secondary": "#ffffff",
+                "on-primary-fixed-variant": "#005048",
+                "error-container": "#ffdad6",
+                "background": "#f6fafe"
+              },
+              fontFamily: {
+                "headline": ["Plus Jakarta Sans"],
+                "body": ["Plus Jakarta Sans"],
+                "label": ["Plus Jakarta Sans"]
+              },
+              borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+            },
+          },
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar: Structural Twin of SCREEN_50 header -->
+<header class="sticky top-0 z-50 flex items-center justify-between w-[calc(100%-2rem)] max-w-7xl mx-auto rounded-full mt-4 mx-4 px-4 h-16 bg-white/60 backdrop-blur-xl shadow-[0_48px_48px_rgba(22,184,166,0.08)]">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden border-2 border-primary/20">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="professional headshot of a smiling young man in a clean office environment with soft natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmXiesgvuAyL5_CUBlvsh8PeMcMQOheU6fkoU9Cct66K2YxpbFBCRDimhauzEQNbXtQ4hZaPxolXtHSdxqd0DpXnJULREL-yE2n-Cg7P9ZgYw7P_spu5I9wnzoRYE8Hrtg9el43A9ngyf9YoNNyEY6HGU--wRdReIl4rcMsMyNDtL4PvbOr0JVO-zeuXm5ykA1jis6eZIEEn3rYMSIzTwQ7UHM8p2H_ISB9BQuwu6CdEZoaMFWNDtON4cbqhRQoE_kPK8Jqc_PwYdu" style=""/>
+</div>
+<span class="text-2xl font-bold tracking-tighter text-primary font-headline" style="">Ledger<br/></span>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<button class="text-primary font-semibold" style="">Ledger</button>
+<button class="text-on-surface-variant font-semibold hover:text-primary transition-colors" style="">Split</button>
+<button class="text-on-surface-variant font-semibold hover:text-primary transition-colors" style="">Growth</button>
+<button class="text-on-surface-variant font-semibold hover:text-primary transition-colors" style="">Reports</button>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container transition-colors active:scale-95 duration-200" style="">
+<span class="material-symbols-outlined text-primary" style="">settings</span>
+</button>
+</header>
+<main class="max-w-7xl mx-auto px-6 mt-12 space-y-12">
+<!-- Hero: Balance Pill (Twin of SCREEN_50 hero section) -->
+<section class="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
+<div class="space-y-4">
+<h1 class="text-on-surface-variant font-medium tracking-tight" style="">Current Portfolio</h1>
+<div class="inline-flex items-center px-10 py-6 bg-gradient-to-br from-primary-container to-primary rounded-full shadow-lg">
+<span class="text-on-primary text-5xl md:text-7xl font-extrabold tracking-[-0.04em]" style="">$42,850.24</span>
+</div>
+</div>
+<div class="flex gap-4">
+<div class="bg-surface-container-low p-6 rounded-lg min-w-[180px] border border-surface-container">
+<p class="text-on-surface-variant text-sm font-medium mb-1 text-[10px]" style="">Daily Spend</p>
+<p class="text-primary text-2xl font-bold" style="">$142.00</p>
+</div>
+<div class="bg-surface-container-low p-6 rounded-lg min-w-[180px] border border-surface-container">
+<p class="text-on-surface-variant text-sm font-medium mb-1 text-[10px]" style="">Monthly Saved</p>
+<p class="text-secondary text-2xl font-bold" style="">$2,405.00</p>
+</div>
+</div>
+</section>
+<!-- Bento Grid Section: Budget Health (Twin of SCREEN_50 middle section) -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Budget Health (7 columns) -->
+<section class="md:col-span-7 bg-white border border-surface-container rounded-lg p-8">
+<div class="flex items-center justify-between mb-8">
+<h2 class="text-2xl font-bold tracking-tight text-on-surface" style="">Budget Health</h2>
+<span class="text-primary text-sm font-bold bg-primary/10 px-4 py-1 rounded-full" style="">On Track</span>
+</div>
+<div class="space-y-8">
+<!-- Food & Dining -->
+<div class="space-y-3">
+<div class="flex justify-between text-sm font-semibold">
+<span class="text-on-surface" style="">Food &amp; Dining</span>
+<span class="text-on-surface-variant" style="">$850 / $1,200</span>
+</div>
+<div class="h-3 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full w-[70%]"></div>
+</div>
+</div>
+<!-- Leisure -->
+<div class="space-y-3">
+<div class="flex justify-between text-sm font-semibold">
+<span class="text-on-surface" style="">Leisure</span>
+<span class="text-on-surface-variant" style="">$420 / $400</span>
+</div>
+<div class="h-3 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full w-[100%]"></div>
+</div>
+</div>
+<!-- Bills -->
+<div class="space-y-3">
+<div class="flex justify-between text-sm font-semibold">
+<span class="text-on-surface" style="">Bills</span>
+<span class="text-on-surface-variant" style="">$1,200 / $1,200</span>
+</div>
+<div class="h-3 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-tertiary-container rounded-full w-[100%]"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Twin of the "Add Transaction" float trigger space in grid -->
+<div class="md:col-span-5 flex flex-col gap-6">
+<!-- Add Transaction Card (Sticky/Floating Twin) -->
+<button class="group fixed bottom-24 right-6 left-6 md:right-12 md:left-auto md:w-80 z-40 bg-white p-4 rounded-full border border-primary/20 shadow-2xl active:scale-95 transition-transform" style="">
+<div class="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-full"></div>
+<div class="flex items-center justify-between relative z-10 gap-4">
+<div class="text-left ml-2">
+<h3 class="text-base font-bold text-on-surface" style="">Add Transaction</h3>
+<p class="text-on-surface-variant text-[10px]" style="">Record expense or income</p>
+</div>
+<div class="w-10 h-10 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg group-hover:shadow-primary/20">
+<span class="material-symbols-outlined font-bold text-2xl" style="">add</span>
+</div>
+</div>
+</button>
+</div>
+</div>
+<!-- Recent Activity: Asymmetric Layout (Twin of SCREEN_50 bottom section) -->
+<section class="space-y-6">
+<h2 class="text-2xl font-bold tracking-tight text-on-surface px-2" style="">Recent Activity</h2>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="flex items-center justify-between bg-white border border-surface-container rounded-full hover:bg-surface-container-low transition-colors cursor-pointer group py-4 px-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" style="">shopping_bag</span>
+</div>
+<div>
+<p class="font-bold text-on-surface" style="">Whole Foods Market</p>
+<p class="text-xs text-on-surface-variant" style="">Groceries • 2h ago</p>
+</div>
+</div>
+<div class="text-right px-4">
+<p class="font-bold text-on-surface" style="">-$64.20</p>
+</div>
+</div>
+<div class="flex items-center justify-between bg-white border border-surface-container rounded-full hover:bg-surface-container-low transition-colors cursor-pointer group py-4 px-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" style="">account_balance</span>
+</div>
+<div>
+<p class="font-bold text-on-surface" style="">Monthly Salary</p>
+<p class="text-xs text-on-surface-variant" style="">Income • Yesterday</p>
+</div>
+</div>
+<div class="text-right px-4">
+<p class="font-bold text-primary" style="">+$4,200.00</p>
+</div>
+</div>
+<div class="flex items-center justify-between bg-white border border-surface-container rounded-full hover:bg-surface-container-low transition-colors cursor-pointer group py-4 px-6">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center text-secondary group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" style="">coffee</span>
+</div>
+<div>
+<p class="font-bold text-on-surface" style="">Blue Bottle Coffee</p>
+<p class="text-xs text-on-surface-variant" style="">Dining • 5h ago</p>
+</div>
+</div>
+<div class="text-right px-4">
+<p class="font-bold text-on-surface" style="">-$12.50</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar: Structural Twin of SCREEN_50 nav -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-white border-t border-surface-container rounded-t-[32px] shadow-[0_-8px_32px_rgba(0,0,0,0.05)]">
+<button class="flex flex-col items-center justify-center bg-primary text-on-primary rounded-full px-6 py-2 active:scale-90 duration-200" style="">
+<span class="material-symbols-outlined" style="">account_balance_wallet</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold" style="">Ledger</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:text-primary transition-all active:scale-90 duration-200" style="">
+<span class="material-symbols-outlined" style="">group</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold" style="">Split</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:text-primary transition-all active:scale-90 duration-200" style="">
+<span class="material-symbols-outlined" style="">trending_up</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold" style="">Growth</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-6 py-2 hover:text-primary transition-all active:scale-90 duration-200" style="">
+<span class="material-symbols-outlined" style="">analytics</span>
+<span class="font-['Plus_Jakarta_Sans'] text-xs font-semibold" style="">Reports</span>
+</button>
+</nav>
+</body></html>
