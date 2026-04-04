@@ -66,6 +66,13 @@ export default function Index() {
   );
 
   const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
+  const navigateToEdit = (transaction: Transaction) => {
+    if (transaction.id == null) {
+      return;
+    }
+
+    router.push({ pathname: '/add', params: { editId: transaction.id.toString() } });
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
@@ -98,7 +105,11 @@ export default function Index() {
           />
         </View>
 
-        <TransactionList transactions={recentTransactions} title="Recent Transactions This Month" />
+        <TransactionList
+          transactions={recentTransactions}
+          title="Recent Transactions This Month"
+          onTransactionPress={navigateToEdit}
+        />
       </ScrollView>
 
       <AddTransactionButton />

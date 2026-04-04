@@ -1,19 +1,25 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Transaction } from '../../database/repositories/transactionRepository';
 import { useTheme } from '../../providers/ThemeProvider';
-import { formatAmount } from '../../utils/formatting';
+import { formatAmount, formatTime } from '../../utils/formatting';
+
+type DateDisplayMode = 'relative' | 'time';
 
 interface TransactionItemProps {
   transaction: Transaction;
   categoryEmoji?: string;
   categoryName?: string;
+  onPress?: (transaction: Transaction) => void;
+  dateDisplayMode?: DateDisplayMode;
 }
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({
   transaction,
   categoryEmoji,
   categoryName,
+  onPress,
+  dateDisplayMode = 'relative',
 }) => {
   const { theme } = useTheme();
 
@@ -55,8 +61,15 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
     return `${months} ${months === 1 ? 'month' : 'months'} ago`;
   };
 
+  const dateLabel = dateDisplayMode === 'time' ? formatTime(transaction.date) : formatDate(transaction.date);
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surfaceContainerLow }]}>
+    <TouchableOpacity
+      style={[styles.container, { backgroundColor: theme.colors.surfaceContainerLow }]}
+      onPress={onPress ? () => onPress(transaction) : undefined}
+      activeOpacity={onPress ? 0.75 : 1}
+      disabled={!onPress}
+    >
       <View style={styles.leftSection}>
         <View
           style={[
@@ -74,14 +87,14 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
               <Text style={[styles.metaText, { color: theme.colors.outline }]}>{categoryName}</Text>
             ) : null}
             {categoryName ? <Text style={[styles.metaDivider, { color: theme.colors.outline }]}>•</Text> : null}
-            <Text style={[styles.metaText, { color: theme.colors.outline }]}>{formatDate(transaction.date)}</Text>
+            <Text style={[styles.metaText, { color: theme.colors.outline }]}>{dateLabel}</Text>
           </View>
         </View>
       </View>
       <Text style={[styles.amount, { color: transaction.type === 'income' ? theme.colors.primary : theme.colors.secondary }]}>
         {formatAmount(transaction.amount, transaction.type)}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 

@@ -8,9 +8,16 @@ import { categoryRepository } from '../../database/repositories/categoryReposito
 interface TransactionListProps {
   transactions: Transaction[];
   title?: string;
+  onTransactionPress?: (transaction: Transaction) => void;
+  dateDisplayMode?: 'relative' | 'time';
 }
 
-export const TransactionList: React.FC<TransactionListProps> = ({ transactions, title }) => {
+export const TransactionList: React.FC<TransactionListProps> = ({
+  transactions,
+  title,
+  onTransactionPress,
+  dateDisplayMode = 'relative',
+}) => {
   const { theme } = useTheme();
   const categoriesById = new Map(
     categoryRepository.getAll().map((category) => [category.id, category])
@@ -33,6 +40,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
           transaction={item}
           categoryEmoji={item.categoryId != null ? categoriesById.get(item.categoryId)?.emoji : undefined}
           categoryName={item.categoryId != null ? categoriesById.get(item.categoryId)?.name : undefined}
+          onPress={onTransactionPress}
+          dateDisplayMode={dateDisplayMode}
         />
       ))}
     </View>

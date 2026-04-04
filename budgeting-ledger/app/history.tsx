@@ -14,11 +14,12 @@ import { useTheme } from '../providers/ThemeProvider';
 import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
 import { AddTransactionButton } from '../components/layout/AddTransactionButton';
+import { TransactionItem } from '../components/data/TransactionItem';
 import { transactionService } from '../services/transactionService';
 import { categoryRepository } from '../database/repositories/categoryRepository';
 import { Transaction } from '../database/repositories/transactionRepository';
 import db from '../database/connection';
-import { parseMaybeDate, formatAmount, formatTime } from '../utils/formatting';
+import { parseMaybeDate } from '../utils/formatting';
 
 interface GroupedTransactions {
   key: string;
@@ -238,45 +239,16 @@ export default function History() {
                 <View style={styles.dayItemsWrap}>
                   {group.items.map((transaction) => {
                     const category = transaction.categoryId != null ? categoriesById.get(transaction.categoryId) : undefined;
-                    const transactionName = transaction.note || 'Untitled transaction';
 
                     return (
-                      <TouchableOpacity
+                      <TransactionItem
                         key={transaction.id?.toString() || `${transaction.amount}-${transaction.date}`}
-                        style={[styles.transactionRow, { backgroundColor: theme.colors.surfaceContainerLow }]}
-                        onPress={() => navigateToEdit(transaction)}
-                        activeOpacity={0.7}
-                      >
-                        <View style={styles.transactionLeftWrap}>
-                          <View style={[styles.categoryBadge, { backgroundColor: theme.colors.surfaceContainerHighest, borderColor: transaction.type === 'income' ? theme.colors.primary : theme.colors.secondary }]}>
-                            <Text style={styles.categoryEmoji}>{category?.emoji || '•'}</Text>
-                          </View>
-
-                          <View style={styles.transactionTextWrap}>
-                            <Text numberOfLines={1} style={[styles.transactionTitle, { color: theme.colors.onSurface }]}>
-                              {transactionName}
-                            </Text>
-                            <Text style={[styles.transactionMeta, { color: theme.colors.onSurfaceVariant }]}>
-                              {category?.name || 'Uncategorized'} • {formatTime(transaction.date)}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <View style={styles.amountAndMenuWrap}>
-                          <Text
-                            style={[
-                              styles.amount,
-                              {
-                                color:
-                                  transaction.type === 'income' ? theme.colors.primary : theme.colors.onSurface,
-                              },
-                            ]}
-                          >
-                            {formatAmount(transaction.amount, transaction.type)}
-                          </Text>
-                            <FontAwesome name="angle-right" size={14} color={theme.colors.outline} style={styles.chevron} />
-                        </View>
-                        </TouchableOpacity>
+                        transaction={transaction}
+                        categoryEmoji={category?.emoji}
+                        categoryName={category?.name || 'Uncategorized'}
+                        onPress={navigateToEdit}
+                        dateDisplayMode="time"
+                      />
                     );
                   })}
                 </View>

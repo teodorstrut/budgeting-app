@@ -8,8 +8,10 @@ import {
   ScrollView,
   Alert,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../providers/ThemeProvider';
 import { transactionService } from '../services/transactionService';
 import { categoryRepository } from '../database/repositories/categoryRepository';
@@ -22,6 +24,7 @@ import { transactionRepository } from '../database/repositories/transactionRepos
 
 export default function AddTransaction() {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ editId?: string }>();
   const editId = params.editId ? Number.parseInt(params.editId, 10) : undefined;
@@ -125,8 +128,15 @@ export default function AddTransaction() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.colors.surface }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
+    >
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 16, 32) }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Header
           title={isEditing ? 'Edit Transaction' : 'Add Transaction'}
           titleColor={theme.colors.primary}
@@ -137,7 +147,7 @@ export default function AddTransaction() {
           containerStyle={styles.addHeaderSpacing}
         />
 
-        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerHigh }]}>
+        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerHigh }]}> 
           <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Amount</Text>
           <View style={styles.amountRow}>
             <TextInput
@@ -214,24 +224,33 @@ export default function AddTransaction() {
 
           <TransactionDateTimeField value={date} onChange={setDate} />
         </View>
-      </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: theme.colors.surfaceContainerHigh, borderColor: theme.colors.outlineVariant }]}>
-        <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.primary }]} onPress={handleSave}>
-          <Text style={[styles.saveButtonText, { color: theme.colors.onPrimary }]}>
-            {isEditing ? 'Update Transaction' : 'Save Transaction'}
-          </Text>
-        </TouchableOpacity>
-        {isEditing && (
-          <TouchableOpacity
-            style={[styles.deleteButton, { borderColor: theme.colors.secondary }]}
-            onPress={handleDelete}
-          >
-            <FontAwesome name="trash" size={14} color={theme.colors.secondary} style={{ padding: 12 }} />
+        <View
+          style={[
+            styles.footer,
+            {
+              backgroundColor: theme.colors.surfaceContainerHigh,
+              borderColor: theme.colors.outlineVariant,
+              marginBottom: insets.bottom,
+            },
+          ]}
+        > 
+          <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.primary }]} onPress={handleSave}>
+            <Text style={[styles.saveButtonText, { color: theme.colors.onPrimary }]}>
+              {isEditing ? 'Update Transaction' : 'Save Transaction'}
+            </Text>
           </TouchableOpacity>
-        )}
-      </View>
-    </View>
+          {isEditing && (
+            <TouchableOpacity
+              style={[styles.deleteButton, { borderColor: theme.colors.secondary }]}
+              onPress={handleDelete}
+            >
+              <FontAwesome name="trash" size={14} color={theme.colors.secondary} style={{ padding: 12 }} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -239,7 +258,6 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: {
     padding: 16,
-    paddingBottom: 200,
   },
   addHeaderSpacing: {
     marginBottom: 18,
@@ -298,12 +316,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+    marginTop: 16,
     padding: 16,
-    borderTopWidth: 1,
+    borderWidth: 1,
+    borderRadius: 24,
     display: 'flex',
     flexDirection: 'row',
     alignItems: 'center',
