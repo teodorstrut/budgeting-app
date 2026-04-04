@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../providers/ThemeProvider';
 import { Header } from '../components/layout/Header';
@@ -30,88 +30,90 @@ export default function Settings() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
-      <Header
-        title="Settings"
-        showBackButton
-        onBackPress={() => router.back()}
-      />
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <Header
+          title="Settings"
+          showBackButton
+          onBackPress={() => router.back()}
+        />
 
-      <View style={styles.content}>
-        <Text style={[styles.pageTitle, { color: theme.colors.onSurface }]}>Settings</Text>
-        <Text style={[styles.pageSubtitle, { color: theme.colors.onSurfaceVariant }]}>Configure your workspace and financial flow.</Text>
+        <View style={styles.content}>
+          <Text style={[styles.pageTitle, { color: theme.colors.onSurface }]}>Settings</Text>
+          <Text style={[styles.pageSubtitle, { color: theme.colors.onSurfaceVariant }]}>Configure your workspace and financial flow.</Text>
 
-        <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}> 
-          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Preferences</Text>
+          <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}> 
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Preferences</Text>
 
-          <View style={styles.preferenceRow}>
-            <View style={styles.preferenceCopy}>
-              <Text style={[styles.preferenceTitle, { color: theme.colors.onSurface }]}>Appearance</Text>
-              <Text style={[styles.preferenceSubtitle, { color: theme.colors.onSurfaceVariant }]}>Switch between visual modes</Text>
-            </View>
+            <View style={styles.preferenceRow}>
+              <View style={styles.preferenceCopy}>
+                <Text style={[styles.preferenceTitle, { color: theme.colors.onSurface }]}>Appearance</Text>
+                <Text style={[styles.preferenceSubtitle, { color: theme.colors.onSurfaceVariant }]}>Switch between visual modes</Text>
+              </View>
 
-            <View style={[styles.toggleShell, { backgroundColor: theme.colors.surfaceContainerHigh }]}>
-              <TouchableOpacity
-                style={[
-                  styles.toggleOption,
-                  colorScheme === 'dark' ? { backgroundColor: theme.colors.primary } : null,
-                ]}
-                onPress={() => setColorScheme('dark')}
-                activeOpacity={0.85}
-              >
-                <Text
+              <View style={[styles.toggleShell, { backgroundColor: theme.colors.surfaceContainerHigh }]}>
+                <TouchableOpacity
                   style={[
-                    styles.toggleText,
-                    { color: colorScheme === 'dark' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant },
+                    styles.toggleOption,
+                    colorScheme === 'dark' ? { backgroundColor: theme.colors.primary } : null,
                   ]}
+                  onPress={() => setColorScheme('dark')}
+                  activeOpacity={0.85}
                 >
-                  Dark
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.toggleOption,
-                  colorScheme === 'light' ? { backgroundColor: theme.colors.primary } : null,
-                ]}
-                onPress={() => setColorScheme('light')}
-                activeOpacity={0.85}
-              >
-                <Text
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      { color: colorScheme === 'dark' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant },
+                    ]}
+                  >
+                    Dark
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
                   style={[
-                    styles.toggleText,
-                    { color: colorScheme === 'light' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant },
+                    styles.toggleOption,
+                    colorScheme === 'light' ? { backgroundColor: theme.colors.primary } : null,
                   ]}
+                  onPress={() => setColorScheme('light')}
+                  activeOpacity={0.85}
                 >
-                  Light
-                </Text>
-              </TouchableOpacity>
+                  <Text
+                    style={[
+                      styles.toggleText,
+                      { color: colorScheme === 'light' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant },
+                    ]}
+                  >
+                    Light
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
 
-        <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Developer Tools</Text>
+          <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Developer Tools</Text>
 
-          <TouchableOpacity
-            style={[styles.resetButton, { backgroundColor: theme.colors.secondary, borderColor: theme.colors.secondary }]}
-            onPress={handleReset}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.resetButtonText, { color: theme.colors.onSecondary ?? '#fff' }]}>
-              Reset &amp; Reseed Database
+            <TouchableOpacity
+              style={[styles.resetButton, { backgroundColor: theme.colors.secondary, borderColor: theme.colors.secondary }]}
+              onPress={handleReset}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.resetButtonText, { color: theme.colors.onSecondary ?? '#fff' }]}>
+                Reset &amp; Reseed Database
+              </Text>
+            </TouchableOpacity>
+
+            {resetDone && (
+              <Text style={[styles.successText, { color: theme.colors.primary }]}> 
+                Database reset successfully.
+              </Text>
+            )}
+
+            <Text style={[styles.hint, { color: theme.colors.outline }]}> 
+              Clears all transactions and categories, then restores default seed data.
             </Text>
-          </TouchableOpacity>
-
-          {resetDone && (
-            <Text style={[styles.successText, { color: theme.colors.primary }]}>
-              Database reset successfully.
-            </Text>
-          )}
-
-          <Text style={[styles.hint, { color: theme.colors.outline }]}>
-            Clears all transactions and categories, then restores default seed data.
-          </Text>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -120,9 +122,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
-    flex: 1,
+  scrollContent: {
     padding: 16,
+    paddingBottom: 32,
+  },
+  content: {
     paddingTop: 12,
     gap: 16,
   },

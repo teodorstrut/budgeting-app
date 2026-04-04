@@ -1,18 +1,20 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../providers/ThemeProvider';
 
 export const AddTransactionButton: React.FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <View style={{
       position: 'absolute',
       left: 16,
       right: 16,
-      bottom: 106,
+      bottom: insets.bottom + 72,
       borderRadius: 28,
       paddingVertical: 14,
       paddingHorizontal: 16,

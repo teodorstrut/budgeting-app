@@ -31,6 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
       style={[
         styles.headerRow,
         {
+          marginTop: 24,
           backgroundColor: theme.colors.surfaceContainerHigh,
           borderColor: theme.colors.outlineVariant,
           borderRadius: 24,

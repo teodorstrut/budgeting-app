@@ -125,7 +125,7 @@ export default function AddTransaction() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}> 
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Header
           title={isEditing ? 'Edit Transaction' : 'Add Transaction'}
@@ -133,11 +133,11 @@ export default function AddTransaction() {
           showBackButton
           onBackPress={() => router.back()}
           rightIconName="history"
-          onRightPress={() => {}}
+          onRightPress={() => { }}
           containerStyle={styles.addHeaderSpacing}
         />
 
-        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerHigh }]}> 
+        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerHigh }]}>
           <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Amount</Text>
           <View style={styles.amountRow}>
             <TextInput
@@ -216,7 +216,7 @@ export default function AddTransaction() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { backgroundColor: theme.colors.surfaceContainerHigh, borderColor: theme.colors.outlineVariant }]}> 
+      <View style={[styles.footer, { backgroundColor: theme.colors.surfaceContainerHigh, borderColor: theme.colors.outlineVariant }]}>
         <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.primary }]} onPress={handleSave}>
           <Text style={[styles.saveButtonText, { color: theme.colors.onPrimary }]}>
             {isEditing ? 'Update Transaction' : 'Save Transaction'}
@@ -227,8 +227,7 @@ export default function AddTransaction() {
             style={[styles.deleteButton, { borderColor: theme.colors.secondary }]}
             onPress={handleDelete}
           >
-            <FontAwesome name="trash" size={14} color={theme.colors.secondary} style={{ marginRight: 6 }} />
-            <Text style={[styles.deleteButtonText, { color: theme.colors.secondary }]}>Delete Transaction</Text>
+            <FontAwesome name="trash" size={14} color={theme.colors.secondary} style={{ padding: 12 }} />
           </TouchableOpacity>
         )}
       </View>
@@ -305,8 +304,14 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 16,
     borderTopWidth: 1,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   saveButton: {
+    flexGrow: 1,
     borderRadius: 24,
     height: 54,
     alignItems: 'center',
@@ -318,15 +323,10 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     borderRadius: 24,
-    height: 46,
+    height: 54,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
     borderWidth: 1,
-    marginTop: 10,
-  },
-  deleteButtonText: {
-    fontWeight: '600',
-    fontSize: 14,
-  },
+  }
 });

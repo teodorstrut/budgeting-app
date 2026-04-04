@@ -191,7 +191,7 @@ export default function History() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Header title="Ledger" rightIconName="cog" onRightPress={() => router.push('/settings')} />
+        <Header title="History" rightIconName="cog" onRightPress={() => router.push('/settings')} />
 
         <View style={styles.monthControlsRow}>
           <TouchableOpacity
