@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { ThemeProvider, useTheme } from "./ThemeProvider";
+import { ThemeProvider, useTheme } from "../providers/ThemeProvider";
 import { Platform } from "react-native";
 
 // Initialize database only on native platforms

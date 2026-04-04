@@ -17,19 +17,11 @@ export const transactionService = {
     transactionRepository.delete(id);
   },
 
-  getTransactionsByCategory: (categoryId: number) => {
-    // For now, filter in memory
-    const all = transactionRepository.getAll();
-    return all.filter(t => t.categoryId === categoryId);
-  },
 
-  getTransactionsByDateRange: (startDate: string, endDate: string) => {
-    const all = transactionRepository.getAll();
-    return all.filter(t => t.date >= startDate && t.date <= endDate);
-  },
-
-  getSummary: () => {
-    const transactions = transactionRepository.getAll();
+  getSummaryForDateRange: (startDate: string, endDate: string) => {
+    const transactions = transactionRepository.getAll().filter(
+      t => t.date >= startDate && t.date <= endDate
+    );
     let totalIncome = 0;
     let totalExpenses = 0;
     transactions.forEach(t => {
@@ -39,12 +31,20 @@ export const transactionService = {
         totalExpenses += t.amount;
       }
     });
-    const balance = totalIncome - totalExpenses;
-    return { totalIncome, totalExpenses, balance };
+    return { totalIncome, totalExpenses, balance: totalIncome - totalExpenses };
   },
 
   getRecentTransactions: (limit: number = 10) => {
     const transactions = transactionRepository.getAll();
     return transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, limit);
+  },
+
+  getRecentTransactionsForDateRange: (startDate: string, endDate: string, limit: number = 10) => {
+    const transactions = transactionRepository.getAll().filter(
+      t => t.date >= startDate && t.date <= endDate
+    );
+    return transactions
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, limit);
   },
 };

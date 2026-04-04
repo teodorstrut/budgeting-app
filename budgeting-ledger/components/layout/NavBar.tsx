@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
-import { useTheme } from './ThemeProvider';
+import { useTheme } from '../../providers/ThemeProvider';
 
 type NavItem = {
   label: string;

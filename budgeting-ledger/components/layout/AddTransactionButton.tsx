@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useTheme } from './ThemeProvider';
+import { useTheme } from '../../providers/ThemeProvider';
 
 export const AddTransactionButton: React.FC = () => {
   const router = useRouter();

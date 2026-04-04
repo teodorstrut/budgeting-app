@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Transaction } from '../../database/repositories/transactionRepository';
-import { useTheme } from '../../app/ThemeProvider';
+import { useTheme } from '../../providers/ThemeProvider';
+import { formatAmount } from '../../utils/formatting';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -52,11 +53,6 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 
     const months = Math.floor(diffMs / monthMs);
     return `${months} ${months === 1 ? 'month' : 'months'} ago`;
-  };
-
-  const formatAmount = (amount: number, type: string) => {
-    const sign = type === 'income' ? '+' : '-';
-    return `${sign}$${amount.toFixed(2)}`;
   };
 
   return (

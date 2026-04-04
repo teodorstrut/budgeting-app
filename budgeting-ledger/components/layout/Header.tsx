@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { useTheme } from './ThemeProvider';
+import { useTheme } from '../../providers/ThemeProvider';
 
 interface HeaderProps {
   title: string;

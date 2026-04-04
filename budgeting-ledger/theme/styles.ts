@@ -2,7 +2,7 @@
 // Based on "mint_honey_night" theme: Luminous Depth & Clarity (dark) and The Organic Editorial (light)
 
 import { StyleSheet } from 'react-native';
-import { Theme } from '../types/theme';
+import type { Theme } from '../types/theme';
 
 // Color Palettes
 export const colorSchemes = {
@@ -118,7 +118,7 @@ export const typography = {
 
 // Border Radius
 export const borderRadius = {
-  default: 16, // 1rem
+  default: 16,
   full: 9999,
 };
 
@@ -187,7 +187,7 @@ export const styles = StyleSheet.create({
 
   // Buttons
   buttonPrimary: {
-    backgroundColor: colors.primary, // Fallback, use gradient
+    backgroundColor: colors.primary,
     borderRadius: borderRadius.full,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,

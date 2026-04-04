@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { useTheme } from '../../app/ThemeProvider';
+import { useTheme } from '../../providers/ThemeProvider';
 
 interface CalculatorKeypadProps {
   visible: boolean;

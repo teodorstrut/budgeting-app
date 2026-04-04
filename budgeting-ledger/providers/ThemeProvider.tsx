@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import { Appearance } from 'react-native';
-import { Theme, themes } from './styles';
+import type { Theme } from '../types/theme';
+import { themes } from '../theme/styles';
 import db from '../database/connection';
 
 type AppColorScheme = 'light' | 'dark';

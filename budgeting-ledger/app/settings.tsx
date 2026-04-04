@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useTheme } from './ThemeProvider';
-import { Header } from './Header';
+import { useTheme } from '../providers/ThemeProvider';
+import { Header } from '../components/layout/Header';
 import { resetAndReseed } from '../database/schema';
 
 export default function Settings() {

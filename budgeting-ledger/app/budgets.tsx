@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { useTheme } from './ThemeProvider';
-import { NavBar } from './NavBar';
+import { useTheme } from '../providers/ThemeProvider';
+import { NavBar } from '../components/layout/NavBar';
 
 export default function Budgets() {
   const { theme } = useTheme();

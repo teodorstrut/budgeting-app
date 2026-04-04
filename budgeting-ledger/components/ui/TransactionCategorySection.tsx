@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useTheme } from '../../app/ThemeProvider';
+import { useTheme } from '../../providers/ThemeProvider';
 import { Category } from '../../database/repositories/categoryRepository';
 import { transactionService } from '../../services/transactionService';
 

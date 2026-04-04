@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useTheme } from '../../app/ThemeProvider';
+import { useTheme } from '../../providers/ThemeProvider';
+import { formatTime } from '../../utils/formatting';
 
 interface TransactionDateTimeFieldProps {
   value: Date;
@@ -18,7 +19,12 @@ export const TransactionDateTimeField: React.FC<TransactionDateTimeFieldProps> =
     setShowDateTimePicker(true);
   };
 
-  const onDateTimeValueChange = (_event: { nativeEvent: { timestamp: number } }, selected: Date) => {
+  const onDateTimeValueChange = (_event: unknown, selected?: Date) => {
+    if (!selected) {
+      setShowDateTimePicker(false);
+      return;
+    }
+
     if (pickerMode === 'date') {
       const merged = new Date(value);
       merged.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
@@ -46,7 +52,7 @@ export const TransactionDateTimeField: React.FC<TransactionDateTimeFieldProps> =
           style={styles.dateTimeSegment}
           onPress={() => openDateTimePicker('time')}
         >
-          <Text style={{ color: theme.colors.onSurfaceVariant }}>{value.toLocaleTimeString()}</Text>
+          <Text style={{ color: theme.colors.onSurfaceVariant }}>{formatTime(value)}</Text>
         </TouchableOpacity>
       </View>
 
@@ -55,8 +61,7 @@ export const TransactionDateTimeField: React.FC<TransactionDateTimeFieldProps> =
           value={value}
           mode={pickerMode}
           display={Platform.OS === 'ios' ? 'default' : pickerMode === 'date' ? 'calendar' : 'clock'}
-          onValueChange={onDateTimeValueChange}
-          onDismiss={() => setShowDateTimePicker(false)}
+          onChange={onDateTimeValueChange}
         />
       )}
     </>

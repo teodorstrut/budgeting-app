@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Transaction } from '../../database/repositories/transactionRepository';
 import { TransactionItem } from './TransactionItem';
-import { useTheme } from '../../app/ThemeProvider';
+import { useTheme } from '../../providers/ThemeProvider';
 import { categoryRepository } from '../../database/repositories/categoryRepository';
 
 interface TransactionListProps {

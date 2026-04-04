@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useTheme } from './ThemeProvider';
-import { Header } from './Header';
-import { NavBar } from './NavBar';
+import { useTheme } from '../providers/ThemeProvider';
+import { Header } from '../components/layout/Header';
+import { NavBar } from '../components/layout/NavBar';
 
 export default function Reports() {
   const { theme } = useTheme();

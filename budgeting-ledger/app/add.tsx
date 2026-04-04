@@ -9,22 +9,26 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTheme } from './ThemeProvider';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTheme } from '../providers/ThemeProvider';
 import { transactionService } from '../services/transactionService';
 import { categoryRepository } from '../database/repositories/categoryRepository';
 import { TransactionDateTimeField } from '../components/ui/TransactionDateTimeField';
 import { TransactionCategorySection } from '../components/ui/TransactionCategorySection';
 import { CalculatorKeypad } from '../components/ui/CalculatorKeypad';
 import { FontAwesome } from '@expo/vector-icons';
-import { Header } from './Header';
+import { Header } from '../components/layout/Header';
+import { transactionRepository } from '../database/repositories/transactionRepository';
 
 export default function AddTransaction() {
   const { theme } = useTheme();
   const router = useRouter();
+  const params = useLocalSearchParams<{ editId?: string }>();
+  const editId = params.editId ? Number.parseInt(params.editId, 10) : undefined;
+  const isEditing = editId != null && !Number.isNaN(editId);
 
   const [amount, setAmount] = useState('');
-    const [showCalculator, setShowCalculator] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date());
@@ -35,6 +39,27 @@ export default function AddTransaction() {
     const all = categoryRepository.getAll();
     setCategories(all);
   }, []);
+
+  useEffect(() => {
+    if (!isEditing || editId == null) {
+      return;
+    }
+
+    const existing = transactionRepository.getById(editId);
+    if (!existing) {
+      return;
+    }
+
+    setAmount(existing.amount.toString());
+    setType(existing.type);
+    setNote(existing.note ?? '');
+    setCategoryId(existing.categoryId ?? null);
+
+    const parsedDate = new Date(existing.date);
+    if (!Number.isNaN(parsedDate.getTime())) {
+      setDate(parsedDate);
+    }
+  }, [editId, isEditing]);
 
   useEffect(() => {
     setCategoryId((prev) => {
@@ -52,6 +77,21 @@ export default function AddTransaction() {
       return;
     }
 
+    if (isEditing && editId != null) {
+      transactionService.updateTransaction(editId, {
+        amount: parsedAmount,
+        type,
+        categoryId: categoryId ?? undefined,
+        note: note.trim(),
+        date: new Date(date).toISOString(),
+      });
+
+      Alert.alert('Saved', 'Transaction updated successfully', [
+        { text: 'OK', onPress: () => router.replace('/history') },
+      ]);
+      return;
+    }
+
     transactionService.addTransaction({
       amount: parsedAmount,
       type,
@@ -60,16 +100,35 @@ export default function AddTransaction() {
       date: new Date(date).toISOString(),
     });
 
-    Alert.alert('Saved', 'Transaction added successfully', [
-      { text: 'OK', onPress: () => router.push('/') },
-    ]);
+    Alert.alert('Saved', 'Transaction added successfully', [{ text: 'OK', onPress: () => router.push('/') }]);
+  };
+
+  const handleDelete = () => {
+    if (editId == null) {
+      return;
+    }
+    Alert.alert(
+      'Delete transaction',
+      'This cannot be undone. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            transactionService.deleteTransaction(editId);
+            router.replace('/history');
+          },
+        },
+      ]
+    );
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}> 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Header
-          title="Add Transaction"
+          title={isEditing ? 'Edit Transaction' : 'Add Transaction'}
           titleColor={theme.colors.primary}
           showBackButton
           onBackPress={() => router.back()}
@@ -159,8 +218,19 @@ export default function AddTransaction() {
 
       <View style={[styles.footer, { backgroundColor: theme.colors.surfaceContainerHigh, borderColor: theme.colors.outlineVariant }]}> 
         <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.primary }]} onPress={handleSave}>
-          <Text style={[styles.saveButtonText, { color: theme.colors.onPrimary }]}>Save Transaction</Text>
+          <Text style={[styles.saveButtonText, { color: theme.colors.onPrimary }]}>
+            {isEditing ? 'Update Transaction' : 'Save Transaction'}
+          </Text>
         </TouchableOpacity>
+        {isEditing && (
+          <TouchableOpacity
+            style={[styles.deleteButton, { borderColor: theme.colors.secondary }]}
+            onPress={handleDelete}
+          >
+            <FontAwesome name="trash" size={14} color={theme.colors.secondary} style={{ marginRight: 6 }} />
+            <Text style={[styles.deleteButtonText, { color: theme.colors.secondary }]}>Delete Transaction</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -245,5 +315,18 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontWeight: '700',
     fontSize: 16,
+  },
+  deleteButton: {
+    borderRadius: 24,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    borderWidth: 1,
+    marginTop: 10,
+  },
+  deleteButtonText: {
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
