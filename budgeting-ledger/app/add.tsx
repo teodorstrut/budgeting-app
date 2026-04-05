@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../providers/ThemeProvider';
 import { transactionService } from '../services/transactionService';
 import { categoryRepository } from '../database/repositories/categoryRepository';
@@ -38,10 +39,12 @@ export default function AddTransaction() {
   const [categories, setCategories] = useState(categoryRepository.getAll());
   const [categoryId, setCategoryId] = useState<number | null>(null);
 
-  useEffect(() => {
-    const all = categoryRepository.getAll();
-    setCategories(all);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      const all = categoryRepository.getAll();
+      setCategories(all);
+    }, [])
+  );
 
   useEffect(() => {
     if (!isEditing || editId == null) {
@@ -211,6 +214,15 @@ export default function AddTransaction() {
             transactionType={type}
             selectedCategoryId={categoryId}
             onSelectCategory={setCategoryId}
+            onManageCategories={() =>
+              router.push({
+                pathname: '/manage-categories',
+                params: {
+                  from: 'add',
+                  type,
+                },
+              })
+            }
           />
 
           <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Note</Text>

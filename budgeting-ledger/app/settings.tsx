@@ -107,6 +107,35 @@ export default function Settings() {
               onChange={handleMonthStartDayChange}
               theme={theme}
             />
+
+            <TouchableOpacity
+              style={[styles.linkButton, { borderColor: theme.colors.outlineVariant, backgroundColor: theme.colors.surfaceContainerHigh }]}
+              onPress={() => router.push('/manage-categories')}
+              activeOpacity={0.8}
+            >
+              <View>
+                <Text style={[styles.linkTitle, { color: theme.colors.onSurface }]}>Manage Categories</Text>
+                <Text style={[styles.linkSubtitle, { color: theme.colors.onSurfaceVariant }]}>Create, edit, and remove categories</Text>
+              </View>
+              <Text style={[styles.linkChevron, { color: theme.colors.primary }]}>›</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}> 
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Cloud Sync</Text>
+            <Text style={[styles.hint, { color: theme.colors.outline }]}>Sync with Google Sheets on Android and iOS.</Text>
+
+            <TouchableOpacity
+              style={[styles.linkButton, { borderColor: theme.colors.outlineVariant, backgroundColor: theme.colors.surfaceContainerHigh }]}
+              onPress={() => router.push('/sync-settings')}
+              activeOpacity={0.8}
+            >
+              <View>
+                <Text style={[styles.linkTitle, { color: theme.colors.onSurface }]}>Google Sheets Sync</Text>
+                <Text style={[styles.linkSubtitle, { color: theme.colors.onSurfaceVariant }]}>Connect account and configure target sheet</Text>
+              </View>
+              <Text style={[styles.linkChevron, { color: theme.colors.primary }]}>›</Text>
+            </TouchableOpacity>
           </View>
 
           <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
@@ -222,5 +251,29 @@ const styles = StyleSheet.create({
   hint: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  linkButton: {
+    borderWidth: 1,
+    borderRadius: 16,
+    minHeight: 58,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 10,
+  },
+  linkTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  linkSubtitle: {
+    marginTop: 2,
+    fontSize: 12,
+  },
+  linkChevron: {
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 24,
   },
 });

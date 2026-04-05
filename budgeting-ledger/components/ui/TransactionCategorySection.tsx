@@ -9,6 +9,7 @@ interface TransactionCategorySectionProps {
     transactionType: 'income' | 'expense';
     selectedCategoryId: number | null;
     onSelectCategory: (id: number | null) => void;
+    onManageCategories?: () => void;
 }
 
 export const TransactionCategorySection: React.FC<TransactionCategorySectionProps> = ({
@@ -16,6 +17,7 @@ export const TransactionCategorySection: React.FC<TransactionCategorySectionProp
     transactionType,
     selectedCategoryId,
     onSelectCategory,
+    onManageCategories,
 }) => {
     const { theme } = useTheme();
     const [isExpanded, setIsExpanded] = useState(false);
@@ -102,6 +104,15 @@ export const TransactionCategorySection: React.FC<TransactionCategorySectionProp
                     </Text>
                 </TouchableOpacity>
             )}
+
+            {onManageCategories && (
+                <TouchableOpacity
+                    style={[styles.manageCategoriesButton, { borderColor: theme.colors.outlineVariant }]}
+                    onPress={onManageCategories}
+                >
+                    <Text style={[styles.manageCategoriesText, { color: theme.colors.primary }]}>+ Manage Categories</Text>
+                </TouchableOpacity>
+            )}
         </>
     );
 };
@@ -146,6 +157,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     showMoreText: {
+        fontSize: 13,
+        fontWeight: '700',
+    },
+    manageCategoriesButton: {
+        marginTop: 8,
+        borderWidth: 1,
+        borderRadius: 12,
+        paddingVertical: 9,
+        alignItems: 'center',
+    },
+    manageCategoriesText: {
         fontSize: 13,
         fontWeight: '700',
     },
