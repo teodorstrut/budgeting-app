@@ -109,11 +109,11 @@ budgeting-ledger/
 - Add search and sort functionality.
 - Display transaction details with edit/delete options.
 
-#### Phase 2.4: Allocating a Budget
-- Create budget management screen for per-category budget assignment.
-- Implement budget CRUD operations.
-- Add budget progress visuals and alerts.
-- Integrate with dashboard summaries.
+#### Phase 2.4: Bill Splitter
+- Implement bill splitter screen for expense sharing.
+- Add participant management and split calculations.
+- Integrate with transaction creation.
+- Handle split confirmations and settlements.
 
 #### Phase 2.5: Settings Screen
 - Build settings screen with theme switch, month-start-day configuration.
@@ -121,11 +121,11 @@ budgeting-ledger/
 - Implement user profile basics (name, avatar).
 - Prepare for sync settings integration.
 
-#### Phase 2.6: Bill Splitter
-- Implement bill splitter screen for expense sharing.
-- Add participant management and split calculations.
-- Integrate with transaction creation.
-- Handle split confirmations and settlements.
+#### Phase 2.6: Allocating a Budget
+- Create budget management screen for per-category budget assignment.
+- Implement budget CRUD operations.
+- Add budget progress visuals and alerts.
+- Integrate with dashboard summaries.
 
 ### Phase 3: Reporting & Charts
 1. Pie chart: expense/income breakdown by category.
