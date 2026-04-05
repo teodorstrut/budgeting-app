@@ -74,6 +74,14 @@ export const createTables = () => {
       status TEXT DEFAULT 'inactive'
     );
   `);
+
+  // Sync deletions table keeps tombstones for incremental remote delete propagation
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS sync_deletions (
+      transactionId INTEGER PRIMARY KEY,
+      deletedAt TEXT NOT NULL
+    );
+  `);
 };
 
 const seedData = () => {
@@ -217,6 +225,7 @@ export const initDatabase = () => {
 export const resetAndReseed = () => {
   db.execSync('DELETE FROM transactions;');
   db.execSync('DELETE FROM categories;');
+  db.execSync('DELETE FROM sync_deletions;');
   db.execSync('DELETE FROM sqlite_sequence WHERE name = "transactions" OR name = "categories";');
   seedData();
 };

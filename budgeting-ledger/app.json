@@ -20,7 +20,18 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.teodorstrut.budgetingledger"
+      "package": "com.teodorstrut.budgetingledger",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.teodorstrut.budgetingledger"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "output": "static",
@@ -40,7 +51,8 @@
           }
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -48,6 +60,10 @@
     },
     "extra": {
       "router": {},
+      "googleAuth": {
+        "iosClientId": "",
+        "androidClientId": "660137098982-rnidtv4vs36sd520l38rahgspt82k3mm.apps.googleusercontent.com"
+      },
       "eas": {
         "projectId": "14b1caf5-ca53-45ee-b51f-dbe0bc6b89e6"
       }

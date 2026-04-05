@@ -37,4 +37,47 @@ export const settingsService = {
     }
     settingsService.setNumberSetting('monthStartDay', day);
   },
+
+  getGoogleSyncEnabled: (): boolean => {
+    return settingsService.getSetting('googleSyncEnabled', '0') === '1';
+  },
+
+  setGoogleSyncEnabled: (enabled: boolean): void => {
+    settingsService.setSetting('googleSyncEnabled', enabled ? '1' : '0');
+  },
+
+  getGoogleSpreadsheetName: (): string | null => {
+    return settingsService.getSetting('googleSpreadsheetName');
+  },
+
+  setGoogleSpreadsheetName: (name: string): void => {
+    settingsService.setSetting('googleSpreadsheetName', name);
+  },
+
+  getGoogleLastError: (): string | null => {
+    return settingsService.getSetting('googleSyncLastError');
+  },
+
+  setGoogleLastError: (errorMessage: string): void => {
+    settingsService.setSetting('googleSyncLastError', errorMessage);
+  },
+
+  clearGoogleLastError: (): void => {
+    settingsService.setSetting('googleSyncLastError', '');
+  },
+
+  getSyncOwnerKey: (): string | null => {
+    return settingsService.getSetting('googleSyncOwnerKey');
+  },
+
+  ensureSyncOwnerKey: (): string => {
+    const existing = settingsService.getSyncOwnerKey();
+    if (existing) {
+      return existing;
+    }
+
+    const generated = `owner_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    settingsService.setSetting('googleSyncOwnerKey', generated);
+    return generated;
+  },
 };

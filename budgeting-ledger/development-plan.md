@@ -118,7 +118,6 @@ budgeting-ledger/
 #### Phase 2.5: Settings Screen
 - Build settings screen with theme switch, month-start-day configuration.
 - Add category and budget management links.
-- Implement user profile basics (name, avatar).
 - Prepare for sync settings integration.
 
 #### Phase 2.6: Allocating a Budget

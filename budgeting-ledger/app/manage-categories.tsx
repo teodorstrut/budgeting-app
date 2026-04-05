@@ -41,8 +41,9 @@ export default function ManageCategories() {
   }, [loadCategories]);
 
   useEffect(() => {
-    if (params.type === 'income' || params.type === 'expense') {
-      setForm((prev) => ({ ...prev, type: params.type }));
+    const routeType = params.type;
+    if (routeType === 'income' || routeType === 'expense') {
+      setForm((prev) => ({ ...prev, type: routeType }));
     }
   }, [params.type]);
 
@@ -54,7 +55,7 @@ export default function ManageCategories() {
       }
     });
     return map;
-  }, [categories]);
+  }, []);
 
   const sortedCategories = useMemo(
     () =>
