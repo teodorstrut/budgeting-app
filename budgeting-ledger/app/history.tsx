@@ -16,9 +16,10 @@ import { NavBar } from '../components/layout/NavBar';
 import { AddTransactionButton } from '../components/layout/AddTransactionButton';
 import { TransactionItem } from '../components/data/TransactionItem';
 import { transactionService } from '../services/transactionService';
+import { settingsService } from '../services/settingsService';
+import { monthUtils } from '../utils/monthUtils';
 import { categoryRepository } from '../database/repositories/categoryRepository';
 import { Transaction } from '../database/repositories/transactionRepository';
-import db from '../database/connection';
 import { parseMaybeDate } from '../utils/formatting';
 
 interface GroupedTransactions {
@@ -26,21 +27,6 @@ interface GroupedTransactions {
   heading: string;
   items: Transaction[];
 }
-
-const getMonthStartDay = () => {
-  try {
-    const row = db.getFirstSync('SELECT value FROM settings WHERE key = ?', ['monthStartDay']);
-    const parsed = Number.parseInt(String(row?.value ?? '1'), 10);
-    if (Number.isNaN(parsed)) {
-      return 1;
-    }
-    return Math.max(1, Math.min(31, parsed));
-  } catch {
-    return 1;
-  }
-};
-
-const getDaysInMonth = (year: number, monthIndex: number) => new Date(year, monthIndex + 1, 0).getDate();
 
 const formatMonthWindowLabel = (start: Date, end: Date) => {
   const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
@@ -82,6 +68,7 @@ export default function History() {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [refreshTick, setRefreshTick] = useState(0);
+  const [monthStartDay, setMonthStartDay] = useState(1);
   const [anchorMonth, setAnchorMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -89,30 +76,27 @@ export default function History() {
 
   useFocusEffect(
     React.useCallback(() => {
+      const day = settingsService.getMonthStartDay();
+      setMonthStartDay(day);
       setRefreshTick((current) => current + 1);
     }, [])
   );
-
-  const monthStartDay = getMonthStartDay();
   const categoriesById = useMemo(
     () => new Map(categoryRepository.getAll().map((category) => [category.id, category])),
     []
   );
 
   const monthWindow = useMemo(() => {
-    const year = anchorMonth.getFullYear();
-    const month = anchorMonth.getMonth();
-    const currentStartDay = Math.min(monthStartDay, getDaysInMonth(year, month));
-    const start = new Date(year, month, currentStartDay, 0, 0, 0, 0);
-
-    const nextMonthDate = new Date(year, month + 1, 1, 0, 0, 0, 0);
-    const nextYear = nextMonthDate.getFullYear();
-    const nextMonth = nextMonthDate.getMonth();
-    const nextStartDay = Math.min(monthStartDay, getDaysInMonth(nextYear, nextMonth));
-    const nextStart = new Date(nextYear, nextMonth, nextStartDay, 0, 0, 0, 0);
-    const end = new Date(nextStart.getTime() - 1);
-
-    return { start, end };
+    // Get any date in the month being viewed, then find the period boundaries
+    const dateInMonth = new Date(anchorMonth.getFullYear(), anchorMonth.getMonth(), 15);
+    const [periodStart, periodEnd] = monthUtils.getMonthPeriodForDate(monthStartDay, dateInMonth.toISOString().split('T')[0]);
+    
+    return {
+      startStr: periodStart,
+      endStr: periodEnd,
+      start: new Date(periodStart),
+      end: new Date(periodEnd),
+    };
   }, [anchorMonth, monthStartDay]);
 
   const groupedTransactions = useMemo<GroupedTransactions[]>(() => {
@@ -176,7 +160,7 @@ export default function History() {
         heading: formatSectionHeading(value.date),
         items: value.items,
       }));
-  }, [categoriesById, monthWindow.end, monthWindow.start, query, refreshTick]);
+  }, [categoriesById, monthWindow.startStr, monthWindow.endStr, query, refreshTick, monthStartDay]);
 
   const navigateToEdit = (transaction: Transaction) => {
     if (transaction.id == null) {
@@ -188,6 +172,7 @@ export default function History() {
   const moveMonth = (direction: -1 | 1) => {
     setAnchorMonth((current) => new Date(current.getFullYear(), current.getMonth() + direction, 1));
   };
+
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
