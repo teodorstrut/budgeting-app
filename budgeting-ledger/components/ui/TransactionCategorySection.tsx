@@ -33,7 +33,7 @@ export const TransactionCategorySection: React.FC<TransactionCategorySectionProp
             }
         });
         return map;
-    }, [categories]);
+    }, []);
 
     const sortedCategories = useMemo(() => {
         return categories

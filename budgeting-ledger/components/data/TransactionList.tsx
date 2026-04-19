@@ -21,7 +21,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   const { theme } = useTheme();
   const categoriesById = useMemo(
     () => new Map(categoryRepository.getAll().map((category) => [category.id, category])),
-    [transactions]
+    []
   );
 
   if (transactions.length === 0) {

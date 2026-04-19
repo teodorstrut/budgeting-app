@@ -21,7 +21,6 @@ const getMonthLabel = (startDate: string): string => {
 export default function Index() {
   const { theme } = useTheme();
   const router = useRouter();
-  const [monthStartDay, setMonthStartDay] = useState(1);
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, balance: 0 });
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [monthLabel, setMonthLabel] = useState('');
@@ -29,7 +28,6 @@ export default function Index() {
   useFocusEffect(
     useCallback(() => {
       const day = settingsService.getMonthStartDay();
-      setMonthStartDay(day);
       
       const start = monthUtils.getCurrentMonthStart(day);
       const end = monthUtils.getCurrentMonthEnd(day);

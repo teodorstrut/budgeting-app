@@ -160,7 +160,9 @@ export default function History() {
         heading: formatSectionHeading(value.date),
         items: value.items,
       }));
-  }, [categoriesById, monthWindow.startStr, monthWindow.endStr, query, refreshTick, monthStartDay]);
+  // refreshTick is intentionally included to force re-fetch from DB on screen focus
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoriesById, monthWindow.start, monthWindow.end, query, refreshTick]);
 
   const navigateToEdit = (transaction: Transaction) => {
     if (transaction.id == null) {

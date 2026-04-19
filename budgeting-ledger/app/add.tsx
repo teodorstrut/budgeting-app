@@ -70,7 +70,7 @@ export default function AddTransaction() {
     if (!Number.isNaN(parsedDate.getTime())) {
       setDate(parsedDate);
     }
-  }, [editId, isEditing]);
+  }, [editId, isEditing, router]);
 
   useEffect(() => {
     setCategoryId((prev) => {
