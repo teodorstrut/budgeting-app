@@ -48,10 +48,22 @@ export default function SyncSettings() {
 
   const extraConfig = (Constants.expoConfig?.extra ?? {}) as ExtraConfig;
   const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
+  const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+  const androidRedirectUri = useMemo(() => {
+    const androidClientId = extraConfig.googleAuth?.androidClientId;
+    if (!androidClientId) {
+      return undefined;
+    }
+
+    const clientWithoutSuffix = androidClientId.replace('.apps.googleusercontent.com', '');
+    return `com.googleusercontent.apps.${clientWithoutSuffix}:/oauthredirect`;
+  }, [extraConfig.googleAuth?.androidClientId]);
 
   const [request, response, promptAsync] = Google.useAuthRequest({
     androidClientId: extraConfig.googleAuth?.androidClientId || undefined,
     iosClientId: extraConfig.googleAuth?.iosClientId || undefined,
+    redirectUri: Platform.OS === 'android' ? androidRedirectUri : undefined,
     scopes: [
       syncService.googleSheetsScope,
       'https://www.googleapis.com/auth/drive.metadata.readonly',
@@ -73,7 +85,19 @@ export default function SyncSettings() {
   }, [config.sheetName, config.spreadsheetId, config.spreadsheetName]);
 
   useEffect(() => {
-    if (response?.type !== 'success') {
+    if (!response) {
+      return;
+    }
+
+    if (response.type === 'error') {
+      const messageFromAuthSession =
+        (response as unknown as { error?: { message?: string } }).error?.message ??
+        'Google rejected the OAuth request. Check OAuth client config, package name, SHA-1, and that this is not Expo Go.';
+      Alert.alert('Google sign-in failed', messageFromAuthSession);
+      return;
+    }
+
+    if (response.type !== 'success') {
       return;
     }
 
@@ -105,6 +129,24 @@ export default function SyncSettings() {
   const handleConnectGoogle = async () => {
     if (!isNative) {
       Alert.alert('Not supported', 'Google sync sign-in is currently available on Android and iOS only.');
+      return;
+    }
+
+    if (isExpoGo) {
+      Alert.alert(
+        'Use a build, not Expo Go',
+        'Google OAuth cannot run from Expo Go because redirect_uri becomes exp://... . Install a preview/development build and try again.',
+      );
+      return;
+    }
+
+    if (Platform.OS === 'android' && !extraConfig.googleAuth?.androidClientId) {
+      Alert.alert('Missing OAuth configuration', 'Missing extra.googleAuth.androidClientId in app.json.');
+      return;
+    }
+
+    if (Platform.OS === 'ios' && !extraConfig.googleAuth?.iosClientId) {
+      Alert.alert('Missing OAuth configuration', 'Missing extra.googleAuth.iosClientId in app.json.');
       return;
     }
 

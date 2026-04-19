@@ -30,6 +30,15 @@
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
+        },
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "com.googleusercontent.apps.660137098982-rnidtv4vs36sd520l38rahgspt82k3mm"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
     },
