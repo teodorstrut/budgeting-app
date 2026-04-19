@@ -63,8 +63,32 @@ export const settingsService = {
     settingsService.setSetting(SETTING_KEYS.GOOGLE_SPREADSHEET_NAME, name);
   },
 
+  getGoogleAccountEmail: (): string | null => {
+    return settingsService.getSetting(SETTING_KEYS.GOOGLE_ACCOUNT_EMAIL);
+  },
+
+  setGoogleAccountEmail: (email: string): void => {
+    settingsService.setSetting(SETTING_KEYS.GOOGLE_ACCOUNT_EMAIL, email);
+  },
+
+  getGoogleAccountName: (): string | null => {
+    return settingsService.getSetting(SETTING_KEYS.GOOGLE_ACCOUNT_NAME);
+  },
+
+  setGoogleAccountName: (name: string): void => {
+    settingsService.setSetting(SETTING_KEYS.GOOGLE_ACCOUNT_NAME, name);
+  },
+
   getGoogleLastError: (): string | null => {
     return settingsService.getSetting(SETTING_KEYS.GOOGLE_SYNC_LAST_ERROR);
+  },
+
+  getGoogleAutoSyncEnabled: (): boolean => {
+    return settingsService.getBooleanSetting(SETTING_KEYS.GOOGLE_AUTO_SYNC_ENABLED, true);
+  },
+
+  setGoogleAutoSyncEnabled: (enabled: boolean): void => {
+    settingsService.setBooleanSetting(SETTING_KEYS.GOOGLE_AUTO_SYNC_ENABLED, enabled);
   },
 
   setGoogleLastError: (errorMessage: string): void => {
@@ -73,6 +97,22 @@ export const settingsService = {
 
   clearGoogleLastError: (): void => {
     settingsService.setSetting(SETTING_KEYS.GOOGLE_SYNC_LAST_ERROR, '');
+  },
+
+  getGoogleAutoSyncLastLocalDay: (): string | null => {
+    return settingsService.getSetting(SETTING_KEYS.GOOGLE_AUTO_SYNC_LAST_LOCAL_DAY);
+  },
+
+  setGoogleAutoSyncLastLocalDay: (localDay: string): void => {
+    settingsService.setSetting(SETTING_KEYS.GOOGLE_AUTO_SYNC_LAST_LOCAL_DAY, localDay);
+  },
+
+  getGoogleAutoSyncLastRunAt: (): string | null => {
+    return settingsService.getSetting(SETTING_KEYS.GOOGLE_AUTO_SYNC_LAST_RUN_AT);
+  },
+
+  setGoogleAutoSyncLastRunAt: (isoDate: string): void => {
+    settingsService.setSetting(SETTING_KEYS.GOOGLE_AUTO_SYNC_LAST_RUN_AT, isoDate);
   },
 
   getSyncOwnerKey: (): string | null => {

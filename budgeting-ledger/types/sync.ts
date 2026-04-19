@@ -18,6 +18,11 @@ export interface GoogleSpreadsheet {
   name: string;
 }
 
+export interface GoogleSpreadsheetPage {
+  items: GoogleSpreadsheet[];
+  nextPageToken?: string;
+}
+
 export interface SyncRow {
   id: number;
   name: string;

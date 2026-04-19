@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { syncConfigRepository } from '../database/repositories/syncConfigRepository';
 import { transactionService } from './transactionService';
 import { settingsService } from './settingsService';
-import { GoogleSpreadsheet, SyncConfig, SyncRow } from '../types/sync';
+import { GoogleSpreadsheet, GoogleSpreadsheetPage, SyncConfig, SyncRow } from '../types/sync';
 import { SECURE_KEYS, SETTING_KEYS, SYNC } from '../constants/settings';
 
 interface GoogleSheetSummaryResponse {
@@ -18,6 +18,12 @@ interface GoogleSpreadsheetsListResponse {
     name?: string;
     mimeType?: string;
   }>;
+  nextPageToken?: string;
+}
+
+interface GoogleUserProfileResponse {
+  email?: string;
+  name?: string;
 }
 
 interface SpreadsheetDetailsResponse {
@@ -33,6 +39,10 @@ interface GoogleSheetValuesResponse {
 }
 
 const makeSyncKey = (ownerKey: string, localId: number): string => `${ownerKey}::${localId}`;
+
+const formatAmountForExport = (amount: number): string => {
+  return String(amount).replace('.', ',');
+};
 
 const authorizedFetch = async (
   token: string,
@@ -85,9 +95,25 @@ export const syncService = {
     }
   },
 
+  setGoogleAccountProfile: (profile: { email: string; name: string }): void => {
+    settingsService.setGoogleAccountEmail(profile.email);
+    settingsService.setGoogleAccountName(profile.name);
+  },
+
+  getGoogleAccountProfile: (): { email: string | null; name: string | null } => {
+    return {
+      email: settingsService.getGoogleAccountEmail(),
+      name: settingsService.getGoogleAccountName(),
+    };
+  },
+
   clearGoogleSession: async (): Promise<void> => {
     await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_ACCESS_TOKEN);
     await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_ACCESS_TOKEN_EXPIRY);
+    settingsService.setGoogleAccountEmail('');
+    settingsService.setGoogleAccountName('');
+    settingsService.setGoogleAutoSyncLastLocalDay('');
+    settingsService.setGoogleAutoSyncLastRunAt('');
     settingsService.setGoogleSyncEnabled(false);
     settingsService.clearGoogleLastError();
     syncConfigRepository.upsertGoogleConfig({
@@ -125,16 +151,25 @@ export const syncService = {
     syncConfigRepository.upsertGoogleConfig({
       spreadsheetId: args.spreadsheetId,
       sheetName: args.sheetName,
-      status: settingsService.getGoogleSyncEnabled() ? 'active' : 'inactive',
+      status: 'active',
     });
     settingsService.setGoogleSpreadsheetName(args.spreadsheetName);
     settingsService.clearGoogleLastError();
   },
 
-  listSpreadsheets: async (token: string): Promise<GoogleSpreadsheet[]> => {
+  listSpreadsheets: async (token: string, pageToken?: string): Promise<GoogleSpreadsheetPage> => {
+    const params = new URLSearchParams({
+      q: 'mimeType="application/vnd.google-apps.spreadsheet"',
+      fields: 'files(id,name,mimeType),nextPageToken',
+      pageSize: '10',
+    });
+    if (pageToken) {
+      params.set('pageToken', pageToken);
+    }
+
     const response = await authorizedFetch(
       token,
-      'https://www.googleapis.com/drive/v3/files?q=mimeType%3D%22application%2Fvnd.google-apps.spreadsheet%22&fields=files(id%2Cname%2CmimeType)&pageSize=100',
+      `https://www.googleapis.com/drive/v3/files?${params.toString()}`,
     );
 
     if (!response.ok) {
@@ -142,9 +177,32 @@ export const syncService = {
     }
 
     const data = (await response.json()) as GoogleSpreadsheetsListResponse;
-    return (data.files ?? [])
+    return {
+      items: (data.files ?? [])
       .filter((file): file is { id: string; name: string; mimeType?: string } => !!file.id && !!file.name)
-      .map((file) => ({ id: file.id, name: file.name }));
+      .map((file) => ({ id: file.id, name: file.name })),
+      nextPageToken: data.nextPageToken,
+    };
+  },
+
+  fetchGoogleUserProfile: async (token: string): Promise<{ email: string; name: string }> => {
+    const response = await authorizedFetch(token, 'https://www.googleapis.com/oauth2/v2/userinfo');
+    if (!response.ok) {
+      throw new Error(await parseErrorMessage(response, 'Failed to fetch Google account profile.'));
+    }
+
+    const data = (await response.json()) as GoogleUserProfileResponse;
+    const email = (data.email ?? '').trim();
+    const name = (data.name ?? '').trim();
+
+    if (!email) {
+      throw new Error('Google account email is required for sync key generation.');
+    }
+
+    return {
+      email,
+      name: name || email,
+    };
   },
 
   createSpreadsheet: async (token: string, title: string): Promise<GoogleSpreadsheet> => {
@@ -229,7 +287,7 @@ export const syncService = {
     const response = await authorizedFetch(
       token,
       `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}/values/${encodeURIComponent(
-        `${sheetName}!A1:J1`,
+        `${sheetName}!A1:I1`,
       )}?valueInputOption=USER_ENTERED`,
       {
         method: 'PUT',
@@ -237,8 +295,7 @@ export const syncService = {
           values: [[
             'Sync Key',
             'Owner Key',
-            'Local ID',
-            'Name',
+            'Note',
             'Type',
             'Category',
             'Amount',
@@ -267,27 +324,29 @@ export const syncService = {
 
     const encodedSheetId = encodeURIComponent(config.spreadsheetId);
     const sheetName = config.sheetName;
-    const ownerKey = settingsService.ensureSyncOwnerKey();
+    const ownerEmail = (settingsService.getGoogleAccountEmail() ?? '').trim();
+    const ownerName = (settingsService.getGoogleAccountName() ?? '').trim() || ownerEmail;
+
+    if (!ownerEmail) {
+      throw new Error('Google account email is missing. Sign in with Google again.');
+    }
 
     const rowToValues = (row: SyncRow): (string | number)[] => [
-      makeSyncKey(ownerKey, row.id),
-      ownerKey,
-      row.id,
+      makeSyncKey(ownerEmail, row.id),
+      ownerName,
       row.name,
       row.type,
       row.category,
-      row.amount,
+      formatAmountForExport(row.amount),
       row.datetime,
       row.updatedAt,
       '',
     ];
 
     const deletedRowValues = (id: number, deletedAt: string): (string | number)[] => [
-      makeSyncKey(ownerKey, id),
-      ownerKey,
-      id,
+      makeSyncKey(ownerEmail, id),
+      ownerName,
       '(deleted)',
-      '',
       '',
       '',
       '',
@@ -304,7 +363,7 @@ export const syncService = {
         return await performFullSync(token, encodedSheetId, sheetName, rowToValues);
       }
 
-      return await performIncrementalSync(token, encodedSheetId, sheetName, ownerKey, config.lastSync!, rowToValues, deletedRowValues);
+      return await performIncrementalSync(token, encodedSheetId, sheetName, ownerEmail, config.lastSync!, rowToValues, deletedRowValues);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown sync failure';
       syncConfigRepository.setGoogleStatus('error');
@@ -319,7 +378,7 @@ export const syncService = {
 const finalizeSyncTimestamp = (): string => {
   const at = new Date().toISOString();
   syncConfigRepository.upsertGoogleConfig({
-    status: settingsService.getGoogleSyncEnabled() ? 'active' : 'inactive',
+    status: 'active',
     lastSync: at,
   });
   settingsService.setSetting(SETTING_KEYS.GOOGLE_SYNC_SCHEMA_VERSION, SYNC.SCHEMA_VERSION);
@@ -337,7 +396,7 @@ const performFullSync = async (
   const clearResponse = await authorizedFetch(
     token,
     `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-      `${sheetName}!A2:J`,
+      `${sheetName}!A2:I`,
     )}:clear`,
     { method: 'POST' },
   );
@@ -369,7 +428,7 @@ const performIncrementalSync = async (
   token: string,
   encodedSheetId: string,
   sheetName: string,
-  ownerKey: string,
+  ownerEmail: string,
   lastSync: string,
   rowToValues: (row: SyncRow) => (string | number)[],
   deletedRowValues: (id: number, deletedAt: string) => (string | number)[],
@@ -384,11 +443,11 @@ const performIncrementalSync = async (
 
   const keyToRow = await readSyncKeyColumn(token, encodedSheetId, sheetName);
 
-  const toUpdateActive = changedRows.filter((r) => keyToRow.has(makeSyncKey(ownerKey, r.id)));
-  const toAppendActive = changedRows.filter((r) => !keyToRow.has(makeSyncKey(ownerKey, r.id)));
-  const toUpdateDeleted = deletedRows.filter((r) => keyToRow.has(makeSyncKey(ownerKey, r.id)));
+  const toUpdateActive = changedRows.filter((r) => keyToRow.has(makeSyncKey(ownerEmail, r.id)));
+  const toAppendActive = changedRows.filter((r) => !keyToRow.has(makeSyncKey(ownerEmail, r.id)));
+  const toUpdateDeleted = deletedRows.filter((r) => keyToRow.has(makeSyncKey(ownerEmail, r.id)));
 
-  await updateExistingRows(token, encodedSheetId, sheetName, ownerKey, toUpdateActive, toUpdateDeleted, keyToRow, rowToValues, deletedRowValues);
+  await updateExistingRows(token, encodedSheetId, sheetName, ownerEmail, toUpdateActive, toUpdateDeleted, keyToRow, rowToValues, deletedRowValues);
   await appendNewRows(token, encodedSheetId, sheetName, toAppendActive, rowToValues);
 
   const at = finalizeSyncTimestamp();
@@ -425,7 +484,7 @@ const updateExistingRows = async (
   token: string,
   encodedSheetId: string,
   sheetName: string,
-  ownerKey: string,
+  ownerEmail: string,
   toUpdateActive: SyncRow[],
   toUpdateDeleted: Array<{ id: number; deletedAt: string }>,
   keyToRow: Map<string, number>,
@@ -436,16 +495,16 @@ const updateExistingRows = async (
 
   const updateData = [
     ...toUpdateActive.map((row) => {
-      const syncKey = makeSyncKey(ownerKey, row.id);
+      const syncKey = makeSyncKey(ownerEmail, row.id);
       return {
-        range: `${sheetName}!A${keyToRow.get(syncKey)}:J${keyToRow.get(syncKey)}`,
+        range: `${sheetName}!A${keyToRow.get(syncKey)}:I${keyToRow.get(syncKey)}`,
         values: [rowToValues(row)],
       };
     }),
     ...toUpdateDeleted.map((row) => {
-      const syncKey = makeSyncKey(ownerKey, row.id);
+      const syncKey = makeSyncKey(ownerEmail, row.id);
       return {
-        range: `${sheetName}!A${keyToRow.get(syncKey)}:J${keyToRow.get(syncKey)}`,
+        range: `${sheetName}!A${keyToRow.get(syncKey)}:I${keyToRow.get(syncKey)}`,
         values: [deletedRowValues(row.id, row.deletedAt)],
       };
     }),
@@ -476,7 +535,7 @@ const appendNewRows = async (
   const appendResponse = await authorizedFetch(
     token,
     `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-      `${sheetName}!A:J`,
+      `${sheetName}!A:I`,
     )}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
     {
       method: 'POST',

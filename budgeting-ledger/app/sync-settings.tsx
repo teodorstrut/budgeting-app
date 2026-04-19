@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  AppState,
   Platform,
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import Constants from 'expo-constants';
 import { Header } from '../components/layout/Header';
 import { useTheme } from '../providers/ThemeProvider';
 import { syncService } from '../services/syncService';
+import { settingsService } from '../services/settingsService';
 import { GoogleSpreadsheet, SyncConfig } from '../types/sync';
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 
@@ -36,6 +38,8 @@ export default function SyncSettings() {
   const router = useRouter();
 
   const [config, setConfig] = useState<SyncConfig>(syncService.getGoogleSyncConfig());
+  const [lastAutoSyncAt, setLastAutoSyncAt] = useState<string | null>(settingsService.getGoogleAutoSyncLastRunAt());
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState<boolean>(settingsService.getGoogleAutoSyncEnabled());
   const [token, setToken] = useState<string | null>(null);
   const [spreadsheets, setSpreadsheets] = useState<GoogleSpreadsheet[]>([]);
   const [selectedSpreadsheetId, setSelectedSpreadsheetId] = useState<string>('');
@@ -46,6 +50,11 @@ export default function SyncSettings() {
   const [loadingSheets, setLoadingSheets] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [sheetPageTokens, setSheetPageTokens] = useState<string[]>(['']);
+  const [sheetPageIndex, setSheetPageIndex] = useState(0);
+  const [nextSheetPageToken, setNextSheetPageToken] = useState<string | undefined>(undefined);
+  const [authRefreshing, setAuthRefreshing] = useState(false);
+  const lastPromptAtRef = useRef(0);
 
   const extraConfig = (Constants.expoConfig?.extra ?? {}) as ExtraConfig;
   const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
@@ -68,6 +77,9 @@ export default function SyncSettings() {
     scopes: [
       syncService.googleSheetsScope,
       'https://www.googleapis.com/auth/drive.metadata.readonly',
+      'openid',
+      'email',
+      'profile',
     ],
   });
 
@@ -114,17 +126,92 @@ export default function SyncSettings() {
 
     syncService
       .setGoogleAccessToken(accessToken, expiresAt)
-      .then(() => {
+      .then(async () => {
+        const profile = await syncService.fetchGoogleUserProfile(accessToken);
+        syncService.setGoogleAccountProfile(profile);
         setToken(accessToken);
         Alert.alert('Connected', 'Google account connected successfully.');
       })
-      .catch(() => {
-        Alert.alert('Storage error', 'Failed to save Google session securely.');
+      .catch((error) => {
+        Alert.alert(
+          'Google sign-in failed',
+          error instanceof Error ? error.message : 'Failed to store Google session/profile securely.',
+        );
       });
   }, [response]);
 
+  const loadSpreadsheetPage = useCallback(
+    async (pageToken?: string) => {
+      if (!token) {
+        Alert.alert('Sign in required', 'Connect Google first to load spreadsheets.');
+        return false;
+      }
+
+      setLoadingSheets(true);
+      try {
+        const next = await syncService.listSpreadsheets(token, pageToken);
+        setSpreadsheets(next.items);
+        setNextSheetPageToken(next.nextPageToken);
+        if (next.items.length === 0) {
+          Alert.alert('No sheets found', 'No spreadsheets were found in this account for this page.');
+        }
+        return true;
+      } catch (error) {
+        Alert.alert('Load failed', error instanceof Error ? error.message : 'Could not load spreadsheets.');
+        return false;
+      } finally {
+        setLoadingSheets(false);
+      }
+    },
+    [token],
+  );
+
+  const maybePromptForReauth = useCallback(async () => {
+    if (!isNative || isExpoGo || !request) {
+      return;
+    }
+
+    if (authRefreshing) {
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastPromptAtRef.current < 10 * 60 * 1000) {
+      return;
+    }
+
+    const storedToken = await syncService.getGoogleAccessToken();
+    setToken(storedToken);
+
+    if (storedToken || !config.spreadsheetId || !config.sheetName) {
+      return;
+    }
+
+    setAuthRefreshing(true);
+    lastPromptAtRef.current = now;
+    try {
+      await promptAsync();
+    } finally {
+      setAuthRefreshing(false);
+    }
+  }, [authRefreshing, config.sheetName, config.spreadsheetId, isExpoGo, isNative, promptAsync, request]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void maybePromptForReauth();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [maybePromptForReauth]);
+
   const refreshConfig = () => {
     setConfig(syncService.getGoogleSyncConfig());
+    setLastAutoSyncAt(settingsService.getGoogleAutoSyncLastRunAt());
+    setAutoSyncEnabled(settingsService.getGoogleAutoSyncEnabled());
   };
 
   const handleConnectGoogle = async () => {
@@ -169,23 +256,41 @@ export default function SyncSettings() {
   };
 
   const handleLoadSpreadsheets = async () => {
-    if (!token) {
-      Alert.alert('Sign in required', 'Connect Google first to load spreadsheets.');
+    const ok = await loadSpreadsheetPage();
+    if (!ok) {
       return;
     }
 
-    setLoadingSheets(true);
-    try {
-      const next = await syncService.listSpreadsheets(token);
-      setSpreadsheets(next);
-      if (next.length === 0) {
-        Alert.alert('No sheets found', 'No spreadsheets were found in this account.');
-      }
-    } catch (error) {
-      Alert.alert('Load failed', error instanceof Error ? error.message : 'Could not load spreadsheets.');
-    } finally {
-      setLoadingSheets(false);
+    setSheetPageTokens(['']);
+    setSheetPageIndex(0);
+  };
+
+  const handleNextSheetsPage = async () => {
+    if (!nextSheetPageToken) {
+      return;
     }
+
+    const ok = await loadSpreadsheetPage(nextSheetPageToken);
+    if (!ok) {
+      return;
+    }
+
+    setSheetPageTokens((prev) => [...prev.slice(0, sheetPageIndex + 1), nextSheetPageToken]);
+    setSheetPageIndex((prev) => prev + 1);
+  };
+
+  const handlePreviousSheetsPage = async () => {
+    if (sheetPageIndex <= 0) {
+      return;
+    }
+
+    const previousToken = sheetPageTokens[sheetPageIndex - 1] || undefined;
+    const ok = await loadSpreadsheetPage(previousToken);
+    if (!ok) {
+      return;
+    }
+
+    setSheetPageIndex((prev) => prev - 1);
   };
 
   const handleSaveSheetConfig = async () => {
@@ -236,12 +341,12 @@ export default function SyncSettings() {
     }
   };
 
-  const handleToggleSync = (enabled: boolean) => {
+  const handleToggleAutoSync = (enabled: boolean) => {
     if (enabled && (!config.spreadsheetId || !config.sheetName)) {
-      Alert.alert('Configuration required', 'Configure your target spreadsheet before enabling sync.');
+      Alert.alert('Configuration required', 'Configure your target spreadsheet before enabling auto-sync.');
       return;
     }
-    syncService.setGoogleSyncEnabled(enabled);
+    settingsService.setGoogleAutoSyncEnabled(enabled);
     refreshConfig();
   };
 
@@ -290,12 +395,12 @@ export default function SyncSettings() {
 
           <View style={styles.switchRow}>
             <View style={styles.switchCopy}>
-              <Text style={[styles.switchTitle, { color: theme.colors.onSurface }]}>Enable Sync</Text>
-              <Text style={[styles.switchSubtitle, { color: theme.colors.onSurfaceVariant }]}>Manual Sync Now will append rows to your configured sheet tab.</Text>
+              <Text style={[styles.switchTitle, { color: theme.colors.onSurface }]}>Auto Sync at 2:00 AM</Text>
+              <Text style={[styles.switchSubtitle, { color: theme.colors.onSurfaceVariant }]}>Turn off if you only want manual sync.</Text>
             </View>
             <Switch
-              value={config.status === 'active'}
-              onValueChange={handleToggleSync}
+              value={autoSyncEnabled}
+              onValueChange={handleToggleAutoSync}
               trackColor={{ false: theme.colors.outlineVariant, true: theme.colors.primary }}
               thumbColor={theme.colors.onPrimary}
             />
@@ -348,6 +453,36 @@ export default function SyncSettings() {
                   <Text style={[styles.sheetOptionText, { color: theme.colors.onSurface }]}>{sheet.name}</Text>
                 </TouchableOpacity>
               ))}
+
+              {spreadsheets.length > 0 && (
+                <View style={styles.paginationRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryButton,
+                      styles.paginationButton,
+                      { borderColor: theme.colors.outlineVariant },
+                    ]}
+                    onPress={handlePreviousSheetsPage}
+                    disabled={sheetPageIndex === 0 || loadingSheets}
+                  >
+                    <Text style={[styles.secondaryButtonText, { color: theme.colors.onSurfaceVariant }]}>Previous</Text>
+                  </TouchableOpacity>
+
+                  <Text style={[styles.pageText, { color: theme.colors.onSurfaceVariant }]}>Page {sheetPageIndex + 1}</Text>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.secondaryButton,
+                      styles.paginationButton,
+                      { borderColor: theme.colors.outlineVariant },
+                    ]}
+                    onPress={handleNextSheetsPage}
+                    disabled={!nextSheetPageToken || loadingSheets}
+                  >
+                    <Text style={[styles.secondaryButtonText, { color: theme.colors.onSurfaceVariant }]}>Next</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </>
           ) : (
             <>
@@ -397,6 +532,7 @@ export default function SyncSettings() {
 
           <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>Status: {config.status}</Text>
           <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>Last sync: {config.lastSync ?? 'Never'}</Text>
+          <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>Last auto-sync: {lastAutoSyncAt ?? 'Never'}</Text>
           {!!config.lastError && (
             <Text style={[styles.statusText, { color: theme.colors.secondary }]}>Last error: {config.lastError}</Text>
           )}
@@ -482,6 +618,23 @@ const styles = StyleSheet.create({
   sheetOptionText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  paginationRow: {
+    marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  paginationButton: {
+    flex: 1,
+    minHeight: 40,
+  },
+  pageText: {
+    minWidth: 70,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: '700',
   },
   label: {
     fontSize: 12,

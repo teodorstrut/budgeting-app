@@ -61,7 +61,8 @@
         }
       ],
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-background-fetch"
     ],
     "experiments": {
       "typedRoutes": true,
