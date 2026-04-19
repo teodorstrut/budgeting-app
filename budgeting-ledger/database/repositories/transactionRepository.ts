@@ -25,6 +25,22 @@ export const transactionRepository = {
     return result as Transaction[];
   },
 
+  getByDateRange: (startDate: string, endDate: string): Transaction[] => {
+    const result = db.getAllSync(
+      'SELECT * FROM transactions WHERE substr(date, 1, 10) >= ? AND substr(date, 1, 10) <= ? ORDER BY date DESC',
+      [startDate, endDate]
+    );
+    return result as Transaction[];
+  },
+
+  getChangedSince: (sinceIso: string): Transaction[] => {
+    const result = db.getAllSync(
+      'SELECT * FROM transactions WHERE updatedAt IS NULL OR updatedAt > ? ORDER BY date DESC',
+      [sinceIso]
+    );
+    return result as Transaction[];
+  },
+
   getById: (id: number): Transaction | null => {
     const result = db.getFirstSync('SELECT * FROM transactions WHERE id = ?', [id]);
     return result as Transaction | null;

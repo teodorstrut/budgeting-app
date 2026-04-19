@@ -6,6 +6,8 @@ import { Header } from '../components/layout/Header';
 import { resetAndReseed } from '../database/schema';
 import { settingsService } from '../services/settingsService';
 import { MonthStartDayPicker } from '../components/ui/MonthStartDayPicker';
+import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
+import { confirmDialog } from '../utils/confirmDialog';
 
 export default function Settings() {
   const { theme, colorScheme, setColorScheme } = useTheme();
@@ -20,20 +22,18 @@ export default function Settings() {
   }, []);
 
   const handleReset = () => {
-    Alert.alert(
+    confirmDialog(
       'Reset Database',
       'This will delete all transactions and categories, then restore the default seed data. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: () => {
-            resetAndReseed();
-            setResetDone(true);
-          },
-        },
-      ]
+      () => {
+        try {
+          resetAndReseed();
+          setResetDone(true);
+        } catch (error) {
+          Alert.alert('Reset failed', error instanceof Error ? error.message : 'An unexpected error occurred.');
+        }
+      },
+      'Reset',
     );
   };
 
@@ -64,42 +64,18 @@ export default function Settings() {
                 <Text style={[styles.preferenceSubtitle, { color: theme.colors.onSurfaceVariant }]}>Switch between visual modes</Text>
               </View>
 
-              <View style={[styles.toggleShell, { backgroundColor: theme.colors.surfaceContainerHigh }]}>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleOption,
-                    colorScheme === 'dark' ? { backgroundColor: theme.colors.primary } : null,
-                  ]}
-                  onPress={() => setColorScheme('dark')}
-                  activeOpacity={0.85}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      { color: colorScheme === 'dark' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant },
-                    ]}
-                  >
-                    Dark
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.toggleOption,
-                    colorScheme === 'light' ? { backgroundColor: theme.colors.primary } : null,
-                  ]}
-                  onPress={() => setColorScheme('light')}
-                  activeOpacity={0.85}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      { color: colorScheme === 'light' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant },
-                    ]}
-                  >
-                    Light
-                  </Text>
-                </TouchableOpacity>
-              </View>
+              <ToggleButtonGroup
+                options={[
+                  { label: 'Dark', value: 'dark' as const },
+                  { label: 'Light', value: 'light' as const },
+                ]}
+                selected={colorScheme}
+                onSelect={setColorScheme}
+                activeColor={theme.colors.primary}
+                activeTextColor={theme.colors.onPrimary}
+                inactiveTextColor={theme.colors.onSurfaceVariant}
+                borderColor={theme.colors.outline}
+              />
             </View>
 
             <MonthStartDayPicker
@@ -217,22 +193,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 2,
   },
-  toggleShell: {
-    flexDirection: 'row',
-    padding: 4,
-    borderRadius: 999,
-  },
-  toggleOption: {
-    minWidth: 72,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 999,
-    alignItems: 'center',
-  },
-  toggleText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
+
   resetButton: {
     borderRadius: 999,
     borderWidth: 1,

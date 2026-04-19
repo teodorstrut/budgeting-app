@@ -14,6 +14,8 @@ import { Header } from '../components/layout/Header';
 import { useTheme } from '../providers/ThemeProvider';
 import { categoryRepository, Category } from '../database/repositories/categoryRepository';
 import { transactionRepository } from '../database/repositories/transactionRepository';
+import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
+import { confirmDialog } from '../utils/confirmDialog';
 
 type CategoryType = 'income' | 'expense';
 
@@ -125,20 +127,13 @@ export default function ManageCategories() {
       return;
     }
 
-    Alert.alert('Delete category', `Delete ${category.name}?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          categoryRepository.delete(category.id as number);
-          if (editingCategoryId === category.id) {
-            clearForm();
-          }
-          loadCategories();
-        },
-      },
-    ]);
+    confirmDialog('Delete category', `Delete ${category.name}?`, () => {
+      categoryRepository.delete(category.id as number);
+      if (editingCategoryId === category.id) {
+        clearForm();
+      }
+      loadCategories();
+    });
   };
 
   const isAddFlow = params.from === 'add';
@@ -156,32 +151,18 @@ export default function ManageCategories() {
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Category Editor</Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>Create, edit, and clean up your categories.</Text>
 
-          <View style={styles.typeRow}>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                {
-                  borderColor: theme.colors.outline,
-                  backgroundColor: form.type === 'expense' ? theme.colors.secondary : 'transparent',
-                },
-              ]}
-              onPress={() => setForm((prev) => ({ ...prev, type: 'expense' }))}
-            >
-              <Text style={[styles.typeButtonText, { color: form.type === 'expense' ? theme.colors.onSecondary : theme.colors.onSurfaceVariant }]}>Expense</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                {
-                  borderColor: theme.colors.outline,
-                  backgroundColor: form.type === 'income' ? theme.colors.primary : 'transparent',
-                },
-              ]}
-              onPress={() => setForm((prev) => ({ ...prev, type: 'income' }))}
-            >
-              <Text style={[styles.typeButtonText, { color: form.type === 'income' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant }]}>Income</Text>
-            </TouchableOpacity>
-          </View>
+          <ToggleButtonGroup
+            options={[
+              { label: 'Expense', value: 'expense' as const },
+              { label: 'Income', value: 'income' as const },
+            ]}
+            selected={form.type}
+            onSelect={(value: CategoryType) => setForm((prev) => ({ ...prev, type: value }))}
+            activeColor={form.type === 'expense' ? theme.colors.secondary : theme.colors.primary}
+            activeTextColor={form.type === 'expense' ? (theme.colors.onSecondary ?? theme.colors.onPrimary) : theme.colors.onPrimary}
+            inactiveTextColor={theme.colors.onSurfaceVariant}
+            borderColor={theme.colors.outline}
+          />
 
           <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Emoji</Text>
           <TextInput
@@ -302,22 +283,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     fontSize: 15,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 6,
-  },
-  typeButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  typeButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
   },
   actionsRow: {
     flexDirection: 'row',

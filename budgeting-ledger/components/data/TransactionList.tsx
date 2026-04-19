@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Transaction } from '../../database/repositories/transactionRepository';
 import { TransactionItem } from './TransactionItem';
@@ -19,8 +19,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   dateDisplayMode = 'relative',
 }) => {
   const { theme } = useTheme();
-  const categoriesById = new Map(
-    categoryRepository.getAll().map((category) => [category.id, category])
+  const categoriesById = useMemo(
+    () => new Map(categoryRepository.getAll().map((category) => [category.id, category])),
+    [transactions]
   );
 
   if (transactions.length === 0) {

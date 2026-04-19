@@ -5,18 +5,6 @@ const createSeedTimestamp = (year: number, monthIndex: number, day: number, hour
 
 // Schema definitions
 export const createTables = () => {
-  // Users table
-  db.execSync(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT,
-      email TEXT UNIQUE,
-      avatar TEXT,
-      theme TEXT DEFAULT 'system',
-      monthStartDay INTEGER DEFAULT 1
-    );
-  `);
-
   // Categories table
   db.execSync(`
     CREATE TABLE IF NOT EXISTS categories (
@@ -31,8 +19,8 @@ export const createTables = () => {
   db.execSync(`
     CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      amount REAL NOT NULL,
-      type TEXT NOT NULL, -- 'income' or 'expense'
+      amount REAL NOT NULL CHECK (amount >= 0),
+      type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
       categoryId INTEGER,
       note TEXT,
       date TEXT NOT NULL, -- ISO date string
@@ -42,17 +30,10 @@ export const createTables = () => {
     );
   `);
 
-  // Budgets table
-  db.execSync(`
-    CREATE TABLE IF NOT EXISTS budgets (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      categoryId INTEGER,
-      amount REAL NOT NULL,
-      period TEXT NOT NULL, -- 'monthly', 'weekly', etc.
-      startDate TEXT NOT NULL, -- ISO date string
-      FOREIGN KEY (categoryId) REFERENCES categories (id)
-    );
-  `);
+  // Indexes for common query patterns
+  db.execSync('CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);');
+  db.execSync('CREATE INDEX IF NOT EXISTS idx_transactions_categoryId ON transactions(categoryId);');
+  db.execSync('CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions(type);');
 
   // Settings table (for app settings)
   db.execSync(`

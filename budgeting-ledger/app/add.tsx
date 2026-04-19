@@ -19,9 +19,11 @@ import { categoryRepository } from '../database/repositories/categoryRepository'
 import { TransactionDateTimeField } from '../components/ui/TransactionDateTimeField';
 import { TransactionCategorySection } from '../components/ui/TransactionCategorySection';
 import { CalculatorKeypad } from '../components/ui/CalculatorKeypad';
+import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 import { FontAwesome } from '@expo/vector-icons';
 import { Header } from '../components/layout/Header';
 import { transactionRepository } from '../database/repositories/transactionRepository';
+import { confirmDialog } from '../utils/confirmDialog';
 
 export default function AddTransaction() {
   const { theme } = useTheme();
@@ -53,6 +55,9 @@ export default function AddTransaction() {
 
     const existing = transactionRepository.getById(editId);
     if (!existing) {
+      Alert.alert('Not found', 'This transaction no longer exists.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
       return;
     }
 
@@ -113,20 +118,13 @@ export default function AddTransaction() {
     if (editId == null) {
       return;
     }
-    Alert.alert(
+    confirmDialog(
       'Delete transaction',
       'This cannot be undone. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            transactionService.deleteTransaction(editId);
-            router.replace('/history');
-          },
-        },
-      ]
+      () => {
+        transactionService.deleteTransaction(editId);
+        router.replace('/history');
+      },
     );
   };
 
@@ -182,32 +180,18 @@ export default function AddTransaction() {
             onDismiss={() => setShowCalculator(false)}
           />
 
-          <View style={styles.typeRow}>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                {
-                  backgroundColor: type === 'expense' ? theme.colors.secondary : 'transparent',
-                  borderColor: theme.colors.outline,
-                },
-              ]}
-              onPress={() => setType('expense')}
-            >
-              <Text style={[styles.typeButtonText, { color: type === 'expense' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant }]}>Expense</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.typeButton,
-                {
-                  backgroundColor: type === 'income' ? theme.colors.primary : 'transparent',
-                  borderColor: theme.colors.outline,
-                },
-              ]}
-              onPress={() => setType('income')}
-            >
-              <Text style={[styles.typeButtonText, { color: type === 'income' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant }]}>Income</Text>
-            </TouchableOpacity>
-          </View>
+          <ToggleButtonGroup
+            options={[
+              { label: 'Expense', value: 'expense' as const },
+              { label: 'Income', value: 'income' as const },
+            ]}
+            selected={type}
+            onSelect={setType}
+            activeColor={type === 'expense' ? theme.colors.secondary : theme.colors.primary}
+            activeTextColor={theme.colors.onPrimary}
+            inactiveTextColor={theme.colors.onSurfaceVariant}
+            borderColor={theme.colors.outline}
+          />
 
           <TransactionCategorySection
             categories={categories}
@@ -309,23 +293,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 12,
     marginTop: 8,
-  },
-  typeRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 14,
-  },
-  typeButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 10,
-    marginHorizontal: 4,
-    alignItems: 'center',
-  },
-  typeButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
   },
   footer: {
     marginTop: 16,

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -131,6 +132,15 @@ export default function BillSplitter() {
   };
 
   const handleFinalize = () => {
+    const tolerance = 0.01;
+    if (Math.abs(allocatedAmount - total) > tolerance) {
+      Alert.alert(
+        'Allocation incomplete',
+        `You have $${remainingAmount.toFixed(2)} left unallocated. Please allocate the full amount before finalizing.`,
+      );
+      return;
+    }
+
     const today = new Date().toISOString();
     splits
       .filter((s) => s.amount > 0)

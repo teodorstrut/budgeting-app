@@ -18,6 +18,7 @@ import { Header } from '../components/layout/Header';
 import { useTheme } from '../providers/ThemeProvider';
 import { syncService } from '../services/syncService';
 import { GoogleSpreadsheet, SyncConfig } from '../types/sync';
+import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -304,32 +305,18 @@ export default function SyncSettings() {
         <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}> 
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Sheet Configuration</Text>
 
-          <View style={styles.modeRow}>
-            <TouchableOpacity
-              style={[
-                styles.modeButton,
-                {
-                  borderColor: theme.colors.outlineVariant,
-                  backgroundColor: setupMode === 'existing' ? theme.colors.primary : 'transparent',
-                },
-              ]}
-              onPress={() => setSetupMode('existing')}
-            >
-              <Text style={[styles.modeButtonText, { color: setupMode === 'existing' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant }]}>Select Existing</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.modeButton,
-                {
-                  borderColor: theme.colors.outlineVariant,
-                  backgroundColor: setupMode === 'create' ? theme.colors.primary : 'transparent',
-                },
-              ]}
-              onPress={() => setSetupMode('create')}
-            >
-              <Text style={[styles.modeButtonText, { color: setupMode === 'create' ? theme.colors.onPrimary : theme.colors.onSurfaceVariant }]}>Create New</Text>
-            </TouchableOpacity>
-          </View>
+          <ToggleButtonGroup
+            options={[
+              { label: 'Select Existing', value: 'existing' as const },
+              { label: 'Create New', value: 'create' as const },
+            ]}
+            selected={setupMode}
+            onSelect={setSetupMode}
+            activeColor={theme.colors.primary}
+            activeTextColor={theme.colors.onPrimary}
+            inactiveTextColor={theme.colors.onSurfaceVariant}
+            borderColor={theme.colors.outlineVariant}
+          />
 
           {setupMode === 'existing' ? (
             <>
@@ -400,8 +387,12 @@ export default function SyncSettings() {
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Manual Sync</Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>Push local transactions to the configured Google Sheet tab.</Text>
 
-          <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]} onPress={handleSyncNow}>
-            <Text style={[styles.primaryButtonText, { color: theme.colors.onPrimary }]}>{syncing ? 'Syncing...' : 'Sync Now'}</Text>
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: syncing ? theme.colors.surfaceContainerHigh : theme.colors.primary }]}
+            onPress={handleSyncNow}
+            disabled={syncing}
+          >
+            <Text style={[styles.primaryButtonText, { color: syncing ? theme.colors.onSurfaceVariant : theme.colors.onPrimary }]}>{syncing ? 'Syncing...' : 'Sync Now'}</Text>
           </TouchableOpacity>
 
           <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>Status: {config.status}</Text>
@@ -480,23 +471,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
   },
-  modeRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginTop: 4,
-  },
-  modeButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 12,
-    minHeight: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modeButtonText: {
-    fontSize: 13,
-    fontWeight: '700',
-  },
+
   sheetOption: {
     borderWidth: 1,
     borderRadius: 10,

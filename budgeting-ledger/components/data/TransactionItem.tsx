@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Transaction } from '../../database/repositories/transactionRepository';
 import { useTheme } from '../../providers/ThemeProvider';
-import { formatAmount, formatTime } from '../../utils/formatting';
+import { formatAmount, formatRelativeDate, formatTime } from '../../utils/formatting';
 
 type DateDisplayMode = 'relative' | 'time';
 
@@ -23,45 +23,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 }) => {
   const { theme } = useTheme();
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-
-    if (Number.isNaN(diffMs) || diffMs < 0) {
-      return 'just now';
-    }
-
-    const hourMs = 60 * 60 * 1000;
-    const dayMs = 24 * hourMs;
-    const weekMs = 7 * dayMs;
-    const monthMs = 30 * dayMs;
-
-    if (diffMs < hourMs) {
-      const minutes = Math.max(1, Math.floor(diffMs / (60 * 1000)));
-      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
-    }
-
-    if (diffMs < dayMs) {
-      const hours = Math.floor(diffMs / hourMs);
-      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
-    }
-
-    if (diffMs < weekMs) {
-      const days = Math.floor(diffMs / dayMs);
-      return `${days} ${days === 1 ? 'day' : 'days'} ago`;
-    }
-
-    if (diffMs < monthMs) {
-      const weeks = Math.floor(diffMs / weekMs);
-      return `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ago`;
-    }
-
-    const months = Math.floor(diffMs / monthMs);
-    return `${months} ${months === 1 ? 'month' : 'months'} ago`;
-  };
-
-  const dateLabel = dateDisplayMode === 'time' ? formatTime(transaction.date) : formatDate(transaction.date);
+  const dateLabel = dateDisplayMode === 'time' ? formatTime(transaction.date) : formatRelativeDate(transaction.date);
 
   return (
     <TouchableOpacity

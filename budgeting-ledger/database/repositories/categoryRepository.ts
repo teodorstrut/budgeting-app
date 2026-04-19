@@ -9,9 +9,16 @@ export interface Category {
 
 export const categoryRepository = {
   create: (category: Omit<Category, 'id'>) => {
+    const name = category.name?.trim();
+    if (!name) {
+      throw new Error('Category name is required.');
+    }
+    if (category.type !== 'income' && category.type !== 'expense') {
+      throw new Error("Category type must be 'income' or 'expense'.");
+    }
     const result = db.runSync(
       `INSERT INTO categories (emoji, name, type) VALUES (?, ?, ?)`,
-      [category.emoji, category.name, category.type]
+      [category.emoji, name, category.type]
     );
     return result.lastInsertRowId;
   },

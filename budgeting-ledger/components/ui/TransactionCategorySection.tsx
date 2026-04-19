@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useTheme } from '../../providers/ThemeProvider';
 import { Category } from '../../database/repositories/categoryRepository';
-import { transactionService } from '../../services/transactionService';
+import { transactionRepository } from '../../database/repositories/transactionRepository';
 
 interface TransactionCategorySectionProps {
     categories: Category[];
@@ -22,18 +22,20 @@ export const TransactionCategorySection: React.FC<TransactionCategorySectionProp
     const { theme } = useTheme();
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const sortedCategories = useMemo(() => {
-        const usageByCategoryId = new Map<number, number>();
-
-        transactionService.getTransactions().forEach((transaction) => {
+    const usageByCategoryId = useMemo(() => {
+        const map = new Map<number, number>();
+        transactionRepository.getAll().forEach((transaction) => {
             if (transaction.categoryId != null) {
-                usageByCategoryId.set(
+                map.set(
                     transaction.categoryId,
-                    (usageByCategoryId.get(transaction.categoryId) ?? 0) + 1
+                    (map.get(transaction.categoryId) ?? 0) + 1
                 );
             }
         });
+        return map;
+    }, [categories]);
 
+    const sortedCategories = useMemo(() => {
         return categories
             .filter((cat) => cat.type === transactionType)
             .sort((a, b) => {
@@ -46,7 +48,7 @@ export const TransactionCategorySection: React.FC<TransactionCategorySectionProp
 
                 return a.name.localeCompare(b.name);
             });
-    }, [categories, transactionType]);
+    }, [categories, transactionType, usageByCategoryId]);
 
     const categoriesPerRow = 3;
     const visibleRows = 3;

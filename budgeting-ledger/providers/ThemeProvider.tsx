@@ -24,8 +24,8 @@ const persistColorScheme = (scheme: AppColorScheme) => {
       'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
       ['theme', scheme]
     );
-  } catch {
-    // Ignore persistence failures and fall back to in-memory state.
+  } catch (error) {
+    console.warn('Failed to persist theme preference:', error);
   }
 };
 

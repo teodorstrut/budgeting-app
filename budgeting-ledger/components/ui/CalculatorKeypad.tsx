@@ -25,6 +25,8 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
     }
   }, [visible, initialValue]);
 
+  const MAX_DISPLAY_LENGTH = 20;
+
   const handleKey = (key: string) => {
     if (key === 'backspace') {
       setDisplay((prev) => prev.slice(0, -1));
@@ -38,6 +40,7 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
 
     if (key === '+' || key === '-') {
       if (display === '' || display.slice(-1) === '+' || display.slice(-1) === '-') return;
+      if (display.length >= MAX_DISPLAY_LENGTH) return;
       setDisplay((prev) => prev + key);
       return;
     }
@@ -48,18 +51,24 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
       if (last.includes('.')) return;
     }
 
+    if (display.length >= MAX_DISPLAY_LENGTH) return;
     setDisplay((prev) => prev + key);
   };
 
   const evaluate = (expr: string): string => {
     if (!expr) return '';
     try {
+      // Validate: only digits, dots, plus, minus allowed
       if (!/^[\d.+\-]+$/.test(expr)) return '';
-      // Split keeping sign, accumulate
+      // Validate structure: must not start/end with operator, no consecutive operators, single decimal per segment
+      if (/^[+]|[+\-]$|[+\-]{2}/.test(expr)) return '';
+      const segments = expr.split(/[+\-]/);
+      for (const seg of segments) {
+        if (seg === '' || (seg.match(/\./g) ?? []).length > 1) return '';
+      }
       const parts = expr.match(/[+\-]?[\d.]+/g) ?? [];
       const result = parts.reduce<number>((acc, part) => acc + parseFloat(part), 0);
-      if (isNaN(result)) return '';
-      // Trim trailing .00
+      if (!Number.isFinite(result)) return '';
       return result % 1 === 0 ? String(result) : result.toFixed(2);
     } catch {
       return '';
