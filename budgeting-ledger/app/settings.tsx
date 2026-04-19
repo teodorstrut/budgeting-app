@@ -55,15 +55,16 @@ export default function Settings() {
           <Text style={[styles.pageTitle, { color: theme.colors.onSurface }]}>Settings</Text>
           <Text style={[styles.pageSubtitle, { color: theme.colors.onSurfaceVariant }]}>Configure your workspace and financial flow.</Text>
 
-          <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}> 
+          <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Preferences</Text>
 
             <View style={styles.preferenceRow}>
-              <View style={styles.preferenceCopy}>
-                <Text style={[styles.preferenceTitle, { color: theme.colors.onSurface }]}>Appearance</Text>
-                <Text style={[styles.preferenceSubtitle, { color: theme.colors.onSurfaceVariant }]}>Switch between visual modes</Text>
-              </View>
-
+              <Text style={[styles.preferenceTitle, { color: theme.colors.onSurface }]}>Appearance</Text>
+            </View>
+            <View style={styles.preferenceRow}>
+              <Text style={[styles.preferenceSubtitle, { color: theme.colors.onSurfaceVariant }]}>Switch between visual modes</Text>
+            </View>
+            <View style={styles.preferenceRow}>
               <ToggleButtonGroup
                 options={[
                   { label: 'Dark', value: 'dark' as const },
@@ -97,7 +98,7 @@ export default function Settings() {
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}> 
+          <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Cloud Sync</Text>
             <Text style={[styles.hint, { color: theme.colors.outline }]}>Sync with Google Sheets on Android and iOS.</Text>
 
@@ -128,12 +129,12 @@ export default function Settings() {
             </TouchableOpacity>
 
             {resetDone && (
-              <Text style={[styles.successText, { color: theme.colors.primary }]}> 
+              <Text style={[styles.successText, { color: theme.colors.primary }]}>
                 Database reset successfully.
               </Text>
             )}
 
-            <Text style={[styles.hint, { color: theme.colors.outline }]}> 
+            <Text style={[styles.hint, { color: theme.colors.outline }]}>
               Clears all transactions and categories, then restores default seed data.
             </Text>
           </View>
