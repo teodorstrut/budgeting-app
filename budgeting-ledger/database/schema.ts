@@ -63,6 +63,22 @@ export const createTables = () => {
       deletedAt TEXT NOT NULL
     );
   `);
+
+  // Budgets table — one budget per expense category.
+  // Drop and recreate if the schema has changed (e.g. old table had a 'period' column).
+  const budgetsColumns = db.getAllSync(`PRAGMA table_info(budgets)`) as Array<{ name: string }>;
+  const hasLegacyPeriodColumn = budgetsColumns.some((col) => col.name === 'period');
+  if (hasLegacyPeriodColumn) {
+    db.execSync(`DROP TABLE IF EXISTS budgets;`);
+  }
+  db.execSync(`
+    CREATE TABLE IF NOT EXISTS budgets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      categoryId INTEGER NOT NULL UNIQUE,
+      amount REAL NOT NULL CHECK (amount >= 0),
+      FOREIGN KEY (categoryId) REFERENCES categories(id)
+    );
+  `);
 };
 
 const seedData = () => {
@@ -192,6 +208,24 @@ const seedData = () => {
         `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
         [transaction.amount, transaction.type, transaction.categoryId, transaction.note, transaction.date]
       );
+    });
+  }
+
+  // Seed budgets if none exist
+  const budgetCount = db.getFirstSync('SELECT COUNT(*) AS count FROM budgets') as { count: number } | null;
+  if (!budgetCount || budgetCount.count === 0) {
+    const budgetCategories = [
+      { name: 'Groceries',    amount: 400 },
+      { name: 'Dining Out',   amount: 300 },
+      { name: 'Transport',    amount: 200 },
+      { name: 'Subscriptions', amount: 100 },
+      { name: 'Entertainment', amount: 150 },
+    ];
+    budgetCategories.forEach(({ name, amount }) => {
+      const cat = db.getFirstSync('SELECT id FROM categories WHERE name = ?', [name]) as { id: number } | null;
+      if (cat?.id) {
+        db.runSync(`INSERT OR REPLACE INTO budgets (categoryId, amount) VALUES (?, ?)`, [cat.id, amount]);
+      }
     });
   }
 };

@@ -7,11 +7,13 @@ import { transactionService } from '../services/transactionService';
 import { settingsService } from '../services/settingsService';
 import { monthUtils } from '../utils/monthUtils';
 import { SummaryTile } from '../components/ui/SummaryTile';
+import { BudgetHealthWidget } from '../components/ui/BudgetHealthWidget';
 import { TransactionList } from '../components/data/TransactionList';
 import { Transaction } from '../database/repositories/transactionRepository';
 import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
 import { AddTransactionButton } from '../components/layout/AddTransactionButton';
+import { budgetService, BudgetHealthEntry } from '../services/budgetService';
 
 const getMonthLabel = (startDate: string): string => {
   const [y, m] = startDate.split('-').map(Number);
@@ -24,6 +26,8 @@ export default function Index() {
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, balance: 0 });
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [monthLabel, setMonthLabel] = useState('');
+  const [budgetHealthData, setBudgetHealthData] = useState<BudgetHealthEntry[]>([]);
+  const [hasBudgets, setHasBudgets] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -35,6 +39,11 @@ export default function Index() {
       setSummary(transactionService.getSummaryForDateRange(start, end));
       setRecentTransactions(transactionService.getRecentTransactionsForDateRange(start, end, 5));
       setMonthLabel(getMonthLabel(start));
+      const budgetsExist = budgetService.hasBudgets();
+      setHasBudgets(budgetsExist);
+      if (budgetsExist) {
+        setBudgetHealthData(budgetService.getBudgetHealthData(start, end));
+      }
     }, [])
   );
 
@@ -77,6 +86,8 @@ export default function Index() {
             color={theme.colors.secondary}
           />
         </View>
+
+        {hasBudgets && <BudgetHealthWidget entries={budgetHealthData} />}
 
         <TransactionList
           transactions={recentTransactions}

@@ -14,8 +14,6 @@ export default function Reports() {
       <View style={styles.content}>
         <Header
           title="Reports"
-          showBackButton
-          onBackPress={() => router.back()}
         />
 
         <View

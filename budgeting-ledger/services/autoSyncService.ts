@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import * as BackgroundFetch from 'expo-background-fetch';
+import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 import { settingsService } from './settingsService';
 import { syncService } from './syncService';
@@ -81,11 +81,8 @@ export const autoSyncService = {
       return false;
     }
 
-    const status = await BackgroundFetch.getStatusAsync();
-    if (
-      status === BackgroundFetch.BackgroundFetchStatus.Restricted ||
-      status === BackgroundFetch.BackgroundFetchStatus.Denied
-    ) {
+    const status = await BackgroundTask.getStatusAsync();
+    if (status === BackgroundTask.BackgroundTaskStatus.Restricted) {
       return false;
     }
 
@@ -94,10 +91,8 @@ export const autoSyncService = {
       return true;
     }
 
-    await BackgroundFetch.registerTaskAsync(GOOGLE_AUTO_SYNC_TASK, {
-      minimumInterval: 15 * 60,
-      stopOnTerminate: false,
-      startOnBoot: true,
+    await BackgroundTask.registerTaskAsync(GOOGLE_AUTO_SYNC_TASK, {
+      minimumInterval: 15,
     });
 
     return true;
@@ -114,10 +109,10 @@ if (Platform.OS !== 'web' && !TaskManager.isTaskDefined(GOOGLE_AUTO_SYNC_TASK)) 
     try {
       const synced = await autoSyncService.runDueAutoSync();
       return synced
-        ? BackgroundFetch.BackgroundFetchResult.NewData
-        : BackgroundFetch.BackgroundFetchResult.NoData;
+        ? BackgroundTask.BackgroundTaskResult.Success
+        : BackgroundTask.BackgroundTaskResult.Success;
     } catch {
-      return BackgroundFetch.BackgroundFetchResult.Failed;
+      return BackgroundTask.BackgroundTaskResult.Failed;
     }
   });
 }

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../providers/ThemeProvider';
 
 interface CalculatorKeypadProps {
@@ -10,6 +11,8 @@ interface CalculatorKeypadProps {
   onDismiss: () => void;
 }
 
+const fmt = (n: number): string => (n % 1 === 0 ? String(n) : n.toFixed(2));
+
 export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   visible,
   initialValue,
@@ -17,65 +20,95 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   onDismiss,
 }) => {
   const { theme } = useTheme();
-  const [display, setDisplay] = useState(initialValue || '');
+  const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
+
+  // Current number being typed
+  const [input, setInput] = useState(initialValue || '');
+  // Secondary tape line showing accumulated expression (e.g. "250 +")
+  const [tape, setTape] = useState('');
+  // Accumulated running value from previous steps
+  const [runningVal, setRunningVal] = useState<number | null>(null);
+  const [pendingOp, setPendingOp] = useState<'+' | '-' | null>(null);
+  // Resets input on the very first digit/dot key after the calculator opens
+  const isFirstInputRef = useRef(true);
 
   useEffect(() => {
     if (visible) {
-      setDisplay(initialValue || '');
+      setInput(initialValue || '');
+      setTape('');
+      setRunningVal(null);
+      setPendingOp(null);
+      isFirstInputRef.current = true;
     }
   }, [visible, initialValue]);
 
-  const MAX_DISPLAY_LENGTH = 20;
+  const haptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
   const handleKey = (key: string) => {
+    haptic();
+
     if (key === 'backspace') {
-      setDisplay((prev) => prev.slice(0, -1));
+      isFirstInputRef.current = false;
+      setInput((prev) => prev.slice(0, -1));
       return;
     }
 
     if (key === 'done') {
-      onConfirm(evaluate(display));
+      let result: number;
+      if (runningVal !== null && pendingOp !== null && input !== '') {
+        const inputVal = parseFloat(input);
+        result = pendingOp === '+' ? runningVal + inputVal : runningVal - inputVal;
+      } else if (runningVal !== null) {
+        result = runningVal;
+      } else {
+        result = parseFloat(input) || 0;
+      }
+      onConfirm(fmt(result));
       return;
     }
 
     if (key === '+' || key === '-') {
-      if (display === '' || display.slice(-1) === '+' || display.slice(-1) === '-') return;
-      if (display.length >= MAX_DISPLAY_LENGTH) return;
-      setDisplay((prev) => prev + key);
+      // No new input typed yet — just swap the pending operator
+      if (input === '' && pendingOp !== null) {
+        setPendingOp(key);
+        setTape((prev) => prev.trimEnd().slice(0, -1) + key);
+        return;
+      }
+
+      const inputVal = input !== '' ? parseFloat(input) : 0;
+      isFirstInputRef.current = false;
+
+      if (runningVal === null) {
+        // First operator press
+        setRunningVal(inputVal);
+        setPendingOp(key);
+        setTape(`${fmt(inputVal)} ${key}`);
+        setInput('');
+      } else {
+        // Subsequent operator press — evaluate previous step, show result in tape
+        const newVal = pendingOp === '+' ? runningVal + inputVal : runningVal - inputVal;
+        setRunningVal(newVal);
+        setPendingOp(key);
+        setTape(`${fmt(newVal)} ${key}`);
+        setInput('');
+      }
       return;
     }
 
+    // Digit or dot
     if (key === '.') {
-      const segments = display.split(/[+\-]/);
-      const last = segments[segments.length - 1];
-      if (last.includes('.')) return;
+      if (input.includes('.')) return;
     }
 
-    if (display.length >= MAX_DISPLAY_LENGTH) return;
-    setDisplay((prev) => prev + key);
-  };
-
-  const evaluate = (expr: string): string => {
-    if (!expr) return '';
-    try {
-      // Validate: only digits, dots, plus, minus allowed
-      if (!/^[\d.+\-]+$/.test(expr)) return '';
-      // Validate structure: must not start/end with operator, no consecutive operators, single decimal per segment
-      if (/^[+]|[+\-]$|[+\-]{2}/.test(expr)) return '';
-      const segments = expr.split(/[+\-]/);
-      for (const seg of segments) {
-        if (seg === '' || (seg.match(/\./g) ?? []).length > 1) return '';
-      }
-      const parts = expr.match(/[+\-]?[\d.]+/g) ?? [];
-      const result = parts.reduce<number>((acc, part) => acc + parseFloat(part), 0);
-      if (!Number.isFinite(result)) return '';
-      return result % 1 === 0 ? String(result) : result.toFixed(2);
-    } catch {
-      return '';
+    if (isFirstInputRef.current) {
+      isFirstInputRef.current = false;
+      setInput(key);
+      return;
     }
-  };
 
-  const displayValue = display || '0';
+    if (input.length >= 14) return;
+    setInput((prev) => prev + key);
+  };
 
   const keyStyle = (flex = 1) => [
     styles.key,
@@ -87,14 +120,22 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
       <View style={styles.modalRoot}>
         <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onDismiss} />
 
-        <View style={[styles.sheet, { backgroundColor: theme.colors.surfaceContainerLow }]}> 
-          {/* Display */}
+        <View style={[styles.sheet, { backgroundColor: theme.colors.surfaceContainerLow }]}>
+          {/* Tape: accumulated expression above the main number */}
           <Text
-            style={[styles.displayValue, { color: theme.colors.onSurfaceVariant }]}
+            style={[styles.tapeValue, { color: theme.colors.onSurfaceVariant }]}
+            numberOfLines={1}
+          >
+            {tape}
+          </Text>
+
+          {/* Main display */}
+          <Text
+            style={[styles.displayValue, { color: onSurface }]}
             numberOfLines={1}
             adjustsFontSizeToFit
           >
-            {displayValue}
+            {input || '0'}
           </Text>
 
           {/* Grid */}
@@ -174,6 +215,14 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 36,
     gap: 12,
+  },
+  tapeValue: {
+    fontSize: 18,
+    fontWeight: '400',
+    textAlign: 'right',
+    paddingHorizontal: 8,
+    minHeight: 24,
+    opacity: 0.6,
   },
   displayValue: {
     fontSize: 40,
