@@ -87,15 +87,18 @@ export default function History() {
   );
 
   const monthWindow = useMemo(() => {
-    // Get any date in the month being viewed, then find the period boundaries
-    const dateInMonth = new Date(anchorMonth.getFullYear(), anchorMonth.getMonth(), 15);
-    const [periodStart, periodEnd] = monthUtils.getMonthPeriodForDate(monthStartDay, dateInMonth.toISOString().split('T')[0]);
+    // Get any date in the month being viewed, then find the period boundaries.
+    // Format as a local date string directly to avoid UTC conversion shifting the day.
+    const y = anchorMonth.getFullYear();
+    const m = String(anchorMonth.getMonth() + 1).padStart(2, '0');
+    const dateInMonthStr = `${y}-${m}-15`;
+    const [periodStart, periodEnd] = monthUtils.getMonthPeriodForDate(monthStartDay, dateInMonthStr);
     
     return {
       startStr: periodStart,
       endStr: periodEnd,
-      start: new Date(periodStart),
-      end: new Date(periodEnd),
+      start: (() => { const [y, m, d] = periodStart.split('-').map(Number); return new Date(y, m - 1, d); })(),
+      end: (() => { const [y, m, d] = periodEnd.split('-').map(Number); return new Date(y, m - 1, d, 23, 59, 59, 999); })(),
     };
   }, [anchorMonth, monthStartDay]);
 

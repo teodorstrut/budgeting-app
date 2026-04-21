@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -42,9 +43,12 @@ export default function BillSplitter() {
   const [splits, setSplits] = useState<Split[]>([]);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
 
+  const noteRef = useRef<TextInput>(null);
+  const [calcHeight, setCalcHeight] = useState(0);
+
   useEffect(() => {
     if (step === 2) {
-      const categories = categoryRepository.getAll().filter((c) => c.type === 'expense');
+      const categories = categoryRepository.getAllSortedByUsage().filter((c) => c.type === 'expense');
       setExpenseCategories(categories);
     }
   }, [step]);
@@ -107,10 +111,12 @@ export default function BillSplitter() {
   const handleCalculatorConfirm = (value: string) => {
     if (calculatorTarget === 'total') {
       setTotalAmount(value);
+      setCalculatorVisible(false);
+      setTimeout(() => noteRef.current?.focus(), 300);
     } else {
       updateSplitByAmount(calculatorTarget, parseFloat(value) || 0);
+      setCalculatorVisible(false);
     }
-    setCalculatorVisible(false);
   };
 
   const calcInitialValue = (): string => {
@@ -124,8 +130,13 @@ export default function BillSplitter() {
   };
 
   const addCategorySplit = (category: Category) => {
+    const newIndex = splits.length;
     setSplits((prev) => [...prev, { category, amount: 0, percentage: 0 }]);
     setCategoryPickerVisible(false);
+    setTimeout(() => {
+      setCalculatorTarget(newIndex);
+      setCalculatorVisible(true);
+    }, 300);
   };
 
   const removeCategorySplit = (index: number) => {
@@ -160,13 +171,14 @@ export default function BillSplitter() {
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
 
   return (
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.colors.surface }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       {step === 1 ? (
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: calculatorVisible && calcHeight > 0 ? calcHeight : insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
           <Header
@@ -193,6 +205,7 @@ export default function BillSplitter() {
           <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerHigh }]}> 
             <AppInputLabel>Note (optional)</AppInputLabel>
             <AppTextInput
+              ref={noteRef}
               value={note}
               onChangeText={setNote}
               placeholder="What's this bill for?"
@@ -220,7 +233,7 @@ export default function BillSplitter() {
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 32 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: calculatorVisible && calcHeight > 0 ? calcHeight : insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
           <Header
@@ -411,13 +424,15 @@ export default function BillSplitter() {
         </View>
       </Modal>
 
+    </KeyboardAvoidingView>
       <CalculatorKeypad
         visible={calculatorVisible}
         initialValue={calcInitialValue()}
+        onHeightChange={setCalcHeight}
         onConfirm={handleCalculatorConfirm}
         onDismiss={() => setCalculatorVisible(false)}
       />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

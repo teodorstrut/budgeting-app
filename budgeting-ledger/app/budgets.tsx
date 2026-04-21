@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -35,11 +35,14 @@ export default function Budgets() {
   const [calculatorVisible, setCalculatorVisible] = useState(false);
   const [calculatorTarget, setCalculatorTarget] = useState<number>(0);
 
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [calcHeight, setCalcHeight] = useState(0);
+
   useFocusEffect(
     useCallback(() => {
       const existing = budgetService.getBudgetsWithCategories();
       setRows(existing.map((e) => ({ ...e })));
-      const allCats = categoryRepository.getAll().filter((c) => c.type === 'expense');
+      const allCats = categoryRepository.getAllSortedByUsage().filter((c) => c.type === 'expense');
       setAllExpenseCategories(allCats);
     }, [])
   );
@@ -58,11 +61,16 @@ export default function Budgets() {
   const bgForIndex = (i: number) => CONTAINER_BG_COLORS[i % CONTAINER_BG_COLORS.length];
 
   const handleAddCategory = (cat: Category) => {
+    const newIndex = rows.length;
     setRows((prev) => [
       ...prev,
       { categoryId: cat.id!, categoryName: cat.name, emoji: cat.emoji ?? '💰', amount: 0 },
     ]);
     setCategoryPickerVisible(false);
+    setTimeout(() => {
+      scrollViewRef.current?.scrollToEnd({ animated: true });
+      openCalculatorFor(newIndex);
+    }, 300);
   };
 
   const handleRemoveRow = (index: number) => {
@@ -102,7 +110,8 @@ export default function Budgets() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 160 }]}
+        ref={scrollViewRef}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: calculatorVisible && calcHeight > 0 ? calcHeight + 16 : insets.bottom + 160 }]}
         keyboardShouldPersistTaps="handled"
       >
         <Header
@@ -216,6 +225,7 @@ export default function Budgets() {
       <CalculatorKeypad
         visible={calculatorVisible}
         initialValue={calcInitialValue()}
+        onHeightChange={setCalcHeight}
         onConfirm={handleCalculatorConfirm}
         onDismiss={() => setCalculatorVisible(false)}
       />

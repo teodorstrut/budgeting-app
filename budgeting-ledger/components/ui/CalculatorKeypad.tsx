@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../providers/ThemeProvider';
@@ -9,6 +10,7 @@ interface CalculatorKeypadProps {
   initialValue: string;
   onConfirm: (value: string) => void;
   onDismiss: () => void;
+  onHeightChange?: (height: number) => void;
 }
 
 const fmt = (n: number): string => (n % 1 === 0 ? String(n) : n.toFixed(2));
@@ -18,8 +20,10 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   initialValue,
   onConfirm,
   onDismiss,
+  onHeightChange,
 }) => {
   const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
 
   // Current number being typed
@@ -32,6 +36,12 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   // Resets input on the very first digit/dot key after the calculator opens
   const isFirstInputRef = useRef(true);
 
+  // Slide animation — start at the initial visibility state to avoid a flash
+  const translateY = useRef(new Animated.Value(visible ? 0 : 600)).current;
+  const backdropOpacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const heightRef = useRef(0);
+  const hasLaidOut = useRef(false);
+
   useEffect(() => {
     if (visible) {
       setInput(initialValue || '');
@@ -41,6 +51,22 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
       isFirstInputRef.current = true;
     }
   }, [visible, initialValue]);
+
+  useEffect(() => {
+    if (!hasLaidOut.current) return;
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: visible ? 0 : heightRef.current,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: visible ? 1 : 0,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [visible]);
 
   const haptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -116,104 +142,132 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   ];
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onDismiss}>
-      <View style={styles.modalRoot}>
-        <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={onDismiss} />
+    <>
+      {/* Backdrop — fades in/out, dismisses on tap */}
+      <Animated.View
+        pointerEvents={visible ? 'auto' : 'none'}
+        style={[styles.backdrop, { opacity: backdropOpacity }]}
+      >
+        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onDismiss} />
+      </Animated.View>
 
-        <View style={[styles.sheet, { backgroundColor: theme.colors.surfaceContainerLow }]}>
-          {/* Tape: accumulated expression above the main number */}
-          <Text
-            style={[styles.tapeValue, { color: theme.colors.onSurfaceVariant }]}
-            numberOfLines={1}
-          >
-            {tape}
-          </Text>
+      {/* Keypad sheet — slides up from bottom */}
+      <Animated.View
+        pointerEvents={visible ? 'auto' : 'none'}
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: theme.colors.surfaceContainerLow,
+            paddingBottom: Math.max(insets.bottom, 32) + 16,
+            transform: [{ translateY }],
+          },
+        ]}
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          heightRef.current = h;
+          onHeightChange?.(h);
+          if (!hasLaidOut.current) {
+            hasLaidOut.current = true;
+            // Snap to correct off-screen position after first measurement
+            if (!visible) {
+              translateY.setValue(h);
+            }
+          }
+        }}
+      >
+        {/* Tape: accumulated expression above the main number */}
+        <Text
+          style={[styles.tapeValue, { color: theme.colors.onSurfaceVariant }]}
+          numberOfLines={1}
+        >
+          {tape}
+        </Text>
 
-          {/* Main display */}
-          <Text
-            style={[styles.displayValue, { color: onSurface }]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-          >
-            {input || '0'}
-          </Text>
+        {/* Main display */}
+        <Text
+          style={[styles.displayValue, { color: onSurface }]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {input || '0'}
+        </Text>
 
-          {/* Grid */}
-          <View style={styles.grid}>
-            {/* Row 1 */}
-            <View style={styles.row}>
-              {['1', '2', '3'].map((k) => (
-                <TouchableOpacity key={k} style={keyStyle()} onPress={() => handleKey(k)} activeOpacity={0.7}>
-                  <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>{k}</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity style={keyStyle()} onPress={() => handleKey('backspace')} activeOpacity={0.7}>
-                <FontAwesome name="long-arrow-left" size={20} color={theme.colors.onSurfaceVariant} />
+        {/* Grid */}
+        <View style={styles.grid}>
+          {/* Row 1 */}
+          <View style={styles.row}>
+            {['1', '2', '3'].map((k) => (
+              <TouchableOpacity key={k} style={keyStyle()} onPress={() => handleKey(k)} activeOpacity={0.7}>
+                <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>{k}</Text>
               </TouchableOpacity>
-            </View>
+            ))}
+            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('backspace')} activeOpacity={0.7}>
+              <FontAwesome name="long-arrow-left" size={20} color={theme.colors.onSurfaceVariant} />
+            </TouchableOpacity>
+          </View>
 
-            {/* Row 2 */}
-            <View style={styles.row}>
-              {['4', '5', '6'].map((k) => (
-                <TouchableOpacity key={k} style={keyStyle()} onPress={() => handleKey(k)} activeOpacity={0.7}>
-                  <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>{k}</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity style={keyStyle()} onPress={() => handleKey('+')} activeOpacity={0.7}>
-                <Text style={[styles.operatorText, { color: theme.colors.primary }]}>+</Text>
+          {/* Row 2 */}
+          <View style={styles.row}>
+            {['4', '5', '6'].map((k) => (
+              <TouchableOpacity key={k} style={keyStyle()} onPress={() => handleKey(k)} activeOpacity={0.7}>
+                <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>{k}</Text>
               </TouchableOpacity>
-            </View>
+            ))}
+            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('+')} activeOpacity={0.7}>
+              <Text style={[styles.operatorText, { color: theme.colors.primary }]}>+</Text>
+            </TouchableOpacity>
+          </View>
 
-            {/* Row 3 */}
-            <View style={styles.row}>
-              {['7', '8', '9'].map((k) => (
-                <TouchableOpacity key={k} style={keyStyle()} onPress={() => handleKey(k)} activeOpacity={0.7}>
-                  <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>{k}</Text>
-                </TouchableOpacity>
-              ))}
-              <TouchableOpacity style={keyStyle()} onPress={() => handleKey('-')} activeOpacity={0.7}>
-                <Text style={[styles.operatorText, { color: theme.colors.primary }]}>−</Text>
+          {/* Row 3 */}
+          <View style={styles.row}>
+            {['7', '8', '9'].map((k) => (
+              <TouchableOpacity key={k} style={keyStyle()} onPress={() => handleKey(k)} activeOpacity={0.7}>
+                <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>{k}</Text>
               </TouchableOpacity>
-            </View>
+            ))}
+            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('-')} activeOpacity={0.7}>
+              <Text style={[styles.operatorText, { color: theme.colors.primary }]}>−</Text>
+            </TouchableOpacity>
+          </View>
 
-            {/* Row 4 */}
-            <View style={styles.row}>
-              <TouchableOpacity style={keyStyle()} onPress={() => handleKey('.')} activeOpacity={0.7}>
-                <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>.</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={keyStyle()} onPress={() => handleKey('0')} activeOpacity={0.7}>
-                <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>0</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.key, { backgroundColor: theme.colors.primary, flex: 2 }]}
-                onPress={() => handleKey('done')}
-                activeOpacity={0.85}
-              >
-                <Text style={[styles.doneText, { color: theme.colors.onPrimary }]}>DONE</Text>
-              </TouchableOpacity>
-            </View>
+          {/* Row 4 */}
+          <View style={styles.row}>
+            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('.')} activeOpacity={0.7}>
+              <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>.</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('0')} activeOpacity={0.7}>
+              <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>0</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.key, { backgroundColor: theme.colors.primary, flex: 2 }]}
+              onPress={() => handleKey('done')}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.doneText, { color: theme.colors.onPrimary }]}>DONE</Text>
+            </TouchableOpacity>
           </View>
         </View>
-      </View>
-    </Modal>
+      </Animated.View>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  modalRoot: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    zIndex: 10,
   },
   sheet: {
-    width: '100%',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    zIndex: 11,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 16,
     paddingTop: 20,
-    paddingBottom: 36,
     gap: 12,
   },
   tapeValue: {

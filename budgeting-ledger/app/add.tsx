@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
+  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -35,12 +36,15 @@ export default function AddTransaction() {
   const editId = params.editId ? Number.parseInt(params.editId, 10) : undefined;
   const isEditing = editId != null && !Number.isNaN(editId);
 
+  const noteRef = useRef<TextInput>(null);
+
+  const [calcHeight, setCalcHeight] = useState(0);
   const [amount, setAmount] = useState('');
   const [showCalculator, setShowCalculator] = useState(true);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date());
-  const [categories, setCategories] = useState(categoryRepository.getAll());
+  const [categories, setCategories] = useState(categoryRepository.getAllSortedByUsage());
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
 
@@ -52,7 +56,7 @@ export default function AddTransaction() {
 
   useFocusEffect(
     useCallback(() => {
-      const all = categoryRepository.getAll();
+      const all = categoryRepository.getAllSortedByUsage();
       setCategories(all);
     }, [])
   );
@@ -82,7 +86,7 @@ export default function AddTransaction() {
   }, [editId, isEditing, router]);
 
   const filteredCategories = useMemo(
-    () => categories.filter((cat) => cat.type === type).sort((a, b) => a.name.localeCompare(b.name)),
+    () => categories.filter((cat) => cat.type === type),
     [categories, type]
   );
 
@@ -116,9 +120,7 @@ export default function AddTransaction() {
         date: new Date(date).toISOString(),
       });
 
-      Alert.alert('Saved', 'Transaction updated successfully', [
-        { text: 'OK', onPress: () => router.replace('/history') },
-      ]);
+      router.replace('/history');
       return;
     }
 
@@ -130,7 +132,7 @@ export default function AddTransaction() {
       date: new Date(date).toISOString(),
     });
 
-    Alert.alert('Saved', 'Transaction added successfully', [{ text: 'OK', onPress: () => router.push('/') }]);
+    router.push('/');
   };
 
   const handleDelete = () => {
@@ -148,13 +150,14 @@ export default function AddTransaction() {
   };
 
   return (
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.colors.surface }]}
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
     >
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: Math.max(insets.bottom + 16, 32) }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: showCalculator && calcHeight > 0 ? calcHeight : Math.max(insets.bottom + 16, 32) }]}
         keyboardShouldPersistTaps="handled"
       >
         <Header
@@ -175,13 +178,6 @@ export default function AddTransaction() {
             </Text>
             <FontAwesome name="calculator" size={16} color={theme.colors.primary} />
           </AppSelectorField>
-
-          <CalculatorKeypad
-            visible={showCalculator}
-            initialValue={amount}
-            onConfirm={(val) => { setAmount(val); setShowCalculator(false); }}
-            onDismiss={() => setShowCalculator(false)}
-          />
 
           <ToggleButtonGroup
             options={[
@@ -210,6 +206,7 @@ export default function AddTransaction() {
 
           <AppInputLabel>Note</AppInputLabel>
           <AppTextInput
+            ref={noteRef}
             placeholder="Optional details"
             value={note}
             onChangeText={setNote}
@@ -252,6 +249,7 @@ export default function AddTransaction() {
         onSelectCategory={(cat) => {
           setCategoryId(cat.id ?? null);
           setCategoryPickerVisible(false);
+          setTimeout(() => noteRef.current?.focus(), 300);
         }}
         emptyMessage="No categories yet."
         onManageCategories={() => {
@@ -260,6 +258,20 @@ export default function AddTransaction() {
         }}
       />
     </KeyboardAvoidingView>
+      <CalculatorKeypad
+        visible={showCalculator}
+        initialValue={amount}
+        onHeightChange={setCalcHeight}
+        onConfirm={(val) => {
+          setAmount(val);
+          setShowCalculator(false);
+          if (!isEditing) {
+            setCategoryPickerVisible(true);
+          }
+        }}
+        onDismiss={() => setShowCalculator(false)}
+      />
+    </View>
   );
 }
 

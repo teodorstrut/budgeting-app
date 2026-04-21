@@ -6,24 +6,27 @@ interface AppTextInputProps extends TextInputProps {
   containerStyle?: ViewStyle;
 }
 
-export const AppTextInput: React.FC<AppTextInputProps> = ({ style, containerStyle: _containerStyle, ...props }) => {
-  const { theme } = useTheme();
-  return (
-    <TextInput
-      placeholderTextColor={props.placeholderTextColor ?? theme.colors.outline}
-      {...props}
-      style={[
-        styles.input,
-        {
-          backgroundColor: theme.colors.surfaceContainerLow,
-          borderColor: theme.colors.outlineVariant,
-          color: theme.colors.onSurface ?? theme.colors.onSurfaceVariant,
-        },
-        style,
-      ]}
-    />
-  );
-};
+export const AppTextInput = React.forwardRef<TextInput, AppTextInputProps>(
+  ({ style, containerStyle: _containerStyle, ...props }, ref) => {
+    const { theme } = useTheme();
+    return (
+      <TextInput
+        ref={ref}
+        placeholderTextColor={props.placeholderTextColor ?? theme.colors.outline}
+        {...props}
+        style={[
+          styles.input,
+          {
+            backgroundColor: theme.colors.surfaceContainerLow,
+            borderColor: theme.colors.outlineVariant,
+            color: theme.colors.onSurface ?? theme.colors.onSurfaceVariant,
+          },
+          style,
+        ]}
+      />
+    );
+  }
+);
 
 const styles = StyleSheet.create({
   input: {

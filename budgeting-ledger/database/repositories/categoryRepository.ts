@@ -28,6 +28,16 @@ export const categoryRepository = {
     return result as Category[];
   },
 
+  getAllSortedByUsage: (): Category[] => {
+    const result = db.getAllSync(
+      `SELECT c.* FROM categories c
+       LEFT JOIN transactions t ON t.categoryId = c.id
+       GROUP BY c.id
+       ORDER BY COUNT(t.id) DESC, c.name ASC`
+    );
+    return result as Category[];
+  },
+
   getById: (id: number): Category | null => {
     const result = db.getFirstSync('SELECT * FROM categories WHERE id = ?', [id]);
     return result as Category | null;
