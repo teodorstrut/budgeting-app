@@ -9,7 +9,11 @@ export default function OAuthRedirect() {
 
   useEffect(() => {
     WebBrowser.maybeCompleteAuthSession();
-    router.replace('/sync-settings');
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/sync-settings');
+    }
   }, [router]);
 
   return null;

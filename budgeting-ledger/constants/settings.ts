@@ -18,6 +18,8 @@ export const SETTING_KEYS = {
 export const SECURE_KEYS = {
   GOOGLE_ACCESS_TOKEN: 'googleAccessToken',
   GOOGLE_ACCESS_TOKEN_EXPIRY: 'googleAccessTokenExpiry',
+  GOOGLE_REFRESH_TOKEN: 'googleRefreshToken',
+  GOOGLE_CLIENT_ID: 'googleClientId',
 } as const;
 
 // Sync constants

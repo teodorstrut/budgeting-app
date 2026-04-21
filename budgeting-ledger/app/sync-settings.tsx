@@ -82,6 +82,10 @@ export default function SyncSettings() {
       'email',
       'profile',
     ],
+    extraParams: {
+      access_type: 'offline',
+      prompt: 'consent',
+    },
   });
 
   useEffect(() => {
@@ -125,9 +129,18 @@ export default function SyncSettings() {
     const expiresIn = response.authentication?.expiresIn;
     const expiresAt = issuedAt != null && expiresIn != null ? issuedAt + expiresIn : undefined;
 
+    const refreshToken = response.authentication?.refreshToken ?? null;
+    const clientId =
+      Platform.OS === 'android'
+        ? (extraConfig.googleAuth?.androidClientId ?? null)
+        : (extraConfig.googleAuth?.iosClientId ?? null);
+
     syncService
       .setGoogleAccessToken(accessToken, expiresAt)
       .then(async () => {
+        if (refreshToken && clientId) {
+          await syncService.setGoogleRefreshToken(refreshToken, clientId);
+        }
         const profile = await syncService.fetchGoogleUserProfile(accessToken);
         syncService.setGoogleAccountProfile(profile);
         setToken(accessToken);

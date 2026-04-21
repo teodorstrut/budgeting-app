@@ -82,10 +82,48 @@ export const syncService = {
       if (!Number.isNaN(expiry) && Date.now() / 1000 >= expiry - 60) {
         await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_ACCESS_TOKEN);
         await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_ACCESS_TOKEN_EXPIRY);
-        return null;
+        return syncService.refreshGoogleAccessToken();
       }
     }
     return token;
+  },
+
+  refreshGoogleAccessToken: async (): Promise<string | null> => {
+    const refreshToken = await SecureStore.getItemAsync(SECURE_KEYS.GOOGLE_REFRESH_TOKEN);
+    const clientId = await SecureStore.getItemAsync(SECURE_KEYS.GOOGLE_CLIENT_ID);
+    if (!refreshToken || !clientId) return null;
+
+    try {
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken,
+          client_id: clientId,
+        }).toString(),
+      });
+
+      if (!response.ok) return null;
+
+      const data = (await response.json()) as {
+        access_token?: string;
+        expires_in?: number;
+      };
+
+      if (!data.access_token) return null;
+
+      const expiresAt = data.expires_in != null ? Math.floor(Date.now() / 1000) + data.expires_in : undefined;
+      await syncService.setGoogleAccessToken(data.access_token, expiresAt);
+      return data.access_token;
+    } catch {
+      return null;
+    }
+  },
+
+  setGoogleRefreshToken: async (refreshToken: string, clientId: string): Promise<void> => {
+    await SecureStore.setItemAsync(SECURE_KEYS.GOOGLE_REFRESH_TOKEN, refreshToken);
+    await SecureStore.setItemAsync(SECURE_KEYS.GOOGLE_CLIENT_ID, clientId);
   },
 
   setGoogleAccessToken: async (token: string, expiresAt?: number): Promise<void> => {
@@ -110,6 +148,8 @@ export const syncService = {
   clearGoogleSession: async (): Promise<void> => {
     await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_ACCESS_TOKEN);
     await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_ACCESS_TOKEN_EXPIRY);
+    await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_REFRESH_TOKEN);
+    await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_CLIENT_ID);
     settingsService.setGoogleAccountEmail('');
     settingsService.setGoogleAccountName('');
     settingsService.setGoogleAutoSyncLastLocalDay('');
