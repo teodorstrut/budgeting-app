@@ -7,11 +7,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import Slider from '@react-native-community/slider';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -19,6 +17,9 @@ import { useTheme } from '../providers/ThemeProvider';
 import { Category, categoryRepository } from '../database/repositories/categoryRepository';
 import { transactionService } from '../services/transactionService';
 import { CalculatorKeypad } from '../components/ui/CalculatorKeypad';
+import { SplitSlider } from '../components/ui/SplitSlider';
+import { AppInputLabel } from '../components/ui/AppInputLabel';
+import { AppTextInput } from '../components/ui/AppTextInput';
 import { Header } from '../components/layout/Header';
 
 type Split = {
@@ -190,13 +191,11 @@ export default function BillSplitter() {
           </TouchableOpacity>
 
           <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerHigh }]}> 
-            <Text style={[styles.fieldLabel, { color: theme.colors.onSurfaceVariant }]}>Note (optional)</Text>
-            <TextInput
-              style={[styles.noteInput, { color: onSurface, borderColor: theme.colors.outlineVariant }]}
+            <AppInputLabel>Note (optional)</AppInputLabel>
+            <AppTextInput
               value={note}
               onChangeText={setNote}
               placeholder="What's this bill for?"
-              placeholderTextColor={theme.colors.outline}
             />
           </View>
 
@@ -315,15 +314,12 @@ export default function BillSplitter() {
                   </View>
                 </View>
 
-                <Slider
-                  style={styles.slider}
-                  minimumValue={0}
+                <SplitSlider
+                  percentage={split.percentage}
                   maximumValue={getMaxPercentageForIndex(index)}
-                  value={split.percentage}
+                  trackColor={colorForIndex(index)}
+                  surfaceColor={theme.colors.surfaceContainerHighest}
                   onValueChange={(v: number) => updateSplitByPercentage(index, v)}
-                  minimumTrackTintColor={colorForIndex(index)}
-                  maximumTrackTintColor={theme.colors.surfaceContainerHighest}
-                  thumbTintColor={colorForIndex(index)}
                 />
               </View>
             ))
@@ -459,16 +455,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
-  },
-  fieldLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  noteInput: {
-    fontSize: 15,
-    borderBottomWidth: 1,
-    paddingVertical: 8,
   },
   continueButton: {
     borderRadius: 32,

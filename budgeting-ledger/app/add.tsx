@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -17,11 +16,14 @@ import { useTheme } from '../providers/ThemeProvider';
 import { transactionService } from '../services/transactionService';
 import { categoryRepository } from '../database/repositories/categoryRepository';
 import { TransactionDateTimeField } from '../components/ui/TransactionDateTimeField';
-import { TransactionCategorySection } from '../components/ui/TransactionCategorySection';
 import { CalculatorKeypad } from '../components/ui/CalculatorKeypad';
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 import { FontAwesome } from '@expo/vector-icons';
 import { Header } from '../components/layout/Header';
+import { CategoryPickerModal } from '../components/ui/CategoryPickerModal';
+import { AppInputLabel } from '../components/ui/AppInputLabel';
+import { AppTextInput } from '../components/ui/AppTextInput';
+import { AppSelectorField } from '../components/ui/AppSelectorField';
 import { transactionRepository } from '../database/repositories/transactionRepository';
 import { confirmDialog } from '../utils/confirmDialog';
 
@@ -34,12 +36,19 @@ export default function AddTransaction() {
   const isEditing = editId != null && !Number.isNaN(editId);
 
   const [amount, setAmount] = useState('');
-  const [showCalculator, setShowCalculator] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(true);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date());
   const [categories, setCategories] = useState(categoryRepository.getAll());
   const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
+
+  useEffect(() => {
+    if (isEditing) {
+      setShowCalculator(false);
+    }
+  }, [isEditing]);
 
   useFocusEffect(
     useCallback(() => {
@@ -71,6 +80,16 @@ export default function AddTransaction() {
       setDate(parsedDate);
     }
   }, [editId, isEditing, router]);
+
+  const filteredCategories = useMemo(
+    () => categories.filter((cat) => cat.type === type).sort((a, b) => a.name.localeCompare(b.name)),
+    [categories, type]
+  );
+
+  const selectedCategory = useMemo(
+    () => categories.find((cat) => cat.id === categoryId) ?? null,
+    [categories, categoryId]
+  );
 
   useEffect(() => {
     setCategoryId((prev) => {
@@ -148,30 +167,14 @@ export default function AddTransaction() {
           containerStyle={styles.addHeaderSpacing}
         />
 
-        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerHigh }]}> 
-          <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Amount</Text>
-          <View style={styles.amountRow}>
-            <TextInput
-              style={[styles.input, styles.amountInput, { color: theme.colors.onSurfaceVariant, borderColor: theme.colors.outlineVariant }]}
-              value={amount}
-              keyboardType={Platform.select({ ios: 'decimal-pad', android: 'numeric' })}
-              onChangeText={(text) => {
-                const normalized = text.replace(/[^0-9.]/g, '');
-                const parts = normalized.split('.');
-                const clean = parts.length > 2 ? `${parts[0]}.${parts[1]}` : normalized;
-                setAmount(clean);
-              }}
-              placeholder="0.00"
-              placeholderTextColor={theme.colors.onSurfaceVariant}
-            />
-            <TouchableOpacity
-              style={[styles.calcButton, { backgroundColor: theme.colors.surfaceContainerHigh, borderColor: theme.colors.outlineVariant }]}
-              onPress={() => setShowCalculator(true)}
-              activeOpacity={0.75}
-            >
-              <FontAwesome name="calculator" size={18} color={theme.colors.primary} />
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerHigh }]}>
+          <AppInputLabel>Amount</AppInputLabel>
+          <AppSelectorField onPress={() => setShowCalculator(true)}>
+            <Text style={[styles.amountDisplayText, { color: amount ? theme.colors.onSurface ?? theme.colors.onSurfaceVariant : theme.colors.outline }]}>
+              {amount ? `$${amount}` : '$0.00'}
+            </Text>
+            <FontAwesome name="calculator" size={16} color={theme.colors.primary} />
+          </AppSelectorField>
 
           <CalculatorKeypad
             visible={showCalculator}
@@ -193,27 +196,21 @@ export default function AddTransaction() {
             borderColor={theme.colors.outline}
           />
 
-          <TransactionCategorySection
-            categories={categories}
-            transactionType={type}
-            selectedCategoryId={categoryId}
-            onSelectCategory={setCategoryId}
-            onManageCategories={() =>
-              router.push({
-                pathname: '/manage-categories',
-                params: {
-                  from: 'add',
-                  type,
-                },
-              })
-            }
-          />
+          <AppInputLabel>Category</AppInputLabel>
+          <AppSelectorField onPress={() => setCategoryPickerVisible(true)}>
+            {selectedCategory ? (
+              <Text style={[styles.categorySelectorText, { color: theme.colors.onSurface ?? theme.colors.onSurfaceVariant }]}>
+                {selectedCategory.emoji ? `${selectedCategory.emoji} ` : ''}{selectedCategory.name}
+              </Text>
+            ) : (
+              <Text style={[styles.categorySelectorPlaceholder, { color: theme.colors.outline }]}>Select category…</Text>
+            )}
+            <FontAwesome name="chevron-up" size={12} color={theme.colors.onSurfaceVariant} />
+          </AppSelectorField>
 
-          <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Note</Text>
-          <TextInput
-            style={[styles.input, { color: theme.colors.onSurfaceVariant, borderColor: theme.colors.outlineVariant }]}
+          <AppInputLabel>Note</AppInputLabel>
+          <AppTextInput
             placeholder="Optional details"
-            placeholderTextColor={theme.colors.outline}
             value={note}
             onChangeText={setNote}
           />
@@ -230,7 +227,7 @@ export default function AddTransaction() {
               marginBottom: insets.bottom,
             },
           ]}
-        > 
+        >
           <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.primary }]} onPress={handleSave}>
             <Text style={[styles.saveButtonText, { color: theme.colors.onPrimary }]}>
               {isEditing ? 'Update Transaction' : 'Save Transaction'}
@@ -246,6 +243,22 @@ export default function AddTransaction() {
           )}
         </View>
       </ScrollView>
+      <CategoryPickerModal
+        visible={categoryPickerVisible}
+        onClose={() => setCategoryPickerVisible(false)}
+        categories={filteredCategories}
+        selectedCategoryId={categoryId}
+        selectedColor={type === 'expense' ? theme.colors.secondary : theme.colors.primary}
+        onSelectCategory={(cat) => {
+          setCategoryId(cat.id ?? null);
+          setCategoryPickerVisible(false);
+        }}
+        emptyMessage="No categories yet."
+        onManageCategories={() => {
+          setCategoryPickerVisible(false);
+          router.push({ pathname: '/manage-categories', params: { from: 'add', type } });
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -262,37 +275,9 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 16,
   },
-  label: {
-    fontSize: 12,
+  amountDisplayText: {
+    fontSize: 22,
     fontWeight: '700',
-    marginTop: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  amountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginVertical: 8,
-  },
-  amountInput: {
-    flex: 1,
-    marginTop: 0,
-  },
-  calcButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  input: {
-    height: 46,
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    marginTop: 8,
   },
   footer: {
     marginTop: 16,
@@ -323,5 +308,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     flexDirection: 'row',
     borderWidth: 1,
-  }
+  },
+  categorySelectorText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  categorySelectorPlaceholder: {
+    fontSize: 14,
+    fontWeight: '400',
+  },
 });

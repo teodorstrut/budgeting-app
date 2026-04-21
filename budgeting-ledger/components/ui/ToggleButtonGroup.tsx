@@ -58,12 +58,13 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     gap: 8,
+    marginTop: 8,
   },
   button: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 10,
+    borderRadius: 14,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },

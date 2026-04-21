@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +15,7 @@ import { useTheme } from '../providers/ThemeProvider';
 import { Category, categoryRepository } from '../database/repositories/categoryRepository';
 import { budgetService, BudgetEntry } from '../services/budgetService';
 import { CalculatorKeypad } from '../components/ui/CalculatorKeypad';
+import { CategoryPickerModal } from '../components/ui/CategoryPickerModal';
 import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
 
@@ -205,53 +205,13 @@ export default function Budgets() {
 
       <NavBar />
 
-      {/* Category Picker Modal */}
-      <Modal
+      <CategoryPickerModal
         visible={categoryPickerVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setCategoryPickerVisible(false)}
-      >
-        <View style={styles.modalRoot}>
-          <TouchableOpacity
-            style={styles.backdrop}
-            activeOpacity={1}
-            onPress={() => setCategoryPickerVisible(false)}
-          />
-          <View style={[styles.sheet, { backgroundColor: theme.colors.surfaceContainerLow }]}>
-            <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: onSurface }]}>Choose Category</Text>
-              <TouchableOpacity onPress={() => setCategoryPickerVisible(false)}>
-                <FontAwesome name="times" size={18} color={theme.colors.onSurfaceVariant} />
-              </TouchableOpacity>
-            </View>
-
-            {availableCategories.length === 0 ? (
-              <Text style={[styles.allAddedText, { color: theme.colors.onSurfaceVariant }]}>
-                All expense categories already have budgets assigned.
-              </Text>
-            ) : (
-              <ScrollView contentContainerStyle={styles.chipGrid}>
-                {availableCategories.map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[
-                      styles.categoryChip,
-                      { backgroundColor: theme.colors.surfaceContainerHigh, borderColor: theme.colors.outlineVariant },
-                    ]}
-                    onPress={() => handleAddCategory(cat)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.chipText, { color: onSurface }]}>
-                      {cat.emoji ? `${cat.emoji} ` : ''}{cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setCategoryPickerVisible(false)}
+        categories={availableCategories}
+        onSelectCategory={handleAddCategory}
+        emptyMessage="All expense categories already have budgets assigned."
+      />
 
       <CalculatorKeypad
         visible={calculatorVisible}
@@ -299,14 +259,4 @@ const styles = StyleSheet.create({
   saveButton: { borderRadius: 9999, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   saveIcon: { marginRight: 10 },
   saveText: { fontSize: 17, fontWeight: '700' },
-
-  modalRoot: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, maxHeight: '70%' },
-  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  sheetTitle: { fontSize: 18, fontWeight: '700' },
-  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 16 },
-  categoryChip: { borderWidth: 1, borderRadius: 9999, paddingHorizontal: 14, paddingVertical: 8 },
-  chipText: { fontSize: 14, fontWeight: '600' },
-  allAddedText: { fontSize: 14, textAlign: 'center', paddingVertical: 16 },
 });

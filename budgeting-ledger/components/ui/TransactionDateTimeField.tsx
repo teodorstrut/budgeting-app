@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../providers/ThemeProvider';
+import { AppInputLabel } from './AppInputLabel';
 import { formatTime } from '../../utils/formatting';
 
 interface TransactionDateTimeFieldProps {
@@ -40,8 +41,8 @@ export const TransactionDateTimeField: React.FC<TransactionDateTimeFieldProps> =
 
   return (
     <>
-      <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Date & Time</Text>
-      <View style={[styles.input, styles.dateTimeRow, { borderColor: theme.colors.outlineVariant }]}>
+      <AppInputLabel>Date &amp; Time</AppInputLabel>
+      <View style={[styles.input, styles.dateTimeRow, { borderColor: theme.colors.outlineVariant, backgroundColor: theme.colors.surfaceContainerLow }]}>
         <TouchableOpacity
           style={[styles.dateTimeSegment, { borderRightColor: theme.colors.outlineVariant }]}
           onPress={() => openDateTimePicker('date')}
@@ -69,18 +70,11 @@ export const TransactionDateTimeField: React.FC<TransactionDateTimeFieldProps> =
 };
 
 const styles = StyleSheet.create({
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
   input: {
-    height: 46,
+    height: 48,
     borderRadius: 14,
     borderWidth: 1,
-    paddingHorizontal: 12,
+    paddingHorizontal: 14,
     marginTop: 8,
   },
   dateTimeRow: {

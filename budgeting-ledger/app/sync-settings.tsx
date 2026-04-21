@@ -7,7 +7,6 @@ import {
   StyleSheet,
   Switch,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -21,6 +20,8 @@ import { syncService } from '../services/syncService';
 import { settingsService } from '../services/settingsService';
 import { GoogleSpreadsheet, SyncConfig } from '../types/sync';
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
+import { AppInputLabel } from '../components/ui/AppInputLabel';
+import { AppTextInput } from '../components/ui/AppTextInput';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -486,22 +487,18 @@ export default function SyncSettings() {
             </>
           ) : (
             <>
-              <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>New Spreadsheet Name</Text>
-              <TextInput
-                style={[styles.input, { color: theme.colors.onSurface, borderColor: theme.colors.outlineVariant }]}
+              <AppInputLabel>New Spreadsheet Name</AppInputLabel>
+              <AppTextInput
                 placeholder="Personal Budget Ledger"
-                placeholderTextColor={theme.colors.outline}
                 value={newSpreadsheetName}
                 onChangeText={setNewSpreadsheetName}
               />
             </>
           )}
 
-          <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>App Tab Name</Text>
-          <TextInput
-            style={[styles.input, { color: theme.colors.onSurface, borderColor: theme.colors.outlineVariant }]}
+          <AppInputLabel>App Tab Name</AppInputLabel>
+          <AppTextInput
             placeholder={syncService.getDefaultSheetName()}
-            placeholderTextColor={theme.colors.outline}
             value={tabName}
             onChangeText={setTabName}
           />
@@ -635,20 +632,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '700',
-  },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 6,
-  },
-  input: {
-    height: 44,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    fontSize: 14,
   },
   statusText: {
     fontSize: 12,

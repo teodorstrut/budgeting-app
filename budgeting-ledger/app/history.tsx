@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
@@ -15,6 +14,7 @@ import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
 import { AddTransactionButton } from '../components/layout/AddTransactionButton';
 import { TransactionItem } from '../components/data/TransactionItem';
+import { AppTextInput } from '../components/ui/AppTextInput';
 import { transactionService } from '../services/transactionService';
 import { settingsService } from '../services/settingsService';
 import { monthUtils } from '../utils/monthUtils';
@@ -203,12 +203,11 @@ export default function History() {
 
         <View style={[styles.searchBox, { backgroundColor: theme.colors.surfaceContainerLow }]}>
           <FontAwesome name="search" size={14} color={theme.colors.outline} />
-          <TextInput
-            style={[styles.searchInput, { color: theme.colors.onSurface }]}
+          <AppTextInput
+            style={styles.searchInput}
             value={query}
             onChangeText={setQuery}
             placeholder="Search note, category, or amount"
-            placeholderTextColor={theme.colors.outline}
           />
         </View>
 
@@ -287,12 +286,18 @@ const styles = StyleSheet.create({
     gap: 8,
     borderRadius: 14,
     paddingHorizontal: 12,
-    height: 44,
+    height: 48,
     marginBottom: 10,
+    borderWidth: 1,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
+    height: 48,
+    marginTop: 0,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 0,
   },
   sectionsWrap: {
     marginTop: 14,

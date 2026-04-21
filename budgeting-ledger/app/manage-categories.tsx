@@ -4,7 +4,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -15,6 +14,8 @@ import { useTheme } from '../providers/ThemeProvider';
 import { categoryRepository, Category } from '../database/repositories/categoryRepository';
 import { transactionRepository } from '../database/repositories/transactionRepository';
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
+import { AppInputLabel } from '../components/ui/AppInputLabel';
+import { AppTextInput } from '../components/ui/AppTextInput';
 import { confirmDialog } from '../utils/confirmDialog';
 
 type CategoryType = 'income' | 'expense';
@@ -164,20 +165,16 @@ export default function ManageCategories() {
             borderColor={theme.colors.outline}
           />
 
-          <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Emoji</Text>
-          <TextInput
-            style={[styles.input, { color: theme.colors.onSurface, borderColor: theme.colors.outlineVariant }]}
+          <AppInputLabel>Emoji</AppInputLabel>
+          <AppTextInput
             placeholder="Optional emoji"
-            placeholderTextColor={theme.colors.outline}
             value={form.emoji}
             onChangeText={(text) => setForm((prev) => ({ ...prev, emoji: text }))}
           />
 
-          <Text style={[styles.label, { color: theme.colors.onSurfaceVariant }]}>Name</Text>
-          <TextInput
-            style={[styles.input, { color: theme.colors.onSurface, borderColor: theme.colors.outlineVariant }]}
+          <AppInputLabel>Name</AppInputLabel>
+          <AppTextInput
             placeholder="Category name"
-            placeholderTextColor={theme.colors.outline}
             value={form.name}
             onChangeText={(text) => setForm((prev) => ({ ...prev, name: text }))}
           />
@@ -270,20 +267,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
-  label: {
-    fontSize: 12,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 8,
-  },
-  input: {
-    height: 44,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    fontSize: 15,
-  },
+
   actionsRow: {
     flexDirection: 'row',
     gap: 8,
