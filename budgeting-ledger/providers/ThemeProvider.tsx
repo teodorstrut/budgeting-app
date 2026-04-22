@@ -3,6 +3,7 @@ import { Appearance } from 'react-native';
 import type { Theme } from '../types/theme';
 import { themes } from '../theme/themes';
 import db from '../database/connection';
+import { SETTING_KEYS } from '../constants/settings';
 
 type AppColorScheme = 'light' | 'dark';
 
@@ -11,7 +12,7 @@ const getSystemColorScheme = (): AppColorScheme =>
 
 const getStoredColorScheme = (): AppColorScheme => {
   try {
-    const result = db.getFirstSync('SELECT value FROM settings WHERE key = ?', ['theme']);
+    const result = db.getFirstSync('SELECT value FROM settings WHERE key = ?', [SETTING_KEYS.THEME]);
     return result?.value === 'light' ? 'light' : result?.value === 'dark' ? 'dark' : getSystemColorScheme();
   } catch {
     return getSystemColorScheme();
@@ -22,7 +23,7 @@ const persistColorScheme = (scheme: AppColorScheme) => {
   try {
     db.runSync(
       'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-      ['theme', scheme]
+      [SETTING_KEYS.THEME, scheme]
     );
   } catch (error) {
     console.warn('Failed to persist theme preference:', error);
@@ -32,7 +33,6 @@ const persistColorScheme = (scheme: AppColorScheme) => {
 const ThemeContext = createContext<{
   theme: Theme;
   colorScheme: AppColorScheme;
-  toggleTheme: () => void;
   setColorScheme: (scheme: AppColorScheme) => void;
 } | null>(null);
 
@@ -54,12 +54,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     persistColorScheme(scheme);
   };
 
-  const toggleTheme = () => {
-    setColorScheme(colorScheme === 'dark' ? 'light' : 'dark');
-  };
-
   return (
-    <ThemeContext.Provider value={{ theme, colorScheme, toggleTheme, setColorScheme }}>
+    <ThemeContext.Provider value={{ theme, colorScheme, setColorScheme }}>
       {children}
     </ThemeContext.Provider>
   );
