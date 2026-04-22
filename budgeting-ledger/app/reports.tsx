@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +14,7 @@ import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
 import { DonutChart, CHART_COLORS, type DonutSlice } from '../components/charts/DonutChart';
 import { SpendingBarChart, type BarDataPoint } from '../components/charts/SpendingBarChart';
+import { CategoryPickerModal } from '../components/ui/CategoryPickerModal';
 import { transactionService } from '../services/transactionService';
 import { budgetService } from '../services/budgetService';
 import { categoryRepository, type Category } from '../database/repositories/categoryRepository';
@@ -125,34 +125,12 @@ export default function Reports() {
     const cats = categoryRepository.getAll().filter((c) => c.type === 'expense');
     setExpenseCategories(cats);
 
-    // 4. Spending evolution — 5-bar window.
-    // The right edge is always capped at today's month so no empty future bars
-    // are shown. If the selected month is in the future, today becomes the
-    // effective right edge (and no bar is highlighted as "selected").
-    const todayAnchor = new Date();
-    const todayMonthStart = new Date(todayAnchor.getFullYear(), todayAnchor.getMonth(), 1);
-    // Clamp: never go past today
-    const effectiveAnchor =
-      anchorMonth > todayMonthStart ? todayMonthStart : anchorMonth;
-
-    const monthsAhead =
-      (todayAnchor.getFullYear() - effectiveAnchor.getFullYear()) * 12 +
-      (todayAnchor.getMonth() - effectiveAnchor.getMonth());
-    const barsAfter = Math.min(Math.max(0, monthsAhead), 4);
-    const barsBefore = 4 - barsAfter;
-
-    // selectedBarIndex: the index of the user-selected month within the window,
-    // or -1 if it was clamped away (i.e. the original anchor was in the future).
-    const selectedBarIndex =
-      anchorMonth > todayMonthStart ? -1 : barsBefore;
-
+    // 4. Spending evolution — selected month is always the centre bar (index 2).
+    // 2 months before and 2 months after are shown regardless of whether they
+    // have data (they'll just render as 0-height bars).
     const periods: { start: string; end: string }[] = [];
-    let curAnchor = new Date(
-      effectiveAnchor.getFullYear(),
-      effectiveAnchor.getMonth() - barsBefore,
-      1
-    );
-    for (let i = 0; i < barsBefore + 1 + barsAfter; i++) {
+    let curAnchor = new Date(anchorMonth.getFullYear(), anchorMonth.getMonth() - 2, 1);
+    for (let i = 0; i < 5; i++) {
       const [s, e] = monthUtils.getMonthPeriodForDate(day, toDateInMonth(curAnchor));
       periods.push({ start: s, end: e });
       curAnchor = new Date(curAnchor.getFullYear(), curAnchor.getMonth() + 1, 1);
@@ -167,7 +145,7 @@ export default function Reports() {
       evolutionTotals.map((p, i) => ({
         label: shortMonthLabel(p.start),
         value: p.total,
-        isCurrent: i === selectedBarIndex,
+        isCurrent: i === 2,
       }))
     );
   }, [periodStart, periodEnd, anchorMonth, selectedCategoryId]);
@@ -369,114 +347,16 @@ export default function Reports() {
       </ScrollView>
 
       {/* ── Category Picker Modal ─────────────────────────────────────────── */}
-      <Modal
+      <CategoryPickerModal
         visible={pickerVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPickerVisible(false)}
-      >
-        <View style={styles.modalRoot}>
-          <TouchableOpacity
-            style={styles.modalBackdrop}
-            activeOpacity={1}
-            onPress={() => setPickerVisible(false)}
-          />
-          <View
-            style={[
-              styles.modalSheet,
-              { backgroundColor: theme.colors.surfaceContainerLow },
-            ]}
-          >
-            <View style={styles.modalSheetHeader}>
-              <Text style={[styles.modalTitle, { color: theme.colors.onSurface }]}>
-                Filter by Category
-              </Text>
-              <TouchableOpacity onPress={() => setPickerVisible(false)}>
-                <FontAwesome name="times" size={18} color={theme.colors.onSurfaceVariant} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              contentContainerStyle={styles.chipGrid}
-              keyboardShouldPersistTaps="handled"
-            >
-              {/* All Categories chip */}
-              <TouchableOpacity
-                style={[
-                  styles.categoryChip,
-                  {
-                    backgroundColor:
-                      selectedCategoryId === null
-                        ? theme.colors.primary
-                        : theme.colors.surfaceContainerHigh,
-                    borderColor:
-                      selectedCategoryId === null
-                        ? theme.colors.primary
-                        : theme.colors.outlineVariant,
-                  },
-                ]}
-                onPress={() => {
-                  setSelectedCategoryId(null);
-                  setPickerVisible(false);
-                }}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    {
-                      color:
-                        selectedCategoryId === null
-                          ? theme.colors.onPrimary
-                          : theme.colors.onSurface,
-                    },
-                  ]}
-                >
-                  All Categories
-                </Text>
-              </TouchableOpacity>
-
-              {expenseCategories.map((cat) => {
-                const isSelected = selectedCategoryId === cat.id;
-                return (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[
-                      styles.categoryChip,
-                      {
-                        backgroundColor: isSelected
-                          ? theme.colors.primary
-                          : theme.colors.surfaceContainerHigh,
-                        borderColor: isSelected
-                          ? theme.colors.primary
-                          : theme.colors.outlineVariant,
-                      },
-                    ]}
-                    onPress={() => {
-                      setSelectedCategoryId(cat.id ?? null);
-                      setPickerVisible(false);
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        {
-                          color: isSelected
-                            ? theme.colors.onPrimary
-                            : theme.colors.onSurface,
-                        },
-                      ]}
-                    >
-                      {cat.emoji ? `${cat.emoji} ` : ''}{cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setPickerVisible(false)}
+        categories={expenseCategories}
+        onSelectCategory={(cat) => setSelectedCategoryId(cat.id ?? null)}
+        selectedCategoryId={selectedCategoryId}
+        title="Filter by Category"
+        showAllOption
+        onSelectAll={() => setSelectedCategoryId(null)}
+      />
 
       <NavBar />
     </View>
@@ -601,26 +481,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
-  // Modal (matches CategoryPickerModal pattern)
-  modalRoot: { flex: 1, justifyContent: 'flex-end' },
-  modalBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  modalSheet: {
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 24,
-    maxHeight: '70%',
-  },
-  modalSheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8 },
-  categoryChip: { borderWidth: 1, borderRadius: 9999, paddingHorizontal: 14, paddingVertical: 8 },
-  chipText: { fontSize: 14, fontWeight: '600' },
 });

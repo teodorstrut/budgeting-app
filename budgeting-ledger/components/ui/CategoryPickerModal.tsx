@@ -21,6 +21,10 @@ interface CategoryPickerModalProps {
   emptyMessage?: string;
   title?: string;
   onManageCategories?: () => void;
+  /** When true, renders an "All Categories" chip above the category list. */
+  showAllOption?: boolean;
+  /** Called when the user taps the "All Categories" chip. */
+  onSelectAll?: () => void;
 }
 
 export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
@@ -33,6 +37,8 @@ export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
   emptyMessage = 'No categories available.',
   title = 'Choose Category',
   onManageCategories,
+  showAllOption = false,
+  onSelectAll,
 }) => {
   const { theme } = useTheme();
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
@@ -65,6 +71,35 @@ export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
             </Text>
           ) : (
             <ScrollView contentContainerStyle={styles.chipGrid} keyboardShouldPersistTaps="handled">
+              {showAllOption && (
+                <TouchableOpacity
+                  style={[
+                    styles.categoryChip,
+                    {
+                      backgroundColor:
+                        selectedCategoryId == null ? accentColor : theme.colors.surfaceContainerHigh,
+                      borderColor:
+                        selectedCategoryId == null ? accentColor : theme.colors.outlineVariant,
+                    },
+                  ]}
+                  onPress={() => { onSelectAll?.(); onClose(); }}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      {
+                        color:
+                          selectedCategoryId == null
+                            ? theme.colors.onPrimary
+                            : onSurface,
+                      },
+                    ]}
+                  >
+                    All Categories
+                  </Text>
+                </TouchableOpacity>
+              )}
               {categories.map((cat) => {
                 const isSelected = selectedCategoryId != null && cat.id === selectedCategoryId;
                 return (
