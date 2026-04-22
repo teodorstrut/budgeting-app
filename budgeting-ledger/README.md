@@ -1,50 +1,32 @@
-# Welcome to your Expo app 👋
+# Budgeting Ledger
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A simple, personal budget tracking app — free forever, open source, and built for anyone who wants to take control of their finances.
 
-## Get started
+## About
 
-1. Install dependencies
+Budgeting Ledger helps you track your income and expenses, set monthly budgets, and understand your spending habits — all from your phone. Your data stays on your device by default, with an optional sync to Google Sheets. There are no subscriptions, no ads, and no hidden costs. This app is free forever.
 
-   ```bash
-   npm install
-   ```
+## Features
 
-2. Start the app
+- **Dashboard** — See your monthly balance, total income, total expenses, and a budget health summary at a glance.
+- **Transactions** — Add, edit, and delete income and expense transactions. Uses a calculator-style keypad for quick amount entry.
+- **Categories** — Create custom categories with emoji icons for both income and expenses.
+- **Budgets** — Set monthly spending limits per category and track how you're tracking against them with color-coded progress indicators.
+- **Budget Health** — A dedicated view showing how much you've spent vs. your budget for every category.
+- **History** — Browse past months, search transactions by note, amount, or category, with entries grouped by date.
+- **Reports** — Visualize your spending with a category breakdown (donut chart) and a monthly trend chart (bar chart). Toggle budget overlays to compare actuals vs. limits.
+- **Bill Splitter** — Split a single bill across multiple categories using percentage or amount sliders, then save each split as a separate transaction.
+- **Google Sheets Sync** — Optionally connect your Google account and sync your transactions to a spreadsheet. Supports manual and automatic daily background sync.
+- **Settings** — Switch between light and dark themes, configure a custom month-start day (e.g. if your pay cycle starts on the 15th), and manage categories.
 
-   ```bash
-   npx expo start
-   ```
+## How It Works
 
-In the output, you'll find options to open the app in a
+Budgeting Ledger is built with React Native and Expo, using file-based routing via Expo Router. All data is stored locally in a SQLite database on your device — no account required, works fully offline. A service and repository layer keeps business logic separate from the UI. Optionally, you can connect Google Sheets via OAuth to back up and view your transactions in a spreadsheet.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Contributing
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+This project is open source and open to change requests. If you have a feature idea, a bug to report, or an improvement to suggest, feel free to open an issue or submit a pull request — contributions of all kinds are welcome.
 
-## Get a fresh project
+## License
 
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+MIT — see [LICENSE](../LICENSE).
