@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../../providers/ThemeProvider';
+import { useSharedStyles } from '../../theme/styles';
 import { Category } from '../../database/repositories/categoryRepository';
 
 interface CategoryPickerModalProps {
@@ -41,6 +42,7 @@ export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
   onSelectAll,
 }) => {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
   const accentColor = selectedColor ?? theme.colors.primary;
 
@@ -53,11 +55,11 @@ export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
     >
       <View style={styles.modalRoot}>
         <TouchableOpacity
-          style={styles.backdrop}
+          style={shared.modal.backdrop}
           activeOpacity={1}
           onPress={onClose}
         />
-        <View style={[styles.sheet, { backgroundColor: theme.colors.surfaceContainerLow }]}>
+        <View style={[shared.modal.sheet, styles.sheetPadding, { backgroundColor: theme.colors.surfaceContainerLow }]}>
           <View style={styles.sheetHeader}>
             <Text style={[styles.sheetTitle, { color: onSurface }]}>{title}</Text>
             <TouchableOpacity onPress={onClose}>
@@ -142,8 +144,7 @@ export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
 
 const styles = StyleSheet.create({
   modalRoot: { flex: 1, justifyContent: 'flex-end' },
-  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, maxHeight: '70%' },
+  sheetPadding: { padding: 24 },
   sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   sheetTitle: { fontSize: 18, fontWeight: '700' },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8 },

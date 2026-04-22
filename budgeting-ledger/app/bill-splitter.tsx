@@ -15,6 +15,8 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../providers/ThemeProvider';
+import { useSharedStyles } from '../theme/styles';
+import { EmptyState } from '../components/ui/EmptyState';
 import { Category, categoryRepository } from '../database/repositories/categoryRepository';
 import { transactionService } from '../services/transactionService';
 import { CalculatorKeypad } from '../components/ui/CalculatorKeypad';
@@ -31,6 +33,7 @@ type Split = {
 
 export default function BillSplitter() {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -281,10 +284,10 @@ export default function BillSplitter() {
           </View>
 
           {splits.length === 0 ? (
-            <View style={[styles.emptyState, { backgroundColor: theme.colors.surfaceContainerLow }]}> 
-              <Text style={[styles.emptyTitle, { color: onSurface }]}>No categories added yet</Text>
-              <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>Tap Assign Leftovers to choose an expense category.</Text>
-            </View>
+            <EmptyState
+              title="No categories added yet"
+              subtitle="Tap Assign Leftovers to choose an expense category."
+            />
           ) : (
             splits.map((split, index) => (
               <View
@@ -397,7 +400,7 @@ export default function BillSplitter() {
         onRequestClose={() => setCategoryPickerVisible(false)}
       >
         <View style={styles.modalRoot}>
-          <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={() => setCategoryPickerVisible(false)} />
+          <TouchableOpacity style={shared.modal.backdrop} activeOpacity={1} onPress={() => setCategoryPickerVisible(false)} />
           <View style={[styles.sheet, { backgroundColor: theme.colors.surfaceContainerLow }]}> 
             <View style={styles.sheetHeader}>
               <Text style={[styles.sheetTitle, { color: onSurface }]}>Pick Expense Category</Text>
@@ -519,19 +522,6 @@ const styles = StyleSheet.create({
   progressSegment: {
     height: '100%',
   },
-  emptyState: {
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-  },
-  emptyText: {
-    fontSize: 13,
-    marginTop: 4,
-  },
   categoryCard: {
     borderRadius: 20,
     padding: 16,
@@ -637,10 +627,6 @@ const styles = StyleSheet.create({
   modalRoot: {
     flex: 1,
     justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   sheet: {
     borderTopLeftRadius: 20,

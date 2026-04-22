@@ -11,6 +11,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { Header } from '../components/layout/Header';
 import { useTheme } from '../providers/ThemeProvider';
+import { useSharedStyles } from '../theme/styles';
+import { Card } from '../components/ui/Card';
 import { categoryRepository, Category } from '../database/repositories/categoryRepository';
 import { transactionRepository } from '../database/repositories/transactionRepository';
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
@@ -28,6 +30,7 @@ const EMPTY_FORM = {
 
 export default function ManageCategories() {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const router = useRouter();
   const params = useLocalSearchParams<{ from?: string; type?: CategoryType }>();
 
@@ -148,7 +151,7 @@ export default function ManageCategories() {
           onBackPress={() => router.back()}
         />
 
-        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
+        <Card style={styles.cardMargin}>
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Category Editor</Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>Create, edit, and clean up your categories.</Text>
 
@@ -181,18 +184,18 @@ export default function ManageCategories() {
 
           <View style={styles.actionsRow}>
             <TouchableOpacity
-              style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]}
+              style={[shared.buttons.primary, { flex: 1 }]}
               onPress={handleSave}
             >
-              <Text style={[styles.primaryButtonText, { color: theme.colors.onPrimary }]}>{editingCategoryId != null ? 'Update Category' : 'Add Category'}</Text>
+              <Text style={shared.buttons.primaryText}>{editingCategoryId != null ? 'Update Category' : 'Add Category'}</Text>
             </TouchableOpacity>
 
             {editingCategoryId != null && (
               <TouchableOpacity
-                style={[styles.secondaryButton, { borderColor: theme.colors.outlineVariant }]}
+                style={shared.buttons.secondary}
                 onPress={clearForm}
               >
-                <Text style={[styles.secondaryButtonText, { color: theme.colors.onSurfaceVariant }]}>Cancel</Text>
+                <Text style={shared.buttons.secondaryText}>Cancel</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -200,9 +203,9 @@ export default function ManageCategories() {
           {isAddFlow && (
             <Text style={[styles.helperText, { color: theme.colors.onSurfaceVariant }]}>When you go back, your new categories will be available in Add Transaction.</Text>
           )}
-        </View>
+        </Card>
 
-        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
+        <Card style={styles.cardMargin}>
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>All Categories</Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>You can only delete categories that are not linked to transactions.</Text>
 
@@ -238,7 +241,7 @@ export default function ManageCategories() {
               );
             })
           )}
-        </View>
+        </Card>
       </ScrollView>
     </View>
   );
@@ -252,13 +255,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  card: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    gap: 10,
-  },
+  cardMargin: { marginBottom: 16 },
   title: {
     fontSize: 20,
     fontWeight: '700',
@@ -272,30 +269,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginTop: 10,
-  },
-  primaryButton: {
-    flex: 1,
-    borderRadius: 12,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderRadius: 12,
-    minHeight: 44,
-    minWidth: 92,
-    paddingHorizontal: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   helperText: {
     fontSize: 12,

@@ -16,6 +16,8 @@ import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import { Header } from '../components/layout/Header';
 import { useTheme } from '../providers/ThemeProvider';
+import { useSharedStyles } from '../theme/styles';
+import { Card } from '../components/ui/Card';
 import { syncService } from '../services/syncService';
 import { settingsService } from '../services/settingsService';
 import { GoogleSpreadsheet, SyncConfig } from '../types/sync';
@@ -36,6 +38,7 @@ type ExtraConfig = {
 
 export default function SyncSettings() {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const router = useRouter();
 
   const [config, setConfig] = useState<SyncConfig>(syncService.getGoogleSyncConfig());
@@ -393,17 +396,17 @@ export default function SyncSettings() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Header title="Google Sheets Sync" showBackButton onBackPress={() => router.back()} />
 
-        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}> 
+        <Card style={styles.cardMargin}> 
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Connection</Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>Sign in with Google to configure and sync your transaction data.</Text>
 
           {token ? (
-            <TouchableOpacity style={[styles.secondaryButton, { borderColor: theme.colors.outlineVariant }]} onPress={handleSignOut}>
-              <Text style={[styles.secondaryButtonText, { color: theme.colors.onSurfaceVariant }]}>Sign Out</Text>
+            <TouchableOpacity style={shared.buttons.secondary} onPress={handleSignOut}>
+              <Text style={shared.buttons.secondaryText}>Sign Out</Text>
             </TouchableOpacity>
           ) : (
-            <TouchableOpacity style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]} onPress={handleConnectGoogle}>
-              <Text style={[styles.primaryButtonText, { color: theme.colors.onPrimary }]}>Sign In With Google</Text>
+            <TouchableOpacity style={shared.buttons.primary} onPress={handleConnectGoogle}>
+              <Text style={shared.buttons.primaryText}>Sign In With Google</Text>
             </TouchableOpacity>
           )}
 
@@ -419,9 +422,9 @@ export default function SyncSettings() {
               thumbColor={theme.colors.onPrimary}
             />
           </View>
-        </View>
+        </Card>
 
-        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}> 
+        <Card style={styles.cardMargin}> 
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Sheet Configuration</Text>
 
           <ToggleButtonGroup
@@ -440,10 +443,10 @@ export default function SyncSettings() {
           {setupMode === 'existing' ? (
             <>
               <TouchableOpacity
-                style={[styles.secondaryButton, { borderColor: theme.colors.outlineVariant }]}
+                style={shared.buttons.secondary}
                 onPress={handleLoadSpreadsheets}
               >
-                <Text style={[styles.secondaryButtonText, { color: theme.colors.onSurfaceVariant }]}>
+                <Text style={shared.buttons.secondaryText}>
                   {loadingSheets ? 'Loading...' : 'Load Spreadsheets'}
                 </Text>
               </TouchableOpacity>
@@ -472,28 +475,26 @@ export default function SyncSettings() {
                 <View style={styles.paginationRow}>
                   <TouchableOpacity
                     style={[
-                      styles.secondaryButton,
+                      shared.buttons.secondary,
                       styles.paginationButton,
-                      { borderColor: theme.colors.outlineVariant },
                     ]}
                     onPress={handlePreviousSheetsPage}
                     disabled={sheetPageIndex === 0 || loadingSheets}
                   >
-                    <Text style={[styles.secondaryButtonText, { color: theme.colors.onSurfaceVariant }]}>Previous</Text>
+                    <Text style={shared.buttons.secondaryText}>Previous</Text>
                   </TouchableOpacity>
 
                   <Text style={[styles.pageText, { color: theme.colors.onSurfaceVariant }]}>Page {sheetPageIndex + 1}</Text>
 
                   <TouchableOpacity
                     style={[
-                      styles.secondaryButton,
+                      shared.buttons.secondary,
                       styles.paginationButton,
-                      { borderColor: theme.colors.outlineVariant },
                     ]}
                     onPress={handleNextSheetsPage}
                     disabled={!nextSheetPageToken || loadingSheets}
                   >
-                    <Text style={[styles.secondaryButtonText, { color: theme.colors.onSurfaceVariant }]}>Next</Text>
+                    <Text style={shared.buttons.secondaryText}>Next</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -517,27 +518,27 @@ export default function SyncSettings() {
           />
 
           <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]}
+            style={shared.buttons.primary}
             onPress={handleSaveSheetConfig}
           >
-            <Text style={[styles.primaryButtonText, { color: theme.colors.onPrimary }]}>
+            <Text style={shared.buttons.primaryText}>
               {savingConfig ? 'Saving...' : 'Save Sync Configuration'}
             </Text>
           </TouchableOpacity>
 
           <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>Configured target: {config.spreadsheetName ?? 'Not set'} / {config.sheetName ?? 'Not set'}</Text>
-        </View>
+        </Card>
 
-        <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}> 
+        <Card style={styles.cardMargin}> 
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Manual Sync</Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>Push local transactions to the configured Google Sheet tab.</Text>
 
           <TouchableOpacity
-            style={[styles.primaryButton, { backgroundColor: syncing ? theme.colors.surfaceContainerHigh : theme.colors.primary }]}
+            style={[shared.buttons.primary, { backgroundColor: syncing ? theme.colors.surfaceContainerHigh : theme.colors.primary }]}
             onPress={handleSyncNow}
             disabled={syncing}
           >
-            <Text style={[styles.primaryButtonText, { color: syncing ? theme.colors.onSurfaceVariant : theme.colors.onPrimary }]}>{syncing ? 'Syncing...' : 'Sync Now'}</Text>
+            <Text style={[shared.buttons.primaryText, { color: syncing ? theme.colors.onSurfaceVariant : theme.colors.onPrimary }]}>{syncing ? 'Syncing...' : 'Sync Now'}</Text>
           </TouchableOpacity>
 
           <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>Status: {config.status}</Text>
@@ -546,7 +547,7 @@ export default function SyncSettings() {
           {!!config.lastError && (
             <Text style={[styles.statusText, { color: theme.colors.secondary }]}>Last error: {config.lastError}</Text>
           )}
-        </View>
+        </Card>
       </ScrollView>
     </View>
   );
@@ -560,13 +561,7 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-  card: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 16,
-    gap: 10,
-  },
+  cardMargin: { marginBottom: 16 },
   title: {
     fontSize: 20,
     fontWeight: '700',
@@ -574,29 +569,6 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     lineHeight: 18,
-  },
-  primaryButton: {
-    borderRadius: 12,
-    minHeight: 46,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-  },
-  primaryButtonText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    borderRadius: 12,
-    minHeight: 44,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 14,
-  },
-  secondaryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
   },
   switchRow: {
     marginTop: 4,

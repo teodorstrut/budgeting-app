@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'rea
 import { useRouter } from 'expo-router';
 import { useTheme } from '../providers/ThemeProvider';
 import { Header } from '../components/layout/Header';
+import { Card } from '../components/ui/Card';
 import { resetAndReseed } from '../database/schema';
 import { settingsService } from '../services/settingsService';
 import { MonthStartDayPicker } from '../components/ui/MonthStartDayPicker';
@@ -55,7 +56,7 @@ export default function Settings() {
           <Text style={[styles.pageTitle, { color: theme.colors.onSurface }]}>Settings</Text>
           <Text style={[styles.pageSubtitle, { color: theme.colors.onSurfaceVariant }]}>Configure your workspace and financial flow.</Text>
 
-          <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
+          <Card style={styles.sectionCard}>
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Preferences</Text>
 
             <View style={styles.preferenceRow}>
@@ -96,9 +97,9 @@ export default function Settings() {
               </View>
               <Text style={[styles.linkChevron, { color: theme.colors.primary }]}>›</Text>
             </TouchableOpacity>
-          </View>
+          </Card>
 
-          <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
+          <Card style={styles.sectionCard}>
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Cloud Sync</Text>
             <Text style={[styles.hint, { color: theme.colors.outline }]}>Sync with Google Sheets on Android and iOS.</Text>
 
@@ -113,9 +114,9 @@ export default function Settings() {
               </View>
               <Text style={[styles.linkChevron, { color: theme.colors.primary }]}>›</Text>
             </TouchableOpacity>
-          </View>
+          </Card>
 
-          <View style={[styles.section, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
+          <Card style={styles.sectionCard}>
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Developer Tools</Text>
 
             <TouchableOpacity
@@ -137,7 +138,7 @@ export default function Settings() {
             <Text style={[styles.hint, { color: theme.colors.outline }]}>
               Clears all transactions and categories, then restores default seed data.
             </Text>
-          </View>
+          </Card>
         </View>
       </ScrollView>
     </View>
@@ -165,12 +166,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
-  section: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 20,
-    gap: 12,
-  },
+  sectionCard: { padding: 20, gap: 12 },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',

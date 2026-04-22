@@ -1,26 +1,17 @@
 import React from 'react';
-import { StyleSheet, View, ViewStyle } from 'react-native';
-import { useTheme } from '../../providers/ThemeProvider';
+import { View, StyleProp, ViewStyle } from 'react-native';
+import { useSharedStyles } from '../../theme/styles';
 
 interface CardProps {
   children: React.ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const Card: React.FC<CardProps> = ({ children, style }) => {
-  const { theme } = useTheme();
+  const shared = useSharedStyles();
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }, style]}>
+    <View style={[shared.card.base, style]}>
       {children}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 16,
-    gap: 10,
-  },
-});

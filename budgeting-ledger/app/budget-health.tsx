@@ -3,6 +3,10 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../providers/ThemeProvider';
+import { useSharedStyles } from '../theme/styles';
+import { Card } from '../components/ui/Card';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ProgressBar } from '../components/ui/ProgressBar';
 import { budgetService, BudgetHealthEntry } from '../services/budgetService';
 import { settingsService } from '../services/settingsService';
 import { monthUtils } from '../utils/monthUtils';
@@ -11,6 +15,7 @@ import { NavBar } from '../components/layout/NavBar';
 
 export default function BudgetHealth() {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const router = useRouter();
   const [entries, setEntries] = useState<BudgetHealthEntry[]>([]);
 
@@ -53,12 +58,12 @@ export default function BudgetHealth() {
         />
 
         {entries.length === 0 ? (
-          <View style={[styles.emptyCard, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
-            <Text style={[styles.emptyTitle, { color: onSurface }]}>No data to display</Text>
-            <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
-              Set up budgets and record transactions to see your budget health here.
-            </Text>
-          </View>
+          <Card style={styles.emptyCard}>
+            <EmptyState
+              title="No data to display"
+              subtitle="Set up budgets and record transactions to see your budget health here."
+            />
+          </Card>
         ) : (
           entries.map((entry) => {
             const ratio = entry.amount > 0 ? entry.spent / entry.amount : 0;
@@ -67,15 +72,9 @@ export default function BudgetHealth() {
             const { text: deltaText, color: deltaColor } = deltaLabel(entry);
 
             return (
-              <View
+              <Card
                 key={entry.categoryId}
-                style={[
-                  styles.entryCard,
-                  {
-                    backgroundColor: theme.colors.surfaceContainerLow,
-                    borderColor: theme.colors.outlineVariant,
-                  },
-                ]}
+                style={styles.entryCardMargin}
               >
                 {/* Row 1: emoji + name + delta pill */}
                 <View style={styles.entryTopRow}>
@@ -99,15 +98,13 @@ export default function BudgetHealth() {
                 </View>
 
                 {/* Progress bar */}
-                <View style={[styles.progressTrack, { backgroundColor: theme.colors.surfaceContainerHighest }]}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      { backgroundColor: barColor, width: `${pct}%` },
-                    ]}
-                  />
-                </View>
-              </View>
+                <ProgressBar
+                  progress={ratio}
+                  height={8}
+                  color={barColor}
+                  trackColor={theme.colors.surfaceContainerHighest}
+                />
+              </Card>
             );
           })
         )}
@@ -123,21 +120,10 @@ const styles = StyleSheet.create({
 
   emptyCard: {
     marginTop: 24,
-    borderWidth: 1,
-    borderRadius: 20,
     padding: 24,
-    alignItems: 'center',
   },
-  emptyTitle: { fontSize: 16, fontWeight: '700', marginBottom: 8 },
-  emptySubtext: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
 
-  entryCard: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 12,
-    gap: 8,
-  },
+  entryCardMargin: { marginBottom: 12, gap: 8 },
   entryTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -161,6 +147,4 @@ const styles = StyleSheet.create({
   amountRow: { flexDirection: 'row', alignItems: 'baseline' },
   spentAmount: { fontSize: 20, fontWeight: '800' },
   budgetAmount: { fontSize: 14, fontWeight: '500' },
-  progressTrack: { height: 8, borderRadius: 9999, overflow: 'hidden' },
-  progressFill: { height: 8, borderRadius: 9999 },
 });

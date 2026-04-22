@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTheme } from '../../providers/ThemeProvider';
+import { useSharedStyles } from '../../theme/styles';
 import { AppInputLabel } from './AppInputLabel';
 import { formatTime } from '../../utils/formatting';
 
@@ -12,6 +13,7 @@ interface TransactionDateTimeFieldProps {
 
 export const TransactionDateTimeField: React.FC<TransactionDateTimeFieldProps> = ({ value, onChange }) => {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const [showDateTimePicker, setShowDateTimePicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
 
@@ -42,7 +44,7 @@ export const TransactionDateTimeField: React.FC<TransactionDateTimeFieldProps> =
   return (
     <>
       <AppInputLabel>Date &amp; Time</AppInputLabel>
-      <View style={[styles.input, styles.dateTimeRow, { borderColor: theme.colors.outlineVariant, backgroundColor: theme.colors.surfaceContainerLow }]}>
+      <View style={[shared.inputs.base, styles.dateTimeRow, { borderColor: theme.colors.outlineVariant, backgroundColor: theme.colors.surfaceContainerLow }]}>
         <TouchableOpacity
           style={[styles.dateTimeSegment, { borderRightColor: theme.colors.outlineVariant }]}
           onPress={() => openDateTimePicker('date')}
@@ -70,13 +72,6 @@ export const TransactionDateTimeField: React.FC<TransactionDateTimeFieldProps> =
 };
 
 const styles = StyleSheet.create({
-  input: {
-    height: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    marginTop: 8,
-  },
   dateTimeRow: {
     flexDirection: 'row',
     alignItems: 'center',

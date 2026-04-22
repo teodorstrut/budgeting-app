@@ -1,6 +1,6 @@
 import React from 'react';
-import { StyleSheet, TouchableOpacity, TouchableOpacityProps, ViewStyle } from 'react-native';
-import { useTheme } from '../../providers/ThemeProvider';
+import { TouchableOpacity, TouchableOpacityProps, ViewStyle } from 'react-native';
+import { useSharedStyles } from '../../theme/styles';
 
 interface AppSelectorFieldProps extends TouchableOpacityProps {
   children: React.ReactNode;
@@ -8,17 +8,14 @@ interface AppSelectorFieldProps extends TouchableOpacityProps {
 }
 
 export const AppSelectorField: React.FC<AppSelectorFieldProps> = ({ children, style, ...props }) => {
-  const { theme } = useTheme();
+  const shared = useSharedStyles();
   return (
     <TouchableOpacity
       activeOpacity={0.8}
       {...props}
       style={[
-        styles.field,
-        {
-          backgroundColor: theme.colors.surfaceContainerLow,
-          borderColor: theme.colors.outlineVariant,
-        },
+        shared.inputs.base,
+        { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
         style,
       ]}
     >
@@ -26,16 +23,3 @@ export const AppSelectorField: React.FC<AppSelectorFieldProps> = ({ children, st
     </TouchableOpacity>
   );
 };
-
-const styles = StyleSheet.create({
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    height: 48,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    marginTop: 8,
-  },
-});

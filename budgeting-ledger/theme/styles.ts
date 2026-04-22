@@ -1,8 +1,10 @@
 // Design System Stylesheet for Budgeting App
 // Based on "mint_honey_night" theme: Luminous Depth & Clarity (dark) and The Organic Editorial (light)
 
+import { useMemo } from 'react';
 import { StyleSheet } from 'react-native';
 import type { Theme } from '../types/theme';
+import { useTheme } from '../providers/ThemeProvider';
 
 // Color Palettes
 export const colorSchemes = {
@@ -285,3 +287,164 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
+
+// ─── useSharedStyles ──────────────────────────────────────────────────────────
+// Theme-aware shared styles hook. Use this instead of the static `styles` export.
+//
+// Usage:
+//   const shared = useSharedStyles();
+//   <View style={shared.containers.flex1}>
+//
+
+export function useSharedStyles() {
+  const { theme } = useTheme();
+  const c = theme.colors;
+
+  return useMemo(() => ({
+    // ── Containers ────────────────────────────────────────────────────────────
+    containers: StyleSheet.create({
+      flex1: { flex: 1 },
+      scrollContent: { padding: 16 },
+      row: { flexDirection: 'row', alignItems: 'center' },
+      rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+      center: { alignItems: 'center', justifyContent: 'center' },
+    }),
+
+    // ── Typography ────────────────────────────────────────────────────────────
+    text: StyleSheet.create({
+      screenTitle: { fontSize: 22, fontWeight: '800' as const },
+      sectionTitle: { fontSize: 20, fontWeight: '700' as const },
+      strongBody: { fontSize: 15, fontWeight: '700' as const },
+      bodyMd: { fontSize: 16 },
+      labelMd: { fontSize: 14, fontWeight: '600' as const },
+      labelSm: { fontSize: 13, lineHeight: 18 },
+      labelXs: { fontSize: 12 },
+      uppercaseLabel: {
+        fontSize: 11,
+        fontWeight: '700' as const,
+        letterSpacing: 1.2,
+        textTransform: 'uppercase' as const,
+      },
+    }),
+
+    // ── Cards ─────────────────────────────────────────────────────────────────
+    card: StyleSheet.create({
+      base: {
+        borderWidth: 1,
+        borderRadius: 20,
+        padding: 16,
+        gap: 10,
+        backgroundColor: c.surfaceContainerLow,
+        borderColor: c.outlineVariant,
+      },
+      section: {
+        borderWidth: 1,
+        borderRadius: 20,
+        padding: 20,
+        gap: 12,
+        backgroundColor: c.surfaceContainerLow,
+        borderColor: c.outlineVariant,
+      },
+    }),
+
+    // ── Buttons ───────────────────────────────────────────────────────────────
+    buttons: StyleSheet.create({
+      primary: {
+        backgroundColor: c.primary,
+        borderRadius: 12,
+        minHeight: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+      },
+      primaryText: { fontSize: 14, fontWeight: '700' as const, color: c.onPrimary },
+      secondary: {
+        borderWidth: 1,
+        borderColor: c.outlineVariant,
+        borderRadius: 12,
+        minHeight: 44,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 16,
+        backgroundColor: 'transparent',
+      },
+      secondaryText: { fontSize: 14, fontWeight: '600' as const, color: c.primary },
+      pill: {
+        borderRadius: 9999,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+      },
+      iconButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        alignItems: 'center',
+        justifyContent: 'center',
+      },
+    }),
+
+    // ── Inputs ────────────────────────────────────────────────────────────────
+    inputs: StyleSheet.create({
+      base: {
+        height: 48,
+        borderWidth: 1,
+        borderRadius: 14,
+        paddingHorizontal: 14,
+        marginTop: 8,
+        backgroundColor: c.surfaceContainerLow,
+        borderColor: c.outlineVariant,
+      },
+      label: {
+        fontSize: 12,
+        fontWeight: '600' as const,
+        letterSpacing: 1,
+        textTransform: 'uppercase' as const,
+        color: c.onSurfaceVariant,
+      },
+    }),
+
+    // ── Modal / Bottom Sheet ──────────────────────────────────────────────────
+    modal: StyleSheet.create({
+      backdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+      },
+      sheet: {
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        maxHeight: '75%' as unknown as number,
+        backgroundColor: c.surfaceContainerLow,
+      },
+      sheetHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+      },
+      sheetTitle: { fontSize: 18, fontWeight: '700' as const, color: c.onSurface ?? c.onSurfaceVariant },
+    }),
+
+    // ── Progress Bar ──────────────────────────────────────────────────────────
+    progress: StyleSheet.create({
+      track: {
+        borderRadius: 9999,
+        overflow: 'hidden' as const,
+      },
+      fill: {
+        height: '100%' as unknown as number,
+        borderRadius: 9999,
+      },
+    }),
+
+    // ── Empty State ───────────────────────────────────────────────────────────
+    emptyState: StyleSheet.create({
+      container: {
+        alignItems: 'center',
+        paddingVertical: 32,
+        gap: 6,
+      },
+      title: { fontSize: 15, fontWeight: '600' as const, color: c.onSurface ?? c.onSurfaceVariant },
+      subtitle: { fontSize: 13, textAlign: 'center', lineHeight: 18, paddingHorizontal: 16, color: c.onSurfaceVariant },
+    }),
+  }), [c]);
+}

@@ -12,10 +12,14 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../providers/ThemeProvider';
 import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
+import { MonthNavigator } from '../components/layout/MonthNavigator';
 import { DonutChart, CHART_COLORS, type DonutSlice } from '../components/charts/DonutChart';
 import { SpendingBarChart, type BarDataPoint } from '../components/charts/SpendingBarChart';
 import { CategoryPickerModal } from '../components/ui/CategoryPickerModal';
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
+import { Card } from '../components/ui/Card';
+import { EmptyState } from '../components/ui/EmptyState';
+import { ProgressBar } from '../components/ui/ProgressBar';
 import { transactionService } from '../services/transactionService';
 import { budgetService } from '../services/budgetService';
 import { categoryRepository, type Category } from '../database/repositories/categoryRepository';
@@ -182,44 +186,14 @@ export default function Reports() {
         <Header title="Reports" rightIconName="cog" onRightPress={() => router.push('/settings')} />
 
         {/* Month Navigator */}
-        <View
-          style={[
-            styles.monthPill,
-            {
-              backgroundColor: theme.colors.surfaceContainerLow,
-              borderColor: theme.colors.outlineVariant,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.monthArrow}
-            onPress={() => moveMonth(-1)}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <FontAwesome name="chevron-left" size={14} color={theme.colors.onSurfaceVariant} />
-          </TouchableOpacity>
-          <Text style={[styles.monthLabel, { color: theme.colors.primary }]}>{monthLabel}</Text>
-          <TouchableOpacity
-            style={styles.monthArrow}
-            onPress={() => moveMonth(1)}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <FontAwesome name="chevron-right" size={14} color={theme.colors.onSurfaceVariant} />
-          </TouchableOpacity>
-        </View>
+        <MonthNavigator
+          label={monthLabel}
+          onPrevious={() => moveMonth(-1)}
+          onNext={() => moveMonth(1)}
+        />
 
         {/* ── Card 1: Monthly Spending ─────────────────────────────────────── */}
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.colors.surfaceContainerLow,
-              borderColor: theme.colors.outlineVariant,
-            },
-          ]}
-        >
+        <Card style={styles.cardGap}>
           <Text style={[styles.cardTitle, { color: theme.colors.onSurfaceVariant }]}>
             Monthly Spending
           </Text>
@@ -241,31 +215,19 @@ export default function Reports() {
             totalValue={formatCurrency(totalSpent)}
             size={200}
           />
-        </View>
+        </Card>
 
         {/* ── Card 2: All Categories ───────────────────────────────────────── */}
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.colors.surfaceContainerLow,
-              borderColor: theme.colors.outlineVariant,
-            },
-          ]}
-        >
+        <Card style={styles.cardGap}>
           <Text style={[styles.cardTitle, { color: theme.colors.onSurfaceVariant }]}>
             All Categories
           </Text>
 
           {allCategoryData.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={[styles.emptyStateTitle, { color: theme.colors.onSurface }]}>
-                No transactions
-              </Text>
-              <Text style={[styles.emptyStateSubtext, { color: theme.colors.onSurfaceVariant }]}>
-                No expense transactions recorded this month.
-              </Text>
-            </View>
+            <EmptyState
+              title="No transactions"
+              subtitle="No expense transactions recorded this month."
+            />
           ) : (
             <View style={styles.categoriesList}>
               {allCategoryData.map((entry) => {
@@ -295,37 +257,22 @@ export default function Reports() {
                       </Text>
                     </View>
                     {hasBudget && (
-                      <View
-                        style={[
-                          styles.progressTrack,
-                          { backgroundColor: theme.colors.surfaceContainerHigh },
-                        ]}
-                      >
-                        <View
-                          style={[
-                            styles.progressFill,
-                            { width: `${ratio * 100}%`, backgroundColor: barColor },
-                          ]}
-                        />
-                      </View>
+                      <ProgressBar
+                        progress={ratio}
+                        height={10}
+                        color={barColor}
+                        trackColor={theme.colors.surfaceContainerHigh}
+                      />
                     )}
                   </View>
                 );
               })}
             </View>
           )}
-        </View>
+        </Card>
 
         {/* ── Card 3: Spending Evolution ───────────────────────────────────── */}
-        <View
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.colors.surfaceContainerLow,
-              borderColor: theme.colors.outlineVariant,
-            },
-          ]}
-        >
+        <Card style={styles.cardGap}>
           <View style={styles.evolutionHeader}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.cardTitle, { color: theme.colors.onSurfaceVariant }]}>
@@ -367,7 +314,7 @@ export default function Reports() {
             key={`${anchorMonth.getFullYear()}-${anchorMonth.getMonth()}-${selectedCategoryId ?? 'all'}`}
             data={evolutionData}
           />
-        </View>
+        </Card>
       </ScrollView>
 
       {/* ── Category Picker Modal ─────────────────────────────────────────── */}
@@ -401,34 +348,8 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
     gap: 16,
   },
-  // Month navigator
-  monthPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 999,
-    borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    marginTop: 8,
-  },
-  monthArrow: {
-    width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 18,
-  },
-  monthLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: -0.3,
-  },
   // Cards
-  card: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 20,
+  cardGap: {
     gap: 16,
   },
   cardTitle: {
@@ -457,15 +378,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 8,
   },
-  progressTrack: {
-    height: 10,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
   // Evolution
   evolutionHeader: {
     flexDirection: 'row',
@@ -492,20 +404,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     flexShrink: 1,
-  },
-  // Empty states
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 24,
-    gap: 6,
-  },
-  emptyStateTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  emptyStateSubtext: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
   },
 });

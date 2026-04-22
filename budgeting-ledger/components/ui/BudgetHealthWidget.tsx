@@ -2,7 +2,11 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../providers/ThemeProvider';
+import { useSharedStyles } from '../../theme/styles';
 import type { BudgetHealthEntry } from '../../services/budgetService';
+import { Card } from './Card';
+import { EmptyState } from './EmptyState';
+import { ProgressBar } from './ProgressBar';
 
 interface BudgetHealthWidgetProps {
   entries: BudgetHealthEntry[];
@@ -10,6 +14,7 @@ interface BudgetHealthWidgetProps {
 
 export const BudgetHealthWidget: React.FC<BudgetHealthWidgetProps> = ({ entries }) => {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const router = useRouter();
 
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
@@ -24,20 +29,12 @@ export const BudgetHealthWidget: React.FC<BudgetHealthWidgetProps> = ({ entries 
   const isEmpty = top5.length === 0;
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          backgroundColor: theme.colors.surfaceContainerLow,
-          borderColor: theme.colors.outlineVariant,
-        },
-      ]}
-    >
+    <Card style={[styles.cardExtra, { marginTop: 16, marginBottom: 4 }]}>
       {/* Widget Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: onSurface }]}>Budget Health</Text>
         <TouchableOpacity
-          style={[styles.seeAllPill, { backgroundColor: theme.colors.primaryContainer + '22' }]}
+          style={[shared.buttons.pill, { backgroundColor: theme.colors.primaryContainer + '22' }]}
           onPress={() => router.push('/budget-health')}
           activeOpacity={0.8}
         >
@@ -47,12 +44,10 @@ export const BudgetHealthWidget: React.FC<BudgetHealthWidgetProps> = ({ entries 
 
       {/* Empty state */}
       {isEmpty ? (
-        <View style={styles.emptyContainer}>
-          <Text style={[styles.emptyTitle, { color: onSurface }]}>No transactions present</Text>
-          <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
-            Start recording transactions in order to see a comparison with the configured budget
-          </Text>
-        </View>
+        <EmptyState
+          title="No transactions present"
+          subtitle="Start recording transactions in order to see a comparison with the configured budget"
+        />
       ) : (
         <View style={styles.entriesList}>
           {top5.map((entry, index) => {
@@ -79,33 +74,24 @@ export const BudgetHealthWidget: React.FC<BudgetHealthWidgetProps> = ({ entries 
                 </View>
 
                 {/* Progress bar */}
-                <View style={[styles.progressTrack, { backgroundColor: theme.colors.surfaceContainerHighest }]}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        backgroundColor: barColor,
-                        width: `${Math.min(ratio * 100, 100)}%`,
-                      },
-                    ]}
-                  />
-                </View>
+                <ProgressBar
+                  progress={ratio}
+                  height={6}
+                  color={barColor}
+                  trackColor={theme.colors.surfaceContainerHighest}
+                />
               </View>
             );
           })}
         </View>
       )}
-    </View>
+    </Card>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    borderWidth: 1,
-    borderRadius: 20,
-    padding: 16,
-    marginTop: 16,
-    marginBottom: 4,
+  cardExtra: {
+    gap: 0,
   },
   header: {
     flexDirection: 'row',
@@ -117,29 +103,9 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
   },
-  seeAllPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 9999,
-  },
   seeAllText: {
     fontSize: 13,
     fontWeight: '700',
-  },
-
-  // Empty state
-  emptyContainer: {
-    paddingVertical: 8,
-    paddingHorizontal: 4,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  emptySubtext: {
-    fontSize: 13,
-    lineHeight: 20,
   },
 
   // Entry rows
@@ -178,14 +144,5 @@ const styles = StyleSheet.create({
   },
   entryBudget: {
     fontWeight: '500',
-  },
-  progressTrack: {
-    height: 6,
-    borderRadius: 9999,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: 6,
-    borderRadius: 9999,
   },
 });

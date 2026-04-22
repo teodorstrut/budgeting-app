@@ -1,7 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { useTheme } from '../../providers/ThemeProvider';
+import { EmptyState } from '../ui/EmptyState';
 
 export interface BarDataPoint {
   /** Short label shown below the bar (e.g. "JAN") */
@@ -33,12 +34,10 @@ export const SpendingBarChart: React.FC<SpendingBarChartProps> = ({ data }) => {
 
   if (isEmpty) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>No data yet</Text>
-        <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
-          No spending recorded for the selected period.
-        </Text>
-      </View>
+      <EmptyState
+        title="No data yet"
+        subtitle="No spending recorded for the selected period."
+      />
     );
   }
 
@@ -87,20 +86,5 @@ const styles = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
     paddingTop: 8,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    gap: 6,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  emptySubtext: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-    paddingHorizontal: 16,
   },
 });

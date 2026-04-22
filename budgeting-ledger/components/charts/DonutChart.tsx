@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PieChart } from 'react-native-gifted-charts';
 import { useTheme } from '../../providers/ThemeProvider';
+import { EmptyState } from '../ui/EmptyState';
 
 export const CHART_COLORS = [
   '#6feee1', // mint (primary)
@@ -37,12 +38,10 @@ export const DonutChart: React.FC<DonutChartProps> = ({
 
   if (isEmpty) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={[styles.emptyTitle, { color: theme.colors.onSurface }]}>No expenses</Text>
-        <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
-          No expense transactions recorded this month.
-        </Text>
-      </View>
+      <EmptyState
+        title="No expenses"
+        subtitle="No expense transactions recorded this month."
+      />
     );
   }
 
@@ -155,20 +154,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     flexShrink: 1,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    gap: 6,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  emptySubtext: {
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 18,
-    paddingHorizontal: 16,
   },
 });

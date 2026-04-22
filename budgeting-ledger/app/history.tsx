@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
@@ -13,6 +12,7 @@ import { useTheme } from '../providers/ThemeProvider';
 import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
 import { AddTransactionButton } from '../components/layout/AddTransactionButton';
+import { MonthNavigator } from '../components/layout/MonthNavigator';
 import { TransactionItem } from '../components/data/TransactionItem';
 import { AppTextInput } from '../components/ui/AppTextInput';
 import { transactionService } from '../services/transactionService';
@@ -184,23 +184,11 @@ export default function History() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Header title="History" rightIconName="cog" onRightPress={() => router.push('/settings')} />
 
-        <View style={styles.monthControlsRow}>
-          <TouchableOpacity
-            style={[styles.monthArrowButton, { backgroundColor: theme.colors.surfaceContainerLow }]}
-            onPress={() => moveMonth(-1)}
-          >
-            <FontAwesome name="angle-left" size={20} color={theme.colors.onSurfaceVariant} />
-          </TouchableOpacity>
-          <Text style={[styles.monthLabel, { color: theme.colors.onSurface }]}>
-            {formatMonthWindowLabel(monthWindow.start, monthWindow.end)}
-          </Text>
-          <TouchableOpacity
-            style={[styles.monthArrowButton, { backgroundColor: theme.colors.surfaceContainerLow }]}
-            onPress={() => moveMonth(1)}
-          >
-            <FontAwesome name="angle-right" size={20} color={theme.colors.onSurfaceVariant} />
-          </TouchableOpacity>
-        </View>
+        <MonthNavigator
+          label={formatMonthWindowLabel(monthWindow.start, monthWindow.end)}
+          onPrevious={() => moveMonth(-1)}
+          onNext={() => moveMonth(1)}
+        />
 
         <Text style={[styles.periodHint, { color: theme.colors.outline }]}>Month starts on day {monthStartDay}</Text>
 
@@ -260,24 +248,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 220,
-  },
-  monthControlsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  monthArrowButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  monthLabel: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.3,
   },
   periodHint: {
     fontSize: 12,

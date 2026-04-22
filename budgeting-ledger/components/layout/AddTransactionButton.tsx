@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../providers/ThemeProvider';
@@ -36,85 +36,62 @@ export const AddTransactionButton: React.FC = () => {
   });
 
   return (
-    <View style={{
-      position: 'absolute',
-      left: 16,
-      right: 16,
-      bottom: insets.bottom + 72,
-      borderRadius: 28,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      flexDirection: 'column',
-      backgroundColor: theme.colors.surfaceContainerHigh,
-      shadowColor: theme.colors.outline,
-      shadowOpacity: 0.1,
-      shadowOffset: { width: 0, height: 3 },
-      shadowRadius: 6,
-      elevation: 6,
-    }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+    <View
+      style={[
+        styles.container,
+        {
+          bottom: insets.bottom + 72,
+          backgroundColor: theme.colors.surfaceContainerHigh,
+          shadowColor: theme.colors.outline,
+        },
+      ]}
+    >
+      <View style={styles.mainRow}>
         <TouchableOpacity
-          style={{
-            flex: 1,
-            marginRight: 12,
-            alignItems: 'flex-start',
-          }}
+          style={styles.labelArea}
           onPress={() => router.push('/add')}
           activeOpacity={0.8}
         >
-          <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.colors.onSurfaceVariant }}>
+          <Text style={[styles.mainTitle, { color: theme.colors.onSurfaceVariant }]}>
             Add Transaction
           </Text>
-          <Text style={{ fontSize: 12, marginTop: 4, color: theme.colors.onSurfaceVariant }}>
+          <Text style={[styles.mainSubtitle, { color: theme.colors.onSurfaceVariant }]}>
             Record expense or income
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 21,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.colors.primary,
-          }}
+          style={[styles.iconButton, { backgroundColor: theme.colors.primary }]}
           onPress={() => setExpanded((prev) => !prev)}
           activeOpacity={0.8}
         >
           <Animated.Text
-            style={{
-              fontSize: 22,
-              fontWeight: 'bold',
-              color: theme.colors.onPrimary,
-              transform: [{ rotate: plusRotation }],
-            }}
+            style={[
+              styles.plusText,
+              { color: theme.colors.onPrimary, transform: [{ rotate: plusRotation }] },
+            ]}
           >
             +
           </Animated.Text>
         </TouchableOpacity>
       </View>
 
-      <Animated.View
-        style={{
-          height: expandedHeight,
-          opacity: expandedOpacity,
-          overflow: 'hidden',
-        }}
-      >
-        <View style={{ height: 1, backgroundColor: theme.colors.outlineVariant, marginVertical: 10, opacity: 0.4 }} />
+      <Animated.View style={[styles.expandedArea, { height: expandedHeight, opacity: expandedOpacity }]}>
+        <View style={[styles.divider, { backgroundColor: theme.colors.outlineVariant }]} />
         <TouchableOpacity
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+          style={styles.secondaryRow}
           onPress={() => router.push('/bill-splitter')}
           activeOpacity={0.75}
         >
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View>
-              <Text style={{ fontSize: 15, fontWeight: 'bold', color: theme.colors.onSurfaceVariant }}>Split Bill</Text>
-              <Text style={{ fontSize: 12, marginTop: 2, color: theme.colors.onSurfaceVariant }}>Split across categories</Text>
-            </View>
+          <View style={styles.secondaryLabel}>
+            <Text style={[styles.secondaryTitle, { color: theme.colors.onSurfaceVariant }]}>
+              Split Bill
+            </Text>
+            <Text style={[styles.secondarySubtitle, { color: theme.colors.onSurfaceVariant }]}>
+              Split across categories
+            </Text>
           </View>
-          <View style={{ width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.primary }}>
+          <View style={[styles.iconButton, { backgroundColor: theme.colors.primary }]}>
             <FontAwesome name="scissors" size={18} color={theme.colors.onPrimary} />
           </View>
         </TouchableOpacity>
@@ -122,3 +99,73 @@ export const AddTransactionButton: React.FC = () => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    borderRadius: 28,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'column',
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 6,
+  },
+  mainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  labelArea: {
+    flex: 1,
+    marginRight: 12,
+    alignItems: 'flex-start',
+  },
+  mainTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  mainSubtitle: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  iconButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plusText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  expandedArea: {
+    overflow: 'hidden',
+  },
+  divider: {
+    height: 1,
+    marginVertical: 10,
+    opacity: 0.4,
+  },
+  secondaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  secondaryLabel: {
+    flex: 1,
+    flexDirection: 'column',
+    gap: 2,
+  },
+  secondaryTitle: {
+    fontSize: 15,
+    fontWeight: 'bold',
+  },
+  secondarySubtitle: {
+    fontSize: 12,
+  },
+});

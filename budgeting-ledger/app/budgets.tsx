@@ -16,6 +16,8 @@ import { Category, categoryRepository } from '../database/repositories/categoryR
 import { budgetService, BudgetEntry } from '../services/budgetService';
 import { CalculatorKeypad } from '../components/ui/CalculatorKeypad';
 import { CategoryPickerModal } from '../components/ui/CategoryPickerModal';
+import { Card } from '../components/ui/Card';
+import { EmptyState } from '../components/ui/EmptyState';
 import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
 
@@ -145,22 +147,17 @@ export default function Budgets() {
 
         {/* Empty state */}
         {rows.length === 0 && (
-          <View style={[styles.emptyCard, { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant }]}>
-            <Text style={[styles.emptyTitle, { color: onSurface }]}>No budgets set yet</Text>
-            <Text style={[styles.emptySubtext, { color: theme.colors.onSurfaceVariant }]}>
-              Tap "Add New" to set a spending limit for an expense category.
-            </Text>
-          </View>
+          <EmptyState
+            title="No budgets set yet"
+            subtitle='Tap "Add New" to set a spending limit for an expense category.'
+          />
         )}
 
         {/* Category Budget Rows */}
         {rows.map((row, index) => (
-          <View
+          <Card
             key={row.categoryId}
-            style={[
-              styles.categoryCard,
-              { backgroundColor: theme.colors.surfaceContainerLow, borderColor: theme.colors.outlineVariant },
-            ]}
+            style={styles.categoryCardExtra}
           >
             <View style={styles.categoryCardRow}>
               <View style={styles.categoryLeft}>
@@ -191,7 +188,7 @@ export default function Budgets() {
                 </TouchableOpacity>
               </View>
             </View>
-          </View>
+          </Card>
         ))}
       </ScrollView>
 
@@ -249,11 +246,7 @@ const styles = StyleSheet.create({
   addNewPill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 9999 },
   addNewText: { fontSize: 13, fontWeight: '700' },
 
-  emptyCard: { borderWidth: 1, borderRadius: 20, padding: 24, alignItems: 'center', marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6 },
-  emptySubtext: { fontSize: 13, textAlign: 'center', lineHeight: 20 },
-
-  categoryCard: { borderWidth: 1, borderRadius: 20, padding: 16, marginBottom: 12 },
+  categoryCardExtra: { marginBottom: 12 },
   categoryCardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   categoryLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
   emojiCircle: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
