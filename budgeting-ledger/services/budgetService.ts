@@ -1,5 +1,6 @@
 import { budgetRepository } from '../database/repositories/budgetRepository';
 import { categoryRepository } from '../database/repositories/categoryRepository';
+import { transactionService } from './transactionService';
 import db from '../database/connection';
 
 export interface BudgetEntry {
@@ -100,5 +101,40 @@ export const budgetService = {
   hasBudgets: (): boolean => {
     const result = db.getFirstSync('SELECT COUNT(*) AS count FROM budgets') as { count: number } | null;
     return (result?.count ?? 0) > 0;
+  },
+
+  /**
+   * Returns all expense categories with their spending for the date range.
+   * Budgeted categories come first, sorted by spent/budget ratio descending.
+   * Non-budgeted categories follow, sorted by totalSpent descending.
+   * budget is null for non-budgeted categories.
+   */
+  getAllCategoryBudgetData: (
+    start: string,
+    end: string
+  ): { categoryId: number; categoryName: string; emoji: string; spent: number; budget: number | null }[] => {
+    const budgeted = budgetService.getBudgetHealthData(start, end);
+    const budgetedIds = new Set(budgeted.map((e) => e.categoryId));
+
+    const allSpending = transactionService.getCategorySpendingForMonth(start, end);
+    const nonBudgeted = allSpending
+      .filter((s) => !budgetedIds.has(s.categoryId))
+      .map((s) => ({
+        categoryId: s.categoryId,
+        categoryName: s.categoryName,
+        emoji: s.emoji,
+        spent: s.totalSpent,
+        budget: null as number | null,
+      }));
+
+    const budgetedMapped = budgeted.map((e) => ({
+      categoryId: e.categoryId,
+      categoryName: e.categoryName,
+      emoji: e.emoji,
+      spent: e.spent,
+      budget: e.amount,
+    }));
+
+    return [...budgetedMapped, ...nonBudgeted];
   },
 };

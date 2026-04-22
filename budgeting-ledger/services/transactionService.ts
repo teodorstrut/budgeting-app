@@ -180,4 +180,29 @@ export const transactionService = {
         deletedAt: toIsoDate(row.deletedAt) || row.deletedAt,
       }));
   },
+
+  /**
+   * Returns total expense amount per category for the given date range.
+   */
+  getCategorySpendingForMonth: (
+    startDate: string,
+    endDate: string
+  ): { categoryId: number; categoryName: string; emoji: string; totalSpent: number }[] => {
+    return transactionRepository.getCategoryTotalsForDateRange(startDate, endDate);
+  },
+
+  /**
+   * Returns per-period total expense amounts for use in a spending evolution chart.
+   * Pass categoryId to filter by a single category, or null/undefined for all.
+   */
+  getSpendingEvolutionForPeriods: (
+    periods: { start: string; end: string }[],
+    categoryId?: number | null
+  ): { start: string; end: string; total: number }[] => {
+    return periods.map(({ start, end }) => ({
+      start,
+      end,
+      total: transactionRepository.getExpenseTotalForDateRange(start, end, categoryId),
+    }));
+  },
 };

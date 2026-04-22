@@ -79,4 +79,57 @@ export const transactionRepository = {
   delete: (id: number) => {
     db.runSync('DELETE FROM transactions WHERE id = ?', [id]);
   },
+
+  /**
+   * Returns total expense amount per category for the given date range.
+   * Only expense transactions with a categoryId are included.
+   * Results are ordered by totalSpent descending.
+   */
+  getCategoryTotalsForDateRange: (
+    startDate: string,
+    endDate: string
+  ): { categoryId: number; categoryName: string; emoji: string; totalSpent: number }[] => {
+    const rows = db.getAllSync(
+      `SELECT t.categoryId, c.name AS categoryName, c.emoji,
+              SUM(t.amount) AS totalSpent
+       FROM transactions t
+       JOIN categories c ON c.id = t.categoryId
+       WHERE t.type = 'expense'
+         AND substr(t.date, 1, 10) >= ?
+         AND substr(t.date, 1, 10) <= ?
+         AND t.categoryId IS NOT NULL
+       GROUP BY t.categoryId
+       ORDER BY totalSpent DESC`,
+      [startDate, endDate]
+    ) as { categoryId: number; categoryName: string; emoji: string | null; totalSpent: number }[];
+
+    return rows.map((r) => ({
+      categoryId: r.categoryId,
+      categoryName: r.categoryName,
+      emoji: r.emoji ?? '💰',
+      totalSpent: r.totalSpent,
+    }));
+  },
+
+  /**
+   * Returns the total expense amount for the given date range, optionally filtered by category.
+   * Pass null/undefined for categoryId to sum across all categories.
+   */
+  getExpenseTotalForDateRange: (
+    startDate: string,
+    endDate: string,
+    categoryId?: number | null
+  ): number => {
+    const row = db.getFirstSync(
+      `SELECT COALESCE(SUM(amount), 0) AS total
+       FROM transactions
+       WHERE type = 'expense'
+         AND substr(date, 1, 10) >= ?
+         AND substr(date, 1, 10) <= ?
+         AND (? IS NULL OR categoryId = ?)`,
+      [startDate, endDate, categoryId ?? null, categoryId ?? null]
+    ) as { total: number } | null;
+
+    return row?.total ?? 0;
+  },
 };
