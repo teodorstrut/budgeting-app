@@ -1,5 +1,6 @@
+import * as SecureStore from 'expo-secure-store';
 import db from '../database/connection';
-import { SETTING_KEYS } from '../constants/settings';
+import { SECURE_KEYS, SETTING_KEYS } from '../constants/settings';
 
 export const settingsService = {
   getSetting: (key: string, defaultValue?: string): string | null => {
@@ -63,20 +64,25 @@ export const settingsService = {
     settingsService.setSetting(SETTING_KEYS.GOOGLE_SPREADSHEET_NAME, name);
   },
 
-  getGoogleAccountEmail: (): string | null => {
-    return settingsService.getSetting(SETTING_KEYS.GOOGLE_ACCOUNT_EMAIL);
+  getGoogleAccountEmail: async (): Promise<string | null> => {
+    return SecureStore.getItemAsync(SECURE_KEYS.GOOGLE_ACCOUNT_EMAIL);
   },
 
-  setGoogleAccountEmail: (email: string): void => {
-    settingsService.setSetting(SETTING_KEYS.GOOGLE_ACCOUNT_EMAIL, email);
+  setGoogleAccountEmail: async (email: string): Promise<void> => {
+    await SecureStore.setItemAsync(SECURE_KEYS.GOOGLE_ACCOUNT_EMAIL, email);
   },
 
-  getGoogleAccountName: (): string | null => {
-    return settingsService.getSetting(SETTING_KEYS.GOOGLE_ACCOUNT_NAME);
+  getGoogleAccountName: async (): Promise<string | null> => {
+    return SecureStore.getItemAsync(SECURE_KEYS.GOOGLE_ACCOUNT_NAME);
   },
 
-  setGoogleAccountName: (name: string): void => {
-    settingsService.setSetting(SETTING_KEYS.GOOGLE_ACCOUNT_NAME, name);
+  setGoogleAccountName: async (name: string): Promise<void> => {
+    await SecureStore.setItemAsync(SECURE_KEYS.GOOGLE_ACCOUNT_NAME, name);
+  },
+
+  clearGoogleAccountProfile: async (): Promise<void> => {
+    await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_ACCOUNT_EMAIL);
+    await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_ACCOUNT_NAME);
   },
 
   getGoogleLastError: (): string | null => {

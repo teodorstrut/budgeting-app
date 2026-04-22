@@ -1,9 +1,14 @@
 import * as SecureStore from 'expo-secure-store';
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { syncConfigRepository } from '../database/repositories/syncConfigRepository';
+import { syncDeletionRepository } from '../database/repositories/syncDeletionRepository';
 import { transactionService } from './transactionService';
 import { settingsService } from './settingsService';
 import { GoogleSpreadsheet, GoogleSpreadsheetPage, SyncConfig, SyncRow } from '../types/sync';
 import { SECURE_KEYS, SETTING_KEYS, SYNC } from '../constants/settings';
+
+type ExtraConfig = { googleAuth?: { androidClientId?: string; iosClientId?: string } };
 
 interface GoogleSheetSummaryResponse {
   spreadsheetId: string;
@@ -60,11 +65,13 @@ const authorizedFetch = async (
 };
 
 const parseErrorMessage = async (response: Response, fallback: string): Promise<string> => {
-  try {
-    const body = (await response.json()) as { error?: { message?: string } };
-    return body.error?.message ?? fallback;
-  } catch {
-    return fallback;
+  switch (response.status) {
+    case 401: return 'Google authentication expired. Please sign out and sign in again.';
+    case 403: return 'Access denied. Check that Google permissions are still granted.';
+    case 404: return 'The spreadsheet or sheet was not found. Check your sync configuration.';
+    case 429: return 'Too many requests. Wait a moment and try again.';
+    default:
+      return response.status >= 500 ? 'Google service error. Try again later.' : fallback;
   }
 };
 
@@ -90,8 +97,13 @@ export const syncService = {
 
   refreshGoogleAccessToken: async (): Promise<string | null> => {
     const refreshToken = await SecureStore.getItemAsync(SECURE_KEYS.GOOGLE_REFRESH_TOKEN);
-    const clientId = await SecureStore.getItemAsync(SECURE_KEYS.GOOGLE_CLIENT_ID);
-    if (!refreshToken || !clientId) return null;
+    if (!refreshToken) return null;
+    const extraConfig = (Constants.expoConfig?.extra ?? {}) as ExtraConfig;
+    const clientId =
+      Platform.OS === 'android'
+        ? extraConfig.googleAuth?.androidClientId
+        : extraConfig.googleAuth?.iosClientId;
+    if (!clientId) return null;
 
     try {
       const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -121,9 +133,8 @@ export const syncService = {
     }
   },
 
-  setGoogleRefreshToken: async (refreshToken: string, clientId: string): Promise<void> => {
+  setGoogleRefreshToken: async (refreshToken: string): Promise<void> => {
     await SecureStore.setItemAsync(SECURE_KEYS.GOOGLE_REFRESH_TOKEN, refreshToken);
-    await SecureStore.setItemAsync(SECURE_KEYS.GOOGLE_CLIENT_ID, clientId);
   },
 
   setGoogleAccessToken: async (token: string, expiresAt?: number): Promise<void> => {
@@ -133,25 +144,35 @@ export const syncService = {
     }
   },
 
-  setGoogleAccountProfile: (profile: { email: string; name: string }): void => {
-    settingsService.setGoogleAccountEmail(profile.email);
-    settingsService.setGoogleAccountName(profile.name);
+  setGoogleAccountProfile: async (profile: { email: string; name: string }): Promise<void> => {
+    await settingsService.setGoogleAccountEmail(profile.email);
+    await settingsService.setGoogleAccountName(profile.name);
   },
 
-  getGoogleAccountProfile: (): { email: string | null; name: string | null } => {
+  getGoogleAccountProfile: async (): Promise<{ email: string | null; name: string | null }> => {
     return {
-      email: settingsService.getGoogleAccountEmail(),
-      name: settingsService.getGoogleAccountName(),
+      email: await settingsService.getGoogleAccountEmail(),
+      name: await settingsService.getGoogleAccountName(),
     };
   },
 
   clearGoogleSession: async (): Promise<void> => {
+    // Best-effort revoke the refresh token at Google before clearing locally
+    try {
+      const refreshToken = await SecureStore.getItemAsync(SECURE_KEYS.GOOGLE_REFRESH_TOKEN);
+      if (refreshToken) {
+        await fetch(
+          `https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(refreshToken)}`,
+          { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+        );
+      }
+    } catch {
+      // Revocation is best-effort; local tokens are still deleted below
+    }
     await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_ACCESS_TOKEN);
     await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_ACCESS_TOKEN_EXPIRY);
     await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_REFRESH_TOKEN);
-    await SecureStore.deleteItemAsync(SECURE_KEYS.GOOGLE_CLIENT_ID);
-    settingsService.setGoogleAccountEmail('');
-    settingsService.setGoogleAccountName('');
+    await settingsService.clearGoogleAccountProfile();
     settingsService.setGoogleAutoSyncLastLocalDay('');
     settingsService.setGoogleAutoSyncLastRunAt('');
     settingsService.setGoogleSyncEnabled(false);
@@ -364,16 +385,11 @@ export const syncService = {
 
     const encodedSheetId = encodeURIComponent(config.spreadsheetId);
     const sheetName = config.sheetName;
-    const ownerEmail = (settingsService.getGoogleAccountEmail() ?? '').trim();
-    const ownerName = (settingsService.getGoogleAccountName() ?? '').trim() || ownerEmail;
-
-    if (!ownerEmail) {
-      throw new Error('Google account email is missing. Sign in with Google again.');
-    }
+    const ownerKey = settingsService.ensureSyncOwnerKey();
 
     const rowToValues = (row: SyncRow): (string | number)[] => [
-      makeSyncKey(ownerEmail, row.id),
-      ownerName,
+      makeSyncKey(ownerKey, row.id),
+      ownerKey,
       row.name,
       row.type,
       row.category,
@@ -384,8 +400,8 @@ export const syncService = {
     ];
 
     const deletedRowValues = (id: number, deletedAt: string): (string | number)[] => [
-      makeSyncKey(ownerEmail, id),
-      ownerName,
+      makeSyncKey(ownerKey, id),
+      ownerKey,
       '(deleted)',
       '',
       '',
@@ -403,7 +419,7 @@ export const syncService = {
         return await performFullSync(token, encodedSheetId, sheetName, rowToValues);
       }
 
-      return await performIncrementalSync(token, encodedSheetId, sheetName, ownerEmail, config.lastSync!, rowToValues, deletedRowValues);
+      return await performIncrementalSync(token, encodedSheetId, sheetName, ownerKey, config.lastSync!, rowToValues, deletedRowValues);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown sync failure';
       syncConfigRepository.setGoogleStatus('error');
@@ -422,6 +438,7 @@ const finalizeSyncTimestamp = (): string => {
     lastSync: at,
   });
   settingsService.setSetting(SETTING_KEYS.GOOGLE_SYNC_SCHEMA_VERSION, SYNC.SCHEMA_VERSION);
+  syncDeletionRepository.purgeOldTombstones(90);
   return at;
 };
 
@@ -468,7 +485,7 @@ const performIncrementalSync = async (
   token: string,
   encodedSheetId: string,
   sheetName: string,
-  ownerEmail: string,
+  ownerKey: string,
   lastSync: string,
   rowToValues: (row: SyncRow) => (string | number)[],
   deletedRowValues: (id: number, deletedAt: string) => (string | number)[],
@@ -483,11 +500,11 @@ const performIncrementalSync = async (
 
   const keyToRow = await readSyncKeyColumn(token, encodedSheetId, sheetName);
 
-  const toUpdateActive = changedRows.filter((r) => keyToRow.has(makeSyncKey(ownerEmail, r.id)));
-  const toAppendActive = changedRows.filter((r) => !keyToRow.has(makeSyncKey(ownerEmail, r.id)));
-  const toUpdateDeleted = deletedRows.filter((r) => keyToRow.has(makeSyncKey(ownerEmail, r.id)));
+  const toUpdateActive = changedRows.filter((r) => keyToRow.has(makeSyncKey(ownerKey, r.id)));
+  const toAppendActive = changedRows.filter((r) => !keyToRow.has(makeSyncKey(ownerKey, r.id)));
+  const toUpdateDeleted = deletedRows.filter((r) => keyToRow.has(makeSyncKey(ownerKey, r.id)));
 
-  await updateExistingRows(token, encodedSheetId, sheetName, ownerEmail, toUpdateActive, toUpdateDeleted, keyToRow, rowToValues, deletedRowValues);
+  await updateExistingRows(token, encodedSheetId, sheetName, ownerKey, toUpdateActive, toUpdateDeleted, keyToRow, rowToValues, deletedRowValues);
   await appendNewRows(token, encodedSheetId, sheetName, toAppendActive, rowToValues);
 
   const at = finalizeSyncTimestamp();
@@ -524,7 +541,7 @@ const updateExistingRows = async (
   token: string,
   encodedSheetId: string,
   sheetName: string,
-  ownerEmail: string,
+  ownerKey: string,
   toUpdateActive: SyncRow[],
   toUpdateDeleted: Array<{ id: number; deletedAt: string }>,
   keyToRow: Map<string, number>,
@@ -535,14 +552,14 @@ const updateExistingRows = async (
 
   const updateData = [
     ...toUpdateActive.map((row) => {
-      const syncKey = makeSyncKey(ownerEmail, row.id);
+      const syncKey = makeSyncKey(ownerKey, row.id);
       return {
         range: `${sheetName}!A${keyToRow.get(syncKey)}:I${keyToRow.get(syncKey)}`,
         values: [rowToValues(row)],
       };
     }),
     ...toUpdateDeleted.map((row) => {
-      const syncKey = makeSyncKey(ownerEmail, row.id);
+      const syncKey = makeSyncKey(ownerKey, row.id);
       return {
         range: `${sheetName}!A${keyToRow.get(syncKey)}:I${keyToRow.get(syncKey)}`,
         values: [deletedRowValues(row.id, row.deletedAt)],

@@ -41,7 +41,7 @@ export const autoSyncService = {
 
     try {
       const profile = await syncService.fetchGoogleUserProfile(token);
-      syncService.setGoogleAccountProfile(profile);
+      await syncService.setGoogleAccountProfile(profile);
       settingsService.clearGoogleLastError();
     } catch {
       settingsService.setGoogleLastError('Google connection check failed. Open Sync Settings to reconnect.');

@@ -78,6 +78,7 @@ export default function SyncSettings() {
     androidClientId: extraConfig.googleAuth?.androidClientId || undefined,
     iosClientId: extraConfig.googleAuth?.iosClientId || undefined,
     redirectUri: Platform.OS === 'android' ? androidRedirectUri : undefined,
+    usePKCE: true,
     scopes: [
       syncService.googleSheetsScope,
       'https://www.googleapis.com/auth/drive.metadata.readonly',
@@ -133,26 +134,22 @@ export default function SyncSettings() {
     const expiresAt = issuedAt != null && expiresIn != null ? issuedAt + expiresIn : undefined;
 
     const refreshToken = response.authentication?.refreshToken ?? null;
-    const clientId =
-      Platform.OS === 'android'
-        ? (extraConfig.googleAuth?.androidClientId ?? null)
-        : (extraConfig.googleAuth?.iosClientId ?? null);
 
     syncService
       .setGoogleAccessToken(accessToken, expiresAt)
       .then(async () => {
-        if (refreshToken && clientId) {
-          await syncService.setGoogleRefreshToken(refreshToken, clientId);
+        if (refreshToken) {
+          await syncService.setGoogleRefreshToken(refreshToken);
         }
         const profile = await syncService.fetchGoogleUserProfile(accessToken);
-        syncService.setGoogleAccountProfile(profile);
+        await syncService.setGoogleAccountProfile(profile);
         setToken(accessToken);
         Alert.alert('Connected', 'Google account connected successfully.');
       })
-      .catch((error) => {
+      .catch(() => {
         Alert.alert(
           'Google sign-in failed',
-          error instanceof Error ? error.message : 'Failed to store Google session/profile securely.',
+          'Failed to store Google session securely. Please try again.',
         );
       });
   }, [response]);
@@ -174,7 +171,7 @@ export default function SyncSettings() {
         }
         return true;
       } catch (error) {
-        Alert.alert('Load failed', error instanceof Error ? error.message : 'Could not load spreadsheets.');
+        Alert.alert('Load failed', 'Could not load spreadsheets. Check your connection and try again.');
         return false;
       } finally {
         setLoadingSheets(false);
@@ -352,7 +349,7 @@ export default function SyncSettings() {
       setTabName(appTab);
       Alert.alert('Saved', `Sync target configured: ${spreadsheetName} / ${appTab}`);
     } catch (error) {
-      Alert.alert('Save failed', error instanceof Error ? error.message : 'Could not save sync configuration.');
+      Alert.alert('Save failed', 'Could not save sync configuration. Check your connection and Google permissions.');
     } finally {
       setSavingConfig(false);
     }
@@ -385,7 +382,7 @@ export default function SyncSettings() {
       Alert.alert('Sync complete', `Pushed ${result.rowsPushed} transaction rows.`);
     } catch (error) {
       refreshConfig();
-      Alert.alert('Sync failed', error instanceof Error ? error.message : 'Could not sync transactions.');
+      Alert.alert('Sync failed', 'Could not sync transactions. Check your connection and Google permissions.');
     } finally {
       setSyncing(false);
     }

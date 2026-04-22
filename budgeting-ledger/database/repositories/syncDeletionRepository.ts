@@ -24,4 +24,10 @@ export const syncDeletionRepository = {
     );
     return rows as SyncDeletionRow[];
   },
+
+  purgeOldTombstones: (olderThanDays: number): void => {
+    const cutoffMs = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
+    const cutoff = new Date(cutoffMs).toISOString();
+    db.runSync('DELETE FROM sync_deletions WHERE deletedAt < ?', [cutoff]);
+  },
 };

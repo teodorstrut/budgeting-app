@@ -6,6 +6,7 @@ import { Header } from '../components/layout/Header';
 import { Card } from '../components/ui/Card';
 import { resetAndReseed } from '../database/schema';
 import { settingsService } from '../services/settingsService';
+import { syncService } from '../services/syncService';
 import { MonthStartDayPicker } from '../components/ui/MonthStartDayPicker';
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 import { confirmDialog } from '../utils/confirmDialog';
@@ -24,15 +25,17 @@ export default function Settings() {
 
   const handleReset = () => {
     confirmDialog(
-      'Reset Database',
-      'This will delete all transactions and categories, then restore the default seed data. Are you sure?',
+      'Reset Database && Clear user account data synced with Google Sheets',
+      'This will delete all transactions, categories and the your Google account data, then restore the default seed data. Are you sure?',
       () => {
-        try {
-          resetAndReseed();
-          setResetDone(true);
-        } catch (error) {
-          Alert.alert('Reset failed', error instanceof Error ? error.message : 'An unexpected error occurred.');
-        }
+        syncService.clearGoogleSession().catch(() => {}).finally(() => {
+          try {
+            resetAndReseed();
+            setResetDone(true);
+          } catch (error) {
+            Alert.alert('Reset failed', error instanceof Error ? error.message : 'An unexpected error occurred.');
+          }
+        });
       },
       'Reset',
     );

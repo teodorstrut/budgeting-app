@@ -6,26 +6,26 @@ export const SETTING_KEYS = {
   GOOGLE_SPREADSHEET_NAME: 'googleSpreadsheetName',
   GOOGLE_SYNC_LAST_ERROR: 'googleSyncLastError',
   GOOGLE_SYNC_OWNER_KEY: 'googleSyncOwnerKey',
-  GOOGLE_ACCOUNT_EMAIL: 'googleAccountEmail',
-  GOOGLE_ACCOUNT_NAME: 'googleAccountName',
   GOOGLE_SYNC_SCHEMA_VERSION: 'googleSyncSchemaVersion',
   GOOGLE_AUTO_SYNC_ENABLED: 'googleAutoSyncEnabled',
   GOOGLE_AUTO_SYNC_LAST_LOCAL_DAY: 'googleAutoSyncLastLocalDay',
   GOOGLE_AUTO_SYNC_LAST_RUN_AT: 'googleAutoSyncLastRunAt',
 } as const;
 
-// Secure storage keys (expo-secure-store)
+// Secure storage keys (expo-secure-store) — never store non-secret data here
 export const SECURE_KEYS = {
   GOOGLE_ACCESS_TOKEN: 'googleAccessToken',
   GOOGLE_ACCESS_TOKEN_EXPIRY: 'googleAccessTokenExpiry',
   GOOGLE_REFRESH_TOKEN: 'googleRefreshToken',
-  GOOGLE_CLIENT_ID: 'googleClientId',
+  // PII: stored encrypted, deleted on sign-out
+  GOOGLE_ACCOUNT_EMAIL: 'googleAccountEmail',
+  GOOGLE_ACCOUNT_NAME: 'googleAccountName',
 } as const;
 
 // Sync constants
 export const SYNC = {
   PROVIDER: 'google',
   DEFAULT_SHEET_NAME: 'BudgetingLedger_Transactions',
-  SCHEMA_VERSION: '3',
+  SCHEMA_VERSION: '4',
   GOOGLE_SHEETS_SCOPE: 'https://www.googleapis.com/auth/spreadsheets',
 } as const;
