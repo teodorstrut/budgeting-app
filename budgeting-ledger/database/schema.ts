@@ -128,54 +128,65 @@ const seedData = () => {
     const subscriptionsCat = db.getFirstSync('SELECT id FROM categories WHERE name = ?', ['Subscriptions'])?.id;
     const freelanceCat = db.getFirstSync('SELECT id FROM categories WHERE name = ?', ['Freelance'])?.id;
 
+    const seedNow = now.toISOString();
     db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO transactions (amount, type, categoryId, note, date, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         1500,
         'income',
         salaryCat,
         'Direct deposit',
         createSeedTimestamp(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0),
+        seedNow,
+        seedNow,
       ]
     );
     db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO transactions (amount, type, categoryId, note, date, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         45,
         'expense',
         groceriesCat,
         'Trader Joe\'s',
         createSeedTimestamp(now.getFullYear(), now.getMonth(), now.getDate() - 2, 18, 20),
+        seedNow,
+        seedNow,
       ]
     );
     db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO transactions (amount, type, categoryId, note, date, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         1200,
         'expense',
         rentCat,
         'April rent',
         createSeedTimestamp(now.getFullYear(), now.getMonth(), now.getDate() - 8, 8, 30),
+        seedNow,
+        seedNow,
       ]
     );
     db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO transactions (amount, type, categoryId, note, date, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         90,
         'expense',
         utilitiesCat,
         'Utility bill due',
         createSeedTimestamp(now.getFullYear(), now.getMonth(), now.getDate() - 5, 11, 45),
+        seedNow,
+        seedNow,
       ]
     );
     db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO transactions (amount, type, categoryId, note, date, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         18,
         'expense',
         groceriesCat,
         'Starbucks',
         createSeedTimestamp(now.getFullYear(), now.getMonth(), now.getDate() - 1, 7, 55),
+        seedNow,
+        seedNow,
       ]
     );
 
@@ -205,8 +216,8 @@ const seedData = () => {
 
     marchTransactions.forEach((transaction) => {
       db.runSync(
-        `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
-        [transaction.amount, transaction.type, transaction.categoryId, transaction.note, transaction.date]
+        `INSERT INTO transactions (amount, type, categoryId, note, date, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [transaction.amount, transaction.type, transaction.categoryId, transaction.note, transaction.date, seedNow, seedNow]
       );
     });
   }

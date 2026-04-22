@@ -13,9 +13,10 @@ export interface Transaction {
 
 export const transactionRepository = {
   create: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const now = new Date().toISOString();
     const result = db.runSync(
-      `INSERT INTO transactions (amount, type, categoryId, note, date) VALUES (?, ?, ?, ?, ?)`,
-      [transaction.amount, transaction.type, transaction.categoryId, transaction.note, transaction.date]
+      `INSERT INTO transactions (amount, type, categoryId, note, date, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [transaction.amount, transaction.type, transaction.categoryId, transaction.note, transaction.date, now, now]
     );
     return result.lastInsertRowId;
   },
@@ -35,7 +36,7 @@ export const transactionRepository = {
 
   getChangedSince: (sinceIso: string): Transaction[] => {
     const result = db.getAllSync(
-      'SELECT * FROM transactions WHERE updatedAt IS NULL OR updatedAt > ? ORDER BY date DESC',
+      `SELECT * FROM transactions WHERE updatedAt IS NULL OR updatedAt >= ? ORDER BY date DESC`,
       [sinceIso]
     );
     return result as Transaction[];
@@ -69,7 +70,8 @@ export const transactionRepository = {
       fields.push('date = ?');
       values.push(transaction.date);
     }
-    fields.push('updatedAt = CURRENT_TIMESTAMP');
+    fields.push('updatedAt = ?');
+    values.push(new Date().toISOString());
     values.push(id);
     db.runSync(`UPDATE transactions SET ${fields.join(', ')} WHERE id = ?`, values);
   },
