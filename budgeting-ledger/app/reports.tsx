@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -15,6 +15,7 @@ import { NavBar } from '../components/layout/NavBar';
 import { DonutChart, CHART_COLORS, type DonutSlice } from '../components/charts/DonutChart';
 import { SpendingBarChart, type BarDataPoint } from '../components/charts/SpendingBarChart';
 import { CategoryPickerModal } from '../components/ui/CategoryPickerModal';
+import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 import { transactionService } from '../services/transactionService';
 import { budgetService } from '../services/budgetService';
 import { categoryRepository, type Category } from '../database/repositories/categoryRepository';
@@ -76,10 +77,15 @@ export default function Reports() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
 
+  // Donut chart type toggle
+  const [donutType, setDonutType] = useState<'expense' | 'income'>('expense');
+
+  // Incremented on every screen focus to trigger a data reload
+  const [focusTick, setFocusTick] = useState(0);
+
   // Data state
   const [donutSlices, setDonutSlices] = useState<DonutSlice[]>([]);
   const [allCategoryData, setAllCategoryData] = useState<AllCategoryEntry[]>([]);
-  const [evolutionData, setEvolutionData] = useState<BarDataPoint[]>([]);
   const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
   const [totalSpent, setTotalSpent] = useState(0);
 
@@ -99,13 +105,14 @@ export default function Reports() {
   };
 
   // ── load data ─────────────────────────────────────────────────────────────
-  const loadData = useCallback(() => {
+  useEffect(() => {
     const day = settingsService.getMonthStartDay();
 
-    // 1. Donut chart — category spending
+    // 1. Donut chart — category spending (respects donutType: expense | income)
     const categorySpending = transactionService.getCategorySpendingForMonth(
       periodStart,
-      periodEnd
+      periodEnd,
+      donutType
     );
     const spent = categorySpending.reduce((acc, s) => acc + s.totalSpent, 0);
     setTotalSpent(spent);
@@ -117,43 +124,45 @@ export default function Reports() {
       }))
     );
 
-    // 2. All Categories list
+    // 2. All Categories list (expense budget view — always loaded for quick switch)
     const allData = budgetService.getAllCategoryBudgetData(periodStart, periodEnd);
     setAllCategoryData(allData);
 
     // 3. Expense categories for the picker
     const cats = categoryRepository.getAll().filter((c) => c.type === 'expense');
     setExpenseCategories(cats);
+  }, [periodStart, periodEnd, donutType, focusTick]);
 
-    // 4. Spending evolution — selected month is always the centre bar (index 2).
-    // 2 months before and 2 months after are shown regardless of whether they
-    // have data (they'll just render as 0-height bars).
-    const periods: { start: string; end: string }[] = [];
-    let curAnchor = new Date(anchorMonth.getFullYear(), anchorMonth.getMonth() - 2, 1);
-    for (let i = 0; i < 5; i++) {
-      const [s, e] = monthUtils.getMonthPeriodForDate(day, toDateInMonth(curAnchor));
-      periods.push({ start: s, end: e });
-      curAnchor = new Date(curAnchor.getFullYear(), curAnchor.getMonth() + 1, 1);
+  // ── spending evolution (sync SQLite → useMemo so data is ready on same render
+  //    as the key change, preventing gifted-charts from mounting with stale data) ──
+  const evolutionData = useMemo<BarDataPoint[]>(() => {
+    const day = settingsService.getMonthStartDay();
+    const windowPeriods: { start: string; end: string; calLabel: string }[] = [];
+    let cur = new Date(anchorMonth.getFullYear(), anchorMonth.getMonth() - 3, 1);
+    for (let i = 0; i < 7; i++) {
+      const [s, e] = monthUtils.getMonthPeriodForDate(day, toDateInMonth(cur));
+      // Use calendar month of the loop anchor for the label, NOT p.start.
+      // When monthStartDay > 15, p.start falls in the previous calendar month
+      // which would show the wrong month name.
+      const calLabel = cur.toLocaleDateString(undefined, { month: 'short' }).toUpperCase();
+      windowPeriods.push({ start: s, end: e, calLabel });
+      cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
     }
-
-    const evolutionTotals = transactionService.getSpendingEvolutionForPeriods(
-      periods,
+    const totals = transactionService.getSpendingEvolutionForPeriods(
+      windowPeriods,
       selectedCategoryId
     );
-
-    setEvolutionData(
-      evolutionTotals.map((p, i) => ({
-        label: shortMonthLabel(p.start),
-        value: p.total,
-        isCurrent: i === 2,
-      }))
-    );
-  }, [periodStart, periodEnd, anchorMonth, selectedCategoryId]);
+    return totals.map((p, i) => ({
+      label: windowPeriods[i].calLabel,
+      value: p.total,
+      isCurrent: i === 3,
+    }));
+  }, [anchorMonth, selectedCategoryId, focusTick]);
 
   useFocusEffect(
     useCallback(() => {
-      loadData();
-    }, [loadData])
+      setFocusTick((t) => t + 1);
+    }, [])
   );
 
   // ── category picker label ─────────────────────────────────────────────────
@@ -214,9 +223,21 @@ export default function Reports() {
           <Text style={[styles.cardTitle, { color: theme.colors.onSurfaceVariant }]}>
             Monthly Spending
           </Text>
+          <ToggleButtonGroup
+            options={[
+              { label: 'Expenses', value: 'expense' },
+              { label: 'Income', value: 'income' },
+            ]}
+            selected={donutType}
+            onSelect={setDonutType}
+            activeColor={donutType === 'expense' ? theme.colors.secondary : theme.colors.primary}
+            activeTextColor={theme.colors.surface}
+            inactiveTextColor={theme.colors.onSurfaceVariant}
+            borderColor={theme.colors.outlineVariant}
+          />
           <DonutChart
             data={donutSlices}
-            totalLabel="Total Spent"
+            totalLabel={donutType === 'expense' ? 'Total Spent' : 'Total Income'}
             totalValue={formatCurrency(totalSpent)}
             size={200}
           />
@@ -342,7 +363,10 @@ export default function Reports() {
             </TouchableOpacity>
           </View>
 
-          <SpendingBarChart data={evolutionData} />
+          <SpendingBarChart
+            key={`${anchorMonth.getFullYear()}-${anchorMonth.getMonth()}-${selectedCategoryId ?? 'all'}`}
+            data={evolutionData}
+          />
         </View>
       </ScrollView>
 
@@ -351,7 +375,10 @@ export default function Reports() {
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
         categories={expenseCategories}
-        onSelectCategory={(cat) => setSelectedCategoryId(cat.id ?? null)}
+        onSelectCategory={(cat) => {
+          setSelectedCategoryId(cat.id ?? null);
+          setPickerVisible(false);
+        }}
         selectedCategoryId={selectedCategoryId}
         title="Filter by Category"
         showAllOption

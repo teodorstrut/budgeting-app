@@ -186,9 +186,10 @@ export const transactionService = {
    */
   getCategorySpendingForMonth: (
     startDate: string,
-    endDate: string
+    endDate: string,
+    type: 'expense' | 'income' = 'expense'
   ): { categoryId: number; categoryName: string; emoji: string; totalSpent: number }[] => {
-    return transactionRepository.getCategoryTotalsForDateRange(startDate, endDate);
+    return transactionRepository.getCategoryTotalsForDateRange(startDate, endDate, type);
   },
 
   /**

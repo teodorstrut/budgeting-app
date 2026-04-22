@@ -87,20 +87,21 @@ export const transactionRepository = {
    */
   getCategoryTotalsForDateRange: (
     startDate: string,
-    endDate: string
+    endDate: string,
+    type: 'expense' | 'income' = 'expense'
   ): { categoryId: number; categoryName: string; emoji: string; totalSpent: number }[] => {
     const rows = db.getAllSync(
       `SELECT t.categoryId, c.name AS categoryName, c.emoji,
               SUM(t.amount) AS totalSpent
        FROM transactions t
        JOIN categories c ON c.id = t.categoryId
-       WHERE t.type = 'expense'
+       WHERE t.type = ?
          AND substr(t.date, 1, 10) >= ?
          AND substr(t.date, 1, 10) <= ?
          AND t.categoryId IS NOT NULL
        GROUP BY t.categoryId
        ORDER BY totalSpent DESC`,
-      [startDate, endDate]
+      [type, startDate, endDate]
     ) as { categoryId: number; categoryName: string; emoji: string | null; totalSpent: number }[];
 
     return rows.map((r) => ({

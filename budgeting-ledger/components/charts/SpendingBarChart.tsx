@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { BarChart } from 'react-native-gifted-charts';
 import { useTheme } from '../../providers/ThemeProvider';
 
@@ -17,6 +17,17 @@ interface SpendingBarChartProps {
 
 export const SpendingBarChart: React.FC<SpendingBarChartProps> = ({ data }) => {
   const { theme } = useTheme();
+  const { width: screenWidth } = useWindowDimensions();
+
+  // 72 = 16*2 (scroll padding) + 20*2 (card padding)
+  const chartWidth = screenWidth - 72;
+  const BAR_WIDTH = 28;
+  const EDGE_SPACING = 10;
+  const barCount = data.length || 7;
+  const spacing = Math.max(
+    8,
+    Math.floor((chartWidth - 2 * EDGE_SPACING - barCount * BAR_WIDTH) / (barCount - 1))
+  );
 
   const isEmpty = data.every((d) => d.value === 0);
 
@@ -51,12 +62,12 @@ export const SpendingBarChart: React.FC<SpendingBarChartProps> = ({ data }) => {
         data={barData}
         maxValue={maxValue * 1.15}
         noOfSections={3}
-        barWidth={28}
+        barWidth={BAR_WIDTH}
         barBorderTopLeftRadius={6}
         barBorderTopRightRadius={6}
-        spacing={20}
-        initialSpacing={12}
-        endSpacing={12}
+        spacing={spacing}
+        initialSpacing={EDGE_SPACING}
+        endSpacing={EDGE_SPACING}
         rulesColor={theme.colors.surfaceContainerHigh}
         rulesType="solid"
         yAxisThickness={0}
@@ -66,7 +77,7 @@ export const SpendingBarChart: React.FC<SpendingBarChartProps> = ({ data }) => {
         isAnimated
         animationDuration={600}
         height={160}
-        width={300}
+        width={chartWidth}
       />
     </View>
   );
