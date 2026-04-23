@@ -460,18 +460,23 @@ const performFullSync = async (
 ): Promise<{ rowsPushed: number; at: string }> => {
   const allRows = transactionService.getRowsForGoogleSync();
 
-  const clearResponse = await authorizedFetch(
-    token,
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-      `${sheetName}!A2:I`,
-    )}:clear`,
-    { method: 'POST' },
-  );
-  if (!clearResponse.ok) {
-    throw new Error(await parseErrorMessage(clearResponse, 'Failed to clear existing sheet data.'));
-  }
-
-  if (allRows.length > 0) {
+  if (allRows.length === 0) {
+    // Nothing to write — safe to clear the whole data range in one step.
+    const clearResponse = await authorizedFetch(
+      token,
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
+        `${sheetName}!A2:I`,
+      )}:clear`,
+      { method: 'POST' },
+    );
+    if (!clearResponse.ok) {
+      throw new Error(await parseErrorMessage(clearResponse, 'Failed to clear existing sheet data.'));
+    }
+  } else {
+    // Write-first strategy: the sheet always contains *some* data after step 1.
+    //
+    // Step 1 — overwrite starting at A2 with the full local dataset.
+    //   If this fails the sheet is unchanged (old data still visible). ✓
     const writeResponse = await authorizedFetch(
       token,
       `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
@@ -484,6 +489,23 @@ const performFullSync = async (
     );
     if (!writeResponse.ok) {
       throw new Error(await parseErrorMessage(writeResponse, 'Failed to write transactions to Google Sheet.'));
+    }
+
+    // Step 2 — clear any stale rows that now sit below the new data.
+    //   If this fails, the sheet has the correct new data plus stale rows at the
+    //   bottom — harmless, and self-healing on the next successful full sync. ✓
+    //   Row 1 is the header; rows 2…(allRows.length+1) hold new data;
+    //   row (allRows.length+2) onward is where old rows may still linger.
+    const staleStart = allRows.length + 2;
+    const clearTailResponse = await authorizedFetch(
+      token,
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
+        `${sheetName}!A${staleStart}:I`,
+      )}:clear`,
+      { method: 'POST' },
+    );
+    if (!clearTailResponse.ok) {
+      throw new Error(await parseErrorMessage(clearTailResponse, 'Failed to clear stale rows from Google Sheet.'));
     }
   }
 

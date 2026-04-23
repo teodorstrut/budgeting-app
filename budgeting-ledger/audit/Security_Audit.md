@@ -108,16 +108,16 @@ _Answers based on source code analysis. Last reviewed: April 23, 2026._
 
 | Question | Answer |
 |---|---|
-| Are you using GitHub Dependabot? | **Not configured.** No `dependabot.yml` found. |
-| Do you regularly update dependencies? | Cannot be determined from code alone. |
-| Do you audit new packages before installing? | Cannot be determined from code alone. |
+| Are you using GitHub Dependabot? | Yes. |
+| Do you regularly update dependencies? | Manually for now, based on dependabot suggestions. |
+| Do you audit new packages before installing? | Only through personal knowledge and npm audit. |
 | Are any packages abandoned/unmaintained? | No obviously abandoned packages. All key deps (`expo`, `expo-sqlite`, `expo-secure-store`, `expo-auth-session`) are actively maintained. |
 | Do you lock dependency versions? | **Yes** — `package.json` pins versions; a lockfile is generated on install. |
 | Expo managed or bare workflow? | **Bare workflow** — `android/` directory is present. |
 | Do you trust all native modules? | All native modules are first-party Expo packages or React Native community standards. |
 | Have you checked for known CVEs? | No evidence of a formal CVE review in the repo. |
-| Do you run `npm audit`? | No CI step found for this. |
-| Are build dependencies reviewed? | No evidence of a formal review. |
+| Do you run `npm audit`? | No CI step found for this. Ran manually. |
+| Are build dependencies reviewed? | No. |
 
 ---
 
@@ -142,8 +142,8 @@ _Answers based on source code analysis. Last reviewed: April 23, 2026._
 
 | Question | Answer |
 |---|---|
-| Is sync atomic (all-or-nothing)? | ⚠️ **No.** Full sync performs a `:clear` then a separate write. A crash between them leaves the sheet empty. |
-| Can partial syncs occur? | **Yes** — network failure mid-write can leave the sheet in a partial state. |
+| Is sync atomic (all-or-nothing)? | **Mitigated — write-first strategy.** Full sync now writes all rows to `A2` first, then clears the stale tail (`A{n+2}:I`). If step 1 fails the sheet is unchanged. If step 2 fails the sheet holds correct data with harmless stale rows at the bottom; the next successful sync cleans them. `finalizeSyncTimestamp()` only runs on full success, so a partial failure re-triggers full sync on the next attempt. |
+| Can partial syncs occur? | **Yes, but safely.** The only partial state is correct new data + stale rows below — data is never absent from the sheet. |
 | Do you detect duplicate uploads? | **Yes** — each row carries a `ownerKey::localId` key; incremental sync only writes rows not already present. |
 | Is there versioning or timestamps? | **Yes** — `GOOGLE_SYNC_SCHEMA_VERSION` guards schema migrations; rows use `updatedAt` timestamps. |
 | Can data be overwritten from Sheets? | **Yes** — pull sync imports sheet data into SQLite and can update local rows. |
@@ -178,7 +178,7 @@ _Answers based on source code analysis. Last reviewed: April 23, 2026._
 |---|---|---|
 | ~~**HIGH**~~ ✅ FIXED | Formula injection — `sanitizeForSheets()` added; prefixes `=`,`+`,`-`,`@`,tab,CR with `'`; applied to all string positions in `rowToValues` and `deletedRowValues` | `services/syncService.ts` |
 | ~~**MEDIUM**~~ ✅ FIXED | SQLite encryption — `initDbConnection()` generates a 256-bit key via `crypto.getRandomValues`, stores it in SecureStore, and applies `PRAGMA key`; `useSQLCipher: true` in plugin config | `database/connection.ts`, `app.json` |
-| **MEDIUM** | Full sync is non-atomic — clear then write can destroy remote data on crash | `services/syncService.ts` — `performFullSync` |
+| ~~**MEDIUM**~~ ✅ FIXED | Full sync rewritten with write-first strategy — rows written to `A2` before stale tail is cleared; sheet never goes empty on failure; self-healing on retry | `services/syncService.ts` — `performFullSync` |
 | ~~**LOW**~~ ✅ FIXED | Sync owner key now uses `crypto.randomUUID()` (CSPRNG) | `services/settingsService.ts` |
 | ~~**LOW**~~ ✅ FIXED | Web DB mock no longer logs SQL bind parameters — all mock functions are silent no-ops | `database/connection.ts` |
 | ~~**LOW**~~ ✅ FIXED | Android OAuth client ID moved out of `app.json` into `app.config.js` env var (`GOOGLE_ANDROID_CLIENT_ID`) + EAS Secret for production builds | `app.config.js`, `app.json` |
