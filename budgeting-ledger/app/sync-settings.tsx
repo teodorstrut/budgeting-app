@@ -365,7 +365,8 @@ export default function SyncSettings() {
   };
 
   const handleSyncNow = async () => {
-    if (!token) {
+    const freshToken = await syncService.getGoogleAccessToken();
+    if (!freshToken) {
       Alert.alert('Sign in required', 'Connect Google before syncing.');
       return;
     }
@@ -377,23 +378,24 @@ export default function SyncSettings() {
 
     setSyncing(true);
     try {
-      const result = await syncService.syncTransactionsToGoogleSheet(token);
+      const result = await syncService.syncTransactionsToGoogleSheet(freshToken);
       refreshConfig();
       Alert.alert('Sync complete', `Pushed ${result.rowsPushed} transaction rows.`);
     } catch (error) {
       refreshConfig();
-      Alert.alert('Sync failed', 'Could not sync transactions. Check your connection and Google permissions.');
+      const message = error instanceof Error ? error.message : 'Unknown error.';
+      Alert.alert('Sync failed', message);
     } finally {
       setSyncing(false);
     }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}> 
+    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Header title="Google Sheets Sync" showBackButton onBackPress={() => router.back()} />
 
-        <Card style={styles.cardMargin}> 
+        <Card style={styles.cardMargin}>
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Connection</Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>Sign in with Google to configure and sync your transaction data.</Text>
 
@@ -421,7 +423,7 @@ export default function SyncSettings() {
           </View>
         </Card>
 
-        <Card style={styles.cardMargin}> 
+        <Card style={styles.cardMargin}>
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Sheet Configuration</Text>
 
           <ToggleButtonGroup
@@ -526,7 +528,7 @@ export default function SyncSettings() {
           <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>Configured target: {config.spreadsheetName ?? 'Not set'} / {config.sheetName ?? 'Not set'}</Text>
         </Card>
 
-        <Card style={styles.cardMargin}> 
+        <Card style={styles.cardMargin}>
           <Text style={[styles.title, { color: theme.colors.onSurface }]}>Manual Sync</Text>
           <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>Push local transactions to the configured Google Sheet tab.</Text>
 

@@ -426,7 +426,7 @@ export const syncService = {
       const needsSchemaMigration = settingsService.getSetting(SETTING_KEYS.GOOGLE_SYNC_SCHEMA_VERSION) !== SYNC.SCHEMA_VERSION;
 
       if (isFirstSync || needsSchemaMigration) {
-        return await performFullSync(token, encodedSheetId, sheetName, rowToValues);
+        return await performFullSync(token, encodedSheetId, sheetName, ownerKey, rowToValues);
       }
 
       return await performIncrementalSync(token, encodedSheetId, sheetName, ownerKey, config.lastSync!, rowToValues, deletedRowValues);
@@ -456,11 +456,27 @@ const performFullSync = async (
   token: string,
   encodedSheetId: string,
   sheetName: string,
+  ownerKey: string,
   rowToValues: (row: SyncRow) => (string | number)[],
 ): Promise<{ rowsPushed: number; at: string }> => {
-  const allRows = transactionService.getRowsForGoogleSync();
+  const myRows = transactionService.getRowsForGoogleSync();
 
-  if (allRows.length === 0) {
+  // Read all existing rows and keep those that belong to *other* users so a
+  // full sync never destroys a co-owner's data.
+  const existingRows = await readAllDataRows(token, encodedSheetId, sheetName);
+  const ownerPrefix = `${ownerKey}::`;
+  const foreignRows = existingRows.filter(
+    (row) => row.length > 0 && !(row[0] ?? '').startsWith(ownerPrefix),
+  );
+
+  // Combined set: other users' rows first (preserving their positions), then
+  // this user's freshly computed rows.
+  const combinedRows: (string | number)[][] = [
+    ...foreignRows,
+    ...myRows.map(rowToValues),
+  ];
+
+  if (combinedRows.length === 0) {
     // Nothing to write — safe to clear the whole data range in one step.
     const clearResponse = await authorizedFetch(
       token,
@@ -475,7 +491,7 @@ const performFullSync = async (
   } else {
     // Write-first strategy: the sheet always contains *some* data after step 1.
     //
-    // Step 1 — overwrite starting at A2 with the full local dataset.
+    // Step 1 — overwrite A2 with the full combined dataset.
     //   If this fails the sheet is unchanged (old data still visible). ✓
     const writeResponse = await authorizedFetch(
       token,
@@ -484,19 +500,17 @@ const performFullSync = async (
       )}?valueInputOption=USER_ENTERED`,
       {
         method: 'PUT',
-        body: JSON.stringify({ values: allRows.map(rowToValues) }),
+        body: JSON.stringify({ values: combinedRows }),
       },
     );
     if (!writeResponse.ok) {
       throw new Error(await parseErrorMessage(writeResponse, 'Failed to write transactions to Google Sheet.'));
     }
 
-    // Step 2 — clear any stale rows that now sit below the new data.
-    //   If this fails, the sheet has the correct new data plus stale rows at the
-    //   bottom — harmless, and self-healing on the next successful full sync. ✓
-    //   Row 1 is the header; rows 2…(allRows.length+1) hold new data;
-    //   row (allRows.length+2) onward is where old rows may still linger.
-    const staleStart = allRows.length + 2;
+    // Step 2 — clear stale rows below the new data.
+    //   If this fails the sheet has correct data + stale rows at the bottom —
+    //   harmless, self-healing on the next successful full sync. ✓
+    const staleStart = combinedRows.length + 2;
     const clearTailResponse = await authorizedFetch(
       token,
       `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
@@ -510,7 +524,7 @@ const performFullSync = async (
   }
 
   const at = finalizeSyncTimestamp();
-  return { rowsPushed: allRows.length, at };
+  return { rowsPushed: myRows.length, at };
 };
 
 const performIncrementalSync = async (
@@ -541,6 +555,24 @@ const performIncrementalSync = async (
 
   const at = finalizeSyncTimestamp();
   return { rowsPushed: changedRows.length + deletedRows.length, at };
+};
+
+const readAllDataRows = async (
+  token: string,
+  encodedSheetId: string,
+  sheetName: string,
+): Promise<string[][]> => {
+  const response = await authorizedFetch(
+    token,
+    `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
+      `${sheetName}!A2:I`,
+    )}`,
+  );
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response, 'Failed to read existing sheet data.'));
+  }
+  const data = (await response.json()) as GoogleSheetValuesResponse;
+  return data.values ?? [];
 };
 
 const readSyncKeyColumn = async (

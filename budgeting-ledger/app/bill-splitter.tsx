@@ -77,7 +77,9 @@ export default function BillSplitter() {
   }, [expenseCategories, splits]);
 
   const updateSplitByAmount = (index: number, rawAmount: number) => {
-    const clamped = parseFloat(Math.max(0, Math.min(rawAmount, total)).toFixed(2));
+    const otherAllocated = splits.reduce((sum, s, i) => (i === index ? sum : sum + s.amount), 0);
+    const maxForThis = Math.max(0, total - otherAllocated);
+    const clamped = parseFloat(Math.max(0, Math.min(rawAmount, maxForThis)).toFixed(2));
     const pct = total > 0 ? parseFloat(((clamped / total) * 100).toFixed(2)) : 0;
     setSplits((prev) =>
       prev.map((s, i) => (i === index ? { ...s, amount: clamped, percentage: pct } : s))
