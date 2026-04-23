@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as ExpoCrypto from 'expo-crypto';
 
 const DB_KEY_STORE_KEY = 'db_encryption_key';
 
@@ -41,7 +42,7 @@ const getOrCreateDbKey = async (): Promise<string> => {
   if (existing) return existing;
 
   const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
+  ExpoCrypto.getRandomValues(bytes);
   const key = Array.from(bytes)
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');

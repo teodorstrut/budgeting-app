@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import * as ExpoCrypto from 'expo-crypto';
 import db from '../database/connection';
 import { SECURE_KEYS, SETTING_KEYS } from '../constants/settings';
 
@@ -131,7 +132,7 @@ export const settingsService = {
       return existing;
     }
 
-    const generated = crypto.randomUUID();
+    const generated = ExpoCrypto.randomUUID();
     settingsService.setSetting(SETTING_KEYS.GOOGLE_SYNC_OWNER_KEY, generated);
     return generated;
   },

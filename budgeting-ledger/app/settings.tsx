@@ -25,8 +25,8 @@ export default function Settings() {
 
   const handleReset = () => {
     confirmDialog(
-      'Reset Database && Clear user account data synced with Google Sheets',
-      'This will delete all transactions, categories and the your Google account data, then restore the default seed data. Are you sure?',
+      'Reset all data',
+      'This action is not reversible. By using this button you will erase all of your financial data.',
       () => {
         syncService.clearGoogleSession().catch(() => {}).finally(() => {
           try {
@@ -120,7 +120,7 @@ export default function Settings() {
           </Card>
 
           <Card style={styles.sectionCard}>
-            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Developer Tools</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Danger Zone</Text>
 
             <TouchableOpacity
               style={[styles.resetButton, { backgroundColor: theme.colors.secondary, borderColor: theme.colors.secondary }]}
@@ -128,7 +128,7 @@ export default function Settings() {
               activeOpacity={0.8}
             >
               <Text style={[styles.resetButtonText, { color: theme.colors.onSecondary ?? '#fff' }]}>
-                Reset &amp; Reseed Database
+                Reset all data
               </Text>
             </TouchableOpacity>
 
@@ -139,7 +139,7 @@ export default function Settings() {
             )}
 
             <Text style={[styles.hint, { color: theme.colors.outline }]}>
-              Clears all transactions and categories, then restores default seed data.
+              This action is not reversible. By using this button you will erase all of your financial data.
             </Text>
           </Card>
         </View>
