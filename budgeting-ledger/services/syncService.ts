@@ -49,6 +49,16 @@ const formatAmountForExport = (amount: number): string => {
   return String(amount).replace('.', ',');
 };
 
+/**
+ * Prevent formula injection when writing user-controlled strings to Google Sheets
+ * with valueInputOption=USER_ENTERED. Strings that begin with =, +, -, @, tab, or
+ * carriage-return are treated as formulas by Sheets; prefixing them with a single
+ * quote forces Sheets to store the value as plain text.
+ */
+const sanitizeForSheets = (value: string): string => {
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+};
+
 const authorizedFetch = async (
   token: string,
   url: string,
@@ -388,26 +398,26 @@ export const syncService = {
     const ownerKey = settingsService.ensureSyncOwnerKey();
 
     const rowToValues = (row: SyncRow): (string | number)[] => [
-      makeSyncKey(ownerKey, row.id),
-      ownerKey,
-      row.name,
-      row.type,
-      row.category,
-      formatAmountForExport(row.amount),
-      row.datetime,
-      row.updatedAt,
+      sanitizeForSheets(makeSyncKey(ownerKey, row.id)),
+      sanitizeForSheets(ownerKey),
+      sanitizeForSheets(row.name),
+      sanitizeForSheets(row.type),
+      sanitizeForSheets(row.category),
+      sanitizeForSheets(formatAmountForExport(row.amount)),
+      sanitizeForSheets(row.datetime),
+      sanitizeForSheets(row.updatedAt),
       '',
     ];
 
     const deletedRowValues = (id: number, deletedAt: string): (string | number)[] => [
-      makeSyncKey(ownerKey, id),
-      ownerKey,
+      sanitizeForSheets(makeSyncKey(ownerKey, id)),
+      sanitizeForSheets(ownerKey),
       '(deleted)',
       '',
       '',
       '',
-      deletedAt,
-      deletedAt,
+      sanitizeForSheets(deletedAt),
+      sanitizeForSheets(deletedAt),
     ];
 
     try {

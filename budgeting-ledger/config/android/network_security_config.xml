@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android Network Security Configuration.
+  Generated into res/xml/ by withNetworkSecurityConfig in app.config.js.
+
+  - cleartextTrafficPermitted="false"  blocks all HTTP traffic at the OS level.
+  - certificates src="system"          trusts only the pre-installed system CA
+    bundle; user-installed CAs (proxy tools, rogue MDM certs) are excluded.
+-->
+<network-security-config>
+  <base-config cleartextTrafficPermitted="false">
+    <trust-anchors>
+      <certificates src="system"/>
+    </trust-anchors>
+  </base-config>
+</network-security-config>

@@ -131,7 +131,7 @@ export const settingsService = {
       return existing;
     }
 
-    const generated = `owner_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const generated = crypto.randomUUID();
     settingsService.setSetting(SETTING_KEYS.GOOGLE_SYNC_OWNER_KEY, generated);
     return generated;
   },
