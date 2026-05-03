@@ -19,8 +19,6 @@ const { withDangerousMod, withAndroidManifest } = require('expo/config-plugins')
 const path = require('path');
 const fs = require('fs');
 
-const appJson = require('./app.json');
-
 const androidClientId = process.env.GOOGLE_ANDROID_CLIENT_ID ?? '';
 const iosClientId     = process.env.GOOGLE_IOS_CLIENT_ID     ?? '';
 
@@ -85,18 +83,76 @@ const withNetworkSecurityConfig = (config) => {
 
 module.exports = {
   expo: {
-    ...appJson.expo,
+    name: 'budgeting-ledger',
+    slug: 'budgeting-ledger',
+    version: '1.0.0',
+    orientation: 'portrait',
+    icon: './assets/images/icon.png',
+    scheme: 'budgetingledger',
+    userInterfaceStyle: 'automatic',
+    newArchEnabled: true,
+    ios: {
+      supportsTablet: true,
+    },
+    android: {
+      adaptiveIcon: {
+        backgroundColor: '#E6F4FE',
+        foregroundImage: './assets/images/android-icon-foreground.png',
+        backgroundImage: './assets/images/android-icon-background.png',
+        monochromeImage: './assets/images/android-icon-monochrome.png',
+      },
+      edgeToEdgeEnabled: true,
+      predictiveBackGestureEnabled: false,
+      package: 'com.teodorstrut.budgetingledger',
+      intentFilters: [
+        {
+          action: 'VIEW',
+          data: [{ scheme: 'com.teodorstrut.budgetingledger' }],
+          category: ['BROWSABLE', 'DEFAULT'],
+        },
+        {
+          action: 'VIEW',
+          data: [{ scheme: 'com.googleusercontent.apps.660137098982-rnidtv4vs36sd520l38rahgspt82k3mm' }],
+          category: ['BROWSABLE', 'DEFAULT'],
+        },
+      ],
+    },
+    web: {
+      output: 'static',
+      favicon: './assets/images/favicon.png',
+    },
+    plugins: [
+      'expo-router',
+      '@react-native-community/datetimepicker',
+      [
+        'expo-splash-screen',
+        {
+          image: './assets/images/splash-icon.png',
+          imageWidth: 200,
+          resizeMode: 'contain',
+          backgroundColor: '#ffffff',
+          dark: { backgroundColor: '#000000' },
+        },
+      ],
+      ['expo-sqlite', { useSQLCipher: true }],
+      'expo-secure-store',
+      'expo-background-task',
+      withBackupRules,
+      withNetworkSecurityConfig,
+    ],
+    experiments: {
+      typedRoutes: true,
+      reactCompiler: true,
+    },
     extra: {
-      ...appJson.expo.extra,
+      router: {},
       googleAuth: {
         androidClientId,
         iosClientId,
       },
+      eas: {
+        projectId: '14b1caf5-ca53-45ee-b51f-dbe0bc6b89e6',
+      },
     },
-    plugins: [
-      ...(appJson.expo.plugins ?? []),
-      withBackupRules,
-      withNetworkSecurityConfig,
-    ],
   },
 };
