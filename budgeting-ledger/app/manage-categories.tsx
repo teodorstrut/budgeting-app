@@ -2,9 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Alert,
   Animated,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
+  Keyboard,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { FontAwesome } from '@expo/vector-icons';
 import { Header } from '../components/layout/Header';
@@ -38,6 +37,7 @@ export default function ManageCategories() {
   const { theme } = useTheme();
   const shared = useSharedStyles();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ from?: string; type?: CategoryType }>();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -45,10 +45,22 @@ export default function ManageCategories() {
 
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const modalTranslateY = useRef(new Animated.Value(600)).current;
   const modalBackdropOpacity = useRef(new Animated.Value(0)).current;
   const modalHasLaidOut = useRef(false);
   const modalHeightRef = useRef(0);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (e) => setKeyboardHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    return () => { show.remove(); hide.remove(); };
+  }, []);
+
+  useEffect(() => {
+    if (!modalHasLaidOut.current) return;
+    if (modalVisible) animateModalIn();
+  }, [modalVisible]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [modalForm, setModalForm] = useState(EMPTY_MODAL_FORM);
@@ -93,9 +105,8 @@ export default function ManageCategories() {
 
   // ── Modal helpers ──────────────────────────────────────────────────────────
   const openModal = () => {
-    modalTranslateY.setValue(600);
+    modalTranslateY.setValue(modalHeightRef.current || 600);
     modalBackdropOpacity.setValue(0);
-    modalHasLaidOut.current = false;
     setModalVisible(true);
   };
 
@@ -283,30 +294,34 @@ export default function ManageCategories() {
         })}
       </ScrollView>
 
-      {/* Add / Edit Modal */}
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="none"
-        onRequestClose={closeModal}
+      {/* Backdrop */}
+      <AnimatedBackdrop opacity={modalBackdropOpacity} visible={modalVisible} onPress={closeModal} />
+
+      {/* Add / Edit Sheet */}
+      <Animated.View
+        pointerEvents={modalVisible ? 'auto' : 'none'}
+        style={[shared.modal.sheet, styles.sheetPadding, {
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: theme.colors.surfaceContainerLow,
+          zIndex: 11,
+          paddingBottom: Math.max(insets.bottom, 16) + 16 + keyboardHeight,
+          transform: [{ translateY: modalTranslateY }],
+        }]}
+        onLayout={(e) => {
+          const h = e.nativeEvent.layout.height;
+          modalHeightRef.current = h;
+          if (!modalHasLaidOut.current) {
+            modalHasLaidOut.current = true;
+            if (!modalVisible) {
+              modalTranslateY.setValue(h);
+              modalBackdropOpacity.setValue(0);
+            }
+          }
+        }}
       >
-        <View style={styles.modalRoot}>
-          <AnimatedBackdrop opacity={modalBackdropOpacity} visible={modalVisible} onPress={closeModal} />
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.kavWrapper}
-          >
-            <Animated.View
-              style={[shared.modal.sheet, styles.sheetPadding, { backgroundColor: theme.colors.surfaceContainerLow, zIndex: 11, transform: [{ translateY: modalTranslateY }] }]}
-              onLayout={(e) => {
-                const h = e.nativeEvent.layout.height;
-                modalHeightRef.current = h;
-                if (!modalHasLaidOut.current) {
-                  modalHasLaidOut.current = true;
-                  animateModalIn();
-                }
-              }}
-            >
               {/* Sheet Header */}
               <View style={shared.modal.sheetHeader}>
                 <Text style={[shared.modal.sheetTitle, { color: onSurface }]}>
@@ -363,10 +378,7 @@ export default function ManageCategories() {
                   <Text style={shared.buttons.secondaryText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
-            </Animated.View>
-          </KeyboardAvoidingView>
-        </View>
-      </Modal>
+      </Animated.View>
     </View>
   );
 }
@@ -414,9 +426,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Modal
-  modalRoot: { flex: 1, justifyContent: 'flex-end' },
-  kavWrapper: { width: '100%' },
+  // Sheet
   sheetPadding: { padding: 24 },
   emojiHint: { fontSize: 11, marginTop: 4, marginBottom: 12, lineHeight: 16 },
   addFlowHint: { fontSize: 12, lineHeight: 17, marginTop: 8 },
