@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -24,6 +23,7 @@ import { SplitSlider } from '../components/ui/SplitSlider';
 import { AppInputLabel } from '../components/ui/AppInputLabel';
 import { AppTextInput } from '../components/ui/AppTextInput';
 import { Header } from '../components/layout/Header';
+import { CategoryPickerModal } from '../components/ui/CategoryPickerModal';
 
 type Split = {
   category: Category;
@@ -130,9 +130,7 @@ export default function BillSplitter() {
     return amount % 1 === 0 ? String(amount) : amount.toFixed(2);
   };
 
-  const openCategoryPicker = () => {
-    setCategoryPickerVisible(true);
-  };
+  const openCategoryPicker = () => setCategoryPickerVisible(true);
 
   const addCategorySplit = (category: Category) => {
     const newIndex = splits.length;
@@ -395,41 +393,15 @@ export default function BillSplitter() {
         </ScrollView>
       )}
 
-      <Modal
-        visible={categoryPickerVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setCategoryPickerVisible(false)}
-      >
-        <View style={styles.modalRoot}>
-          <TouchableOpacity style={shared.modal.backdrop} activeOpacity={1} onPress={() => setCategoryPickerVisible(false)} />
-          <View style={[styles.sheet, { backgroundColor: theme.colors.surfaceContainerLow }]}> 
-            <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: onSurface }]}>Pick Expense Category</Text>
-              <TouchableOpacity onPress={() => setCategoryPickerVisible(false)}>
-                <FontAwesome name="times" size={18} color={theme.colors.onSurfaceVariant} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView contentContainerStyle={styles.categoryChipGrid}>
-              {availableCategories.map((cat, idx) => (
-                <TouchableOpacity
-                  key={cat.id ?? `${cat.name}-${idx}`}
-                  style={[styles.categoryChip, { borderColor: theme.colors.outlineVariant, backgroundColor: theme.colors.surfaceContainer }]}
-                  onPress={() => addCategorySplit(cat)}
-                >
-                  <Text style={[styles.categoryChipText, { color: onSurface }]}>
-                    {cat.emoji ? `${cat.emoji} ` : ''}
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
     </KeyboardAvoidingView>
+
+      <CategoryPickerModal
+        visible={categoryPickerVisible}
+        onClose={() => setCategoryPickerVisible(false)}
+        categories={availableCategories}
+        onSelectCategory={addCategorySplit}
+        title="Pick Expense Category"
+      />
       <CalculatorKeypad
         visible={calculatorVisible}
         initialValue={calcInitialValue()}
@@ -625,41 +597,5 @@ const styles = StyleSheet.create({
   finalizeText: {
     fontSize: 17,
     fontWeight: '700',
-  },
-  modalRoot: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    maxHeight: '70%',
-    padding: 16,
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  sheetTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-  },
-  categoryChipGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingBottom: 16,
-  },
-  categoryChip: {
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  categoryChipText: {
-    fontSize: 14,
-    fontWeight: '500',
   },
 });

@@ -240,6 +240,7 @@ export default function AddTransaction() {
           )}
         </View>
       </ScrollView>
+    </KeyboardAvoidingView>
       <CategoryPickerModal
         visible={categoryPickerVisible}
         onClose={() => setCategoryPickerVisible(false)}
@@ -257,7 +258,6 @@ export default function AddTransaction() {
           router.push({ pathname: '/manage-categories', params: { from: 'add', type } });
         }}
       />
-    </KeyboardAvoidingView>
       <CalculatorKeypad
         visible={showCalculator}
         initialValue={amount}

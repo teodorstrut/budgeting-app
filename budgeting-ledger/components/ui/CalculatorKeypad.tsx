@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AnimatedBackdrop } from './AnimatedBackdrop';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -146,12 +147,7 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   return (
     <>
       {/* Backdrop — fades in/out, dismisses on tap */}
-      <Animated.View
-        pointerEvents={visible ? 'auto' : 'none'}
-        style={[shared.modal.backdrop, styles.backdropZ, { opacity: backdropOpacity }]}
-      >
-        <TouchableOpacity style={StyleSheet.absoluteFill} activeOpacity={1} onPress={onDismiss} />
-      </Animated.View>
+      <AnimatedBackdrop opacity={backdropOpacity} visible={visible} onPress={onDismiss} />
 
       {/* Keypad sheet — slides up from bottom */}
       <Animated.View
@@ -173,6 +169,7 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
             // Snap to correct off-screen position after first measurement
             if (!visible) {
               translateY.setValue(h);
+              backdropOpacity.setValue(0);
             }
           }
         }}
@@ -255,10 +252,7 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
 };
 
 const styles = StyleSheet.create({
-  backdropZ: {
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    zIndex: 10,
-  },
+
   sheet: {
     position: 'absolute',
     bottom: 0,

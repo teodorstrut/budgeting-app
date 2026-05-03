@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Animated,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -23,6 +24,7 @@ import { transactionRepository } from '../database/repositories/transactionRepos
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 import { AppInputLabel } from '../components/ui/AppInputLabel';
 import { AppTextInput } from '../components/ui/AppTextInput';
+import { AnimatedBackdrop } from '../components/ui/AnimatedBackdrop';
 import { confirmDialog } from '../utils/confirmDialog';
 
 type CategoryType = 'income' | 'expense';
@@ -43,6 +45,10 @@ export default function ManageCategories() {
 
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
+  const modalTranslateY = useRef(new Animated.Value(600)).current;
+  const modalBackdropOpacity = useRef(new Animated.Value(0)).current;
+  const modalHasLaidOut = useRef(false);
+  const modalHeightRef = useRef(0);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [modalForm, setModalForm] = useState(EMPTY_MODAL_FORM);
@@ -86,11 +92,33 @@ export default function ManageCategories() {
   const bgForIndex = (i: number) => CONTAINER_BG_COLORS[i % CONTAINER_BG_COLORS.length];
 
   // ── Modal helpers ──────────────────────────────────────────────────────────
+  const openModal = () => {
+    modalTranslateY.setValue(600);
+    modalBackdropOpacity.setValue(0);
+    modalHasLaidOut.current = false;
+    setModalVisible(true);
+  };
+
+  const animateModalIn = () => {
+    Animated.parallel([
+      Animated.timing(modalTranslateY, {
+        toValue: 0,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalBackdropOpacity, {
+        toValue: 1,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
   const openAddModal = () => {
     setIsEditMode(false);
     setEditingCategoryId(null);
     setModalForm({ emoji: '', name: '', type: selectedType });
-    setModalVisible(true);
+    openModal();
   };
 
   const openEditModal = (category: Category) => {
@@ -101,12 +129,25 @@ export default function ManageCategories() {
       name: category.name,
       type: category.type,
     });
-    setModalVisible(true);
+    openModal();
   };
 
   const closeModal = () => {
-    setModalVisible(false);
-    setEditingCategoryId(null);
+    Animated.parallel([
+      Animated.timing(modalTranslateY, {
+        toValue: modalHeightRef.current,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+      Animated.timing(modalBackdropOpacity, {
+        toValue: 0,
+        duration: 280,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setModalVisible(false);
+      setEditingCategoryId(null);
+    });
   };
 
   const handleModalSave = () => {
@@ -246,16 +287,26 @@ export default function ManageCategories() {
       <Modal
         visible={modalVisible}
         transparent
-        animationType="slide"
+        animationType="none"
         onRequestClose={closeModal}
       >
         <View style={styles.modalRoot}>
-          <TouchableOpacity style={shared.modal.backdrop} activeOpacity={1} onPress={closeModal} />
+          <AnimatedBackdrop opacity={modalBackdropOpacity} visible={modalVisible} onPress={closeModal} />
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.kavWrapper}
           >
-            <View style={[shared.modal.sheet, styles.sheetPadding, { backgroundColor: theme.colors.surfaceContainerLow }]}>
+            <Animated.View
+              style={[shared.modal.sheet, styles.sheetPadding, { backgroundColor: theme.colors.surfaceContainerLow, zIndex: 11, transform: [{ translateY: modalTranslateY }] }]}
+              onLayout={(e) => {
+                const h = e.nativeEvent.layout.height;
+                modalHeightRef.current = h;
+                if (!modalHasLaidOut.current) {
+                  modalHasLaidOut.current = true;
+                  animateModalIn();
+                }
+              }}
+            >
               {/* Sheet Header */}
               <View style={shared.modal.sheetHeader}>
                 <Text style={[shared.modal.sheetTitle, { color: onSurface }]}>
@@ -312,7 +363,7 @@ export default function ManageCategories() {
                   <Text style={shared.buttons.secondaryText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
           </KeyboardAvoidingView>
         </View>
       </Modal>

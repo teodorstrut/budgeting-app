@@ -100,7 +100,7 @@ export default function Budgets() {
   const handleSave = () => {
     budgetService.saveBudgets(rows.map((r) => ({ categoryId: r.categoryId, amount: r.amount })));
     Alert.alert('Saved', 'Your budgets have been saved.', [
-      { text: 'OK', onPress: () => router.back() },
+      { text: 'OK', onPress: () => { if (router.canGoBack()) { router.back(); } else { router.replace('/'); } } },
     ]);
   };
 
