@@ -170,7 +170,7 @@ export default function SyncSettings() {
           Alert.alert('No sheets found', 'No spreadsheets were found in this account for this page.');
         }
         return true;
-      } catch (error) {
+      } catch {
         Alert.alert('Load failed', 'Could not load spreadsheets. Check your connection and try again.');
         return false;
       } finally {
@@ -348,7 +348,7 @@ export default function SyncSettings() {
       setSelectedSpreadsheetName(spreadsheetName);
       setTabName(appTab);
       Alert.alert('Saved', `Sync target configured: ${spreadsheetName} / ${appTab}`);
-    } catch (error) {
+    } catch {
       Alert.alert('Save failed', 'Could not save sync configuration. Check your connection and Google permissions.');
     } finally {
       setSavingConfig(false);

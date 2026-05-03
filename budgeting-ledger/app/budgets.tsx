@@ -119,6 +119,8 @@ export default function Budgets() {
         <Header
           title="Set Budget"
           titleColor={theme.colors.primary}
+          rightIconName="cog"
+          onRightPress={() => router.push('/settings')}
         />
 
         {/* Hero: Monthly Cap */}

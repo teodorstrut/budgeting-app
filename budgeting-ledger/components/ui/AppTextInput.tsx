@@ -25,3 +25,4 @@ export const AppTextInput = React.forwardRef<TextInput, AppTextInputProps>(
     );
   }
 );
+AppTextInput.displayName = 'AppTextInput';

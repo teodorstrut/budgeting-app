@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { AnimatedBackdrop } from './AnimatedBackdrop';
 import { useTheme } from '../../providers/ThemeProvider';
-import { useSharedStyles } from '../../theme/styles';
+
 import { Category } from '../../database/repositories/categoryRepository';
 
 interface CategoryPickerModalProps {
@@ -44,7 +44,6 @@ export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
   onSelectAll,
 }) => {
   const { theme } = useTheme();
-  const shared = useSharedStyles();
   const insets = useSafeAreaInsets();
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
   const accentColor = selectedColor ?? theme.colors.primary;
@@ -68,6 +67,7 @@ export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
         useNativeDriver: true,
       }),
     ]).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   return (

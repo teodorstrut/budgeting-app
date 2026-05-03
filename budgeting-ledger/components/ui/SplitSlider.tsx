@@ -55,6 +55,7 @@ export const SplitSlider = React.memo(
     prev.surfaceColor === next.surfaceColor &&
     prev.onValueChange === next.onValueChange,
 );
+SplitSlider.displayName = 'SplitSlider';
 
 const styles = StyleSheet.create({
   slider: { width: '100%', height: 36 },

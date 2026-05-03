@@ -28,7 +28,6 @@ import { confirmDialog } from '../utils/confirmDialog';
 
 type CategoryType = 'income' | 'expense';
 
-const ACCENT_COLORS = ['#4fd1c5', '#ffb866', '#ffa2c5', '#5adace'];
 const CONTAINER_BG_COLORS = ['#4fd1c528', '#ffb86628', '#ffa2c528', '#5adace28'];
 
 const EMPTY_MODAL_FORM = { emoji: '', name: '', type: 'expense' as CategoryType };
@@ -59,7 +58,12 @@ export default function ManageCategories() {
 
   useEffect(() => {
     if (!modalHasLaidOut.current) return;
-    if (modalVisible) animateModalIn();
+    if (!modalVisible) return;
+    Animated.parallel([
+      Animated.timing(modalTranslateY, { toValue: 0, duration: 280, useNativeDriver: true }),
+      Animated.timing(modalBackdropOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
+    ]).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalVisible]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
@@ -100,7 +104,6 @@ export default function ManageCategories() {
     [categories, selectedType]
   );
 
-  const colorForIndex = (i: number) => ACCENT_COLORS[i % ACCENT_COLORS.length];
   const bgForIndex = (i: number) => CONTAINER_BG_COLORS[i % CONTAINER_BG_COLORS.length];
 
   // ── Modal helpers ──────────────────────────────────────────────────────────
@@ -108,21 +111,6 @@ export default function ManageCategories() {
     modalTranslateY.setValue(modalHeightRef.current || 600);
     modalBackdropOpacity.setValue(0);
     setModalVisible(true);
-  };
-
-  const animateModalIn = () => {
-    Animated.parallel([
-      Animated.timing(modalTranslateY, {
-        toValue: 0,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-      Animated.timing(modalBackdropOpacity, {
-        toValue: 1,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-    ]).start();
   };
 
   const openAddModal = () => {
@@ -341,7 +329,7 @@ export default function ManageCategories() {
                 maxLength={8}
               />
               <Text style={[styles.emojiHint, { color: theme.colors.onSurfaceVariant }]}>
-                Tip: use your keyboard's emoji key (🌐 or 😊) to insert an emoji
+                {"Tip: use your keyboard's emoji key (🌐 or 😊) to insert an emoji"}
               </Text>
 
               {/* Name Field */}

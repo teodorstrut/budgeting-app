@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../providers/ThemeProvider';
-import { useSharedStyles } from '../theme/styles';
+
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ProgressBar } from '../components/ui/ProgressBar';
@@ -15,7 +15,6 @@ import { NavBar } from '../components/layout/NavBar';
 
 export default function BudgetHealth() {
   const { theme } = useTheme();
-  const shared = useSharedStyles();
   const router = useRouter();
   const [entries, setEntries] = useState<BudgetHealthEntry[]>([]);
 
@@ -68,7 +67,6 @@ export default function BudgetHealth() {
           entries.map((entry) => {
             const ratio = entry.amount > 0 ? entry.spent / entry.amount : 0;
             const barColor = barColorForRatio(Math.min(ratio, 1));
-            const pct = Math.min(ratio * 100, 100);
             const { text: deltaText, color: deltaColor } = deltaLabel(entry);
 
             return (

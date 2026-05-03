@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../providers/ThemeProvider';
-import { useSharedStyles } from '../theme/styles';
+
 import { EmptyState } from '../components/ui/EmptyState';
 import { Category, categoryRepository } from '../database/repositories/categoryRepository';
 import { transactionService } from '../services/transactionService';
@@ -33,7 +33,6 @@ type Split = {
 
 export default function BillSplitter() {
   const { theme } = useTheme();
-  const shared = useSharedStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 

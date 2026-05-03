@@ -40,13 +40,6 @@ const formatMonthLabel = (start: string): string => {
   return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 };
 
-const shortMonthLabel = (start: string): string => {
-  const [y, mo] = start.split('-').map(Number);
-  return new Date(y, mo - 1, 1)
-    .toLocaleDateString(undefined, { month: 'short' })
-    .toUpperCase();
-};
-
 const formatCurrency = (value: number): string => `$${value.toFixed(2)}`;
 
 const barColorForRatio = (ratio: number, primary: string, secondary: string): string => {
@@ -110,8 +103,6 @@ export default function Reports() {
 
   // ── load data ─────────────────────────────────────────────────────────────
   useEffect(() => {
-    const day = settingsService.getMonthStartDay();
-
     // 1. Donut chart — category spending (respects donutType: expense | income)
     const categorySpending = transactionService.getCategorySpendingForMonth(
       periodStart,
@@ -161,6 +152,7 @@ export default function Reports() {
       value: p.total,
       isCurrent: i === 3,
     }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchorMonth, selectedCategoryId, focusTick]);
 
   useFocusEffect(

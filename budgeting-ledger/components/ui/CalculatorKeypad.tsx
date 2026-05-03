@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../providers/ThemeProvider';
-import { useSharedStyles } from '../../theme/styles';
+
 
 interface CalculatorKeypadProps {
   visible: boolean;
@@ -25,7 +25,6 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   onHeightChange,
 }) => {
   const { theme } = useTheme();
-  const shared = useSharedStyles();
   const insets = useSafeAreaInsets();
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
 
@@ -69,6 +68,7 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
         useNativeDriver: true,
       }),
     ]).start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const haptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
