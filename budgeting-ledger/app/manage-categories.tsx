@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import { FontAwesome } from '@expo/vector-icons';
 import { Header } from '../components/layout/Header';
 import { useTheme } from '../providers/ThemeProvider';
@@ -40,6 +40,7 @@ export default function ManageCategories() {
   const params = useLocalSearchParams<{ from?: string; type?: CategoryType }>();
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [foreignCategories, setForeignCategories] = useState<Category[]>([]);
   const [selectedType, setSelectedType] = useState<CategoryType>('expense');
 
   // Modal state
@@ -70,7 +71,8 @@ export default function ManageCategories() {
   const [modalForm, setModalForm] = useState(EMPTY_MODAL_FORM);
 
   const loadCategories = useCallback(() => {
-    setCategories(categoryRepository.getAll());
+    setCategories(categoryRepository.getAll().filter((c) => !c.ownerKey || c.isAdopted === 1));
+    setForeignCategories(categoryRepository.getForeignCategories());
   }, []);
 
   useFocusEffect(
@@ -195,6 +197,12 @@ export default function ManageCategories() {
     });
   };
 
+  const handleAdoptCategory = (category: Category) => {
+    if (category.id == null) return;
+    categoryRepository.adoptCategory(category.id);
+    loadCategories();
+  };
+
   const isAddFlow = params.from === 'add';
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
   const typeLabel = selectedType === 'expense' ? 'Expense' : 'Income';
@@ -280,6 +288,42 @@ export default function ManageCategories() {
             </Card>
           );
         })}
+        {/* Foreign Categories Section */}
+        {foreignCategories.filter((c) => c.type === selectedType).length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionTitle, { color: onSurface }]}>Shared with You</Text>
+            </View>
+            {foreignCategories
+              .filter((c) => c.type === selectedType)
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((category, index) => (
+                <Card key={category.id ?? `foreign-${category.name}`} style={[styles.categoryCard, { opacity: 0.75 }]}>
+                  <View style={styles.categoryCardRow}>
+                    <View style={styles.categoryLeft}>
+                      <View style={[styles.emojiCircle, { backgroundColor: bgForIndex(index) }]}>
+                        <Text style={styles.emojiText}>{category.emoji ?? '🏷️'}</Text>
+                      </View>
+                      <View style={styles.categoryInfo}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={[styles.categoryName, { color: onSurface }]}>{category.name}</Text>
+                          <FontAwesome name="user" size={10} color={theme.colors.onSurfaceVariant} />
+                        </View>
+                        <Text style={[styles.categoryMeta, { color: theme.colors.onSurfaceVariant }]}>From another user</Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.iconButton, { backgroundColor: theme.colors.primaryContainer }]}
+                      onPress={() => handleAdoptCategory(category)}
+                      activeOpacity={0.8}
+                    >
+                      <FontAwesome name="plus" size={14} color={theme.colors.primary} />
+                    </TouchableOpacity>
+                  </View>
+                </Card>
+              ))}
+          </>
+        )}
       </ScrollView>
 
       {/* Backdrop */}

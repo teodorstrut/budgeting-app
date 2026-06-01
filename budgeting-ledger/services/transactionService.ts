@@ -206,4 +206,14 @@ export const transactionService = {
       total: transactionRepository.getExpenseTotalForDateRange(start, end, categoryId),
     }));
   },
+
+  /**
+   * Returns all transactions for a specific category within a date range,
+   * ordered newest first. Used for the Reports category drilldown modal.
+   */
+  getTransactionsForCategory: (categoryId: number, startDate: string, endDate: string): Transaction[] => {
+    return transactionRepository
+      .getByDateRange(startDate, endDate)
+      .filter((t) => t.categoryId === categoryId);
+  },
 };

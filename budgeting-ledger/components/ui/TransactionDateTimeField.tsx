@@ -64,7 +64,7 @@ export const TransactionDateTimeField: React.FC<TransactionDateTimeFieldProps> =
           value={value}
           mode={pickerMode}
           display={Platform.OS === 'ios' ? 'default' : pickerMode === 'date' ? 'calendar' : 'clock'}
-          onChange={onDateTimeValueChange}
+          onValueChange={onDateTimeValueChange}
         />
       )}
     </>

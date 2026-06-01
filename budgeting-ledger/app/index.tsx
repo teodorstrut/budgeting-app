@@ -2,7 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from '../providers/ThemeProvider';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import { transactionService } from '../services/transactionService';
 import { settingsService } from '../services/settingsService';
 import { monthUtils } from '../utils/monthUtils';
@@ -14,6 +14,7 @@ import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
 import { AddTransactionButton } from '../components/layout/AddTransactionButton';
 import { budgetService, BudgetHealthEntry } from '../services/budgetService';
+import { OwnershipToggle } from '../components/ui/OwnershipToggle';
 
 const getMonthLabel = (startDate: string): string => {
   const [y, m] = startDate.split('-').map(Number);
@@ -28,6 +29,7 @@ export default function Index() {
   const [monthLabel, setMonthLabel] = useState('');
   const [budgetHealthData, setBudgetHealthData] = useState<BudgetHealthEntry[]>([]);
   const [hasBudgets, setHasBudgets] = useState(false);
+  const [ownershipFilter, setOwnershipFilter] = useState<'mine' | 'all'>('mine');
 
   useFocusEffect(
     useCallback(() => {
@@ -37,7 +39,8 @@ export default function Index() {
       const end = monthUtils.getCurrentMonthEnd(day);
       
       setSummary(transactionService.getSummaryForDateRange(start, end));
-      setRecentTransactions(transactionService.getRecentTransactionsForDateRange(start, end, 5));
+      const allRecent = transactionService.getRecentTransactionsForDateRange(start, end, 5);
+      setRecentTransactions(allRecent);
       setMonthLabel(getMonthLabel(start));
       const budgetsExist = budgetService.hasBudgets();
       setHasBudgets(budgetsExist);
@@ -55,6 +58,10 @@ export default function Index() {
 
     router.push({ pathname: '/add', params: { editId: transaction.id.toString() } });
   };
+
+  const displayedTransactions = ownershipFilter === 'mine'
+    ? recentTransactions.filter((t) => t.isReadOnly !== 1)
+    : recentTransactions;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
@@ -89,9 +96,13 @@ export default function Index() {
 
         {hasBudgets && <BudgetHealthWidget entries={budgetHealthData} />}
 
+        <View style={styles.recentHeader}>
+          <Text style={[styles.recentTitle, { color: theme.colors.onSurfaceVariant }]}>Recent Transactions</Text>
+          <OwnershipToggle value={ownershipFilter} onChange={setOwnershipFilter} />
+        </View>
+
         <TransactionList
-          transactions={recentTransactions}
-          title="Recent Transactions This Month"
+          transactions={displayedTransactions}
           onTransactionPress={navigateToEdit}
         />
       </ScrollView>
@@ -131,5 +142,16 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  recentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  recentTitle: {
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

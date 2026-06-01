@@ -3,10 +3,13 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { syncConfigRepository } from '../database/repositories/syncConfigRepository';
 import { syncDeletionRepository } from '../database/repositories/syncDeletionRepository';
+import { transactionRepository } from '../database/repositories/transactionRepository';
+import { categoryRepository } from '../database/repositories/categoryRepository';
 import { transactionService } from './transactionService';
 import { settingsService } from './settingsService';
 import { GoogleSpreadsheet, GoogleSpreadsheetPage, SyncConfig, SyncRow } from '../types/sync';
 import { SECURE_KEYS, SETTING_KEYS, SYNC } from '../constants/settings';
+import { sanitizeForSheets, authorizedFetch, parseErrorMessage } from './googleSheetsUtils';
 
 type ExtraConfig = { googleAuth?: { androidClientId?: string; iosClientId?: string } };
 
@@ -43,47 +46,22 @@ interface GoogleSheetValuesResponse {
   values?: string[][];
 }
 
-const makeSyncKey = (ownerKey: string, localId: number): string => `${ownerKey}::${localId}`;
-
-const formatAmountForExport = (amount: number): string => {
-  return String(amount).replace('.', ',');
-};
-
 /**
  * Prevent formula injection when writing user-controlled strings to Google Sheets
  * with valueInputOption=USER_ENTERED. Strings that begin with =, +, -, @, tab, or
  * carriage-return are treated as formulas by Sheets; prefixing them with a single
  * quote forces Sheets to store the value as plain text.
  */
-const sanitizeForSheets = (value: string): string => {
-  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+// sanitizeForSheets, authorizedFetch, parseErrorMessage imported from ./googleSheetsUtils
+
+const makeSyncKey = (ownerKey: string, localId: number): string => `${ownerKey}::${localId}`;
+
+const formatAmountForExport = (amount: number): string => {
+  return String(amount).replace('.', ',');
 };
 
-const authorizedFetch = async (
-  token: string,
-  url: string,
-  init?: RequestInit,
-): Promise<Response> => {
-  return fetch(url, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-  });
-};
-
-const parseErrorMessage = async (response: Response, fallback: string): Promise<string> => {
-  switch (response.status) {
-    case 401: return 'Google authentication expired. Please sign out and sign in again.';
-    case 403: return 'Access denied. Check that Google permissions are still granted.';
-    case 404: return 'The spreadsheet or sheet was not found. Check your sync configuration.';
-    case 429: return 'Too many requests. Wait a moment and try again.';
-    default:
-      return response.status >= 500 ? 'Google service error. Try again later.' : fallback;
-  }
-};
+// Prevents concurrent sync operations (e.g. background task + foreground trigger both firing).
+let isSyncing = false;
 
 export const syncService = {
   googleSheetsScope: SYNC.GOOGLE_SHEETS_SCOPE,
@@ -384,12 +362,17 @@ export const syncService = {
   },
 
   syncTransactionsToGoogleSheet: async (token: string): Promise<{ rowsPushed: number; at: string }> => {
+    if (isSyncing) {
+      throw new Error('A sync operation is already in progress.');
+    }
+
     const config = syncService.getGoogleSyncConfig();
 
     if (!config.spreadsheetId || !config.sheetName) {
       throw new Error('Spreadsheet is not configured.');
     }
 
+    isSyncing = true;
     syncConfigRepository.setGoogleStatus('syncing');
     settingsService.clearGoogleLastError();
 
@@ -406,7 +389,7 @@ export const syncService = {
       sanitizeForSheets(formatAmountForExport(row.amount)),
       sanitizeForSheets(row.datetime),
       sanitizeForSheets(row.updatedAt),
-      '',
+      '', // col I: Deleted At (empty for active rows)
     ];
 
     const deletedRowValues = (id: number, deletedAt: string): (string | number)[] => [
@@ -416,8 +399,9 @@ export const syncService = {
       '',
       '',
       '',
-      sanitizeForSheets(deletedAt),
-      sanitizeForSheets(deletedAt),
+      sanitizeForSheets(deletedAt), // col G: Datetime
+      sanitizeForSheets(deletedAt), // col H: Updated At
+      sanitizeForSheets(deletedAt), // col I: Deleted At
     ];
 
     try {
@@ -435,6 +419,8 @@ export const syncService = {
       syncConfigRepository.setGoogleStatus('error');
       settingsService.setGoogleLastError(message);
       throw error;
+    } finally {
+      isSyncing = false;
     }
   },
 };
@@ -468,6 +454,9 @@ const performFullSync = async (
   const foreignRows = existingRows.filter(
     (row) => row.length > 0 && !(row[0] ?? '').startsWith(ownerPrefix),
   );
+
+  // Pull foreign rows into local DB as read-only transactions
+  pullForeignRowsFromSheet(ownerKey, existingRows);
 
   // Combined set: other users' rows first (preserving their positions), then
   // this user's freshly computed rows.
@@ -552,6 +541,10 @@ const performIncrementalSync = async (
 
   await updateExistingRows(token, encodedSheetId, sheetName, ownerKey, toUpdateActive, toUpdateDeleted, keyToRow, rowToValues, deletedRowValues);
   await appendNewRows(token, encodedSheetId, sheetName, toAppendActive, rowToValues);
+
+  // Pull all sheet rows to sync any foreign transactions added since last run
+  const allRows = await readAllDataRows(token, encodedSheetId, sheetName);
+  pullForeignRowsFromSheet(ownerKey, allRows);
 
   const at = finalizeSyncTimestamp();
   return { rowsPushed: changedRows.length + deletedRows.length, at };
@@ -665,5 +658,58 @@ const appendNewRows = async (
   );
   if (!appendResponse.ok) {
     throw new Error(await parseErrorMessage(appendResponse, 'Failed to append new transactions to Google Sheet.'));
+  }
+};
+
+/**
+ * Parse sheet rows that belong to other owners and upsert them into the local DB
+ * as read-only (foreign) transactions.
+ *
+ * Sheet column layout (1-indexed): A=Sync Key, B=Owner Key, C=Note, D=Type,
+ * E=Category, F=Amount (comma as decimal), G=Datetime, H=Updated At, I=Deleted At
+ *
+ * Deleted rows (non-empty col I) are removed from local DB.
+ */
+const pullForeignRowsFromSheet = (ownerKey: string, rows: string[][]): void => {
+  for (const row of rows) {
+    const rowOwnerKey = (row[1] ?? '').trim();
+    if (!rowOwnerKey || rowOwnerKey === ownerKey) continue; // skip own rows
+
+    const note = (row[2] ?? '').trim();
+    if (note === '(deleted)') continue; // skip deleted marker rows without an active record
+
+    const deletedAt = (row[8] ?? '').trim();
+    const date = (row[6] ?? '').trim();
+    const amountRaw = (row[5] ?? '').trim().replace(',', '.');
+    const amount = parseFloat(amountRaw);
+    const type = (row[3] ?? '').trim() as 'income' | 'expense';
+    const updatedAt = (row[7] ?? '').trim();
+
+    if (!date || isNaN(amount) || (type !== 'income' && type !== 'expense')) continue;
+
+    if (deletedAt) {
+      // Remove from local DB if previously inserted
+      transactionRepository.deleteForeignBySyncKey(rowOwnerKey, date, amount);
+    } else {
+      // Parse category — format is "emoji name" e.g. "🍎 Groceries"
+      const categoryRaw = (row[4] ?? '').trim();
+      const spaceIdx = categoryRaw.indexOf(' ');
+      const catEmoji = spaceIdx > -1 ? categoryRaw.slice(0, spaceIdx) : '';
+      const catName = spaceIdx > -1 ? categoryRaw.slice(spaceIdx + 1) : categoryRaw;
+
+      let categoryId: number | undefined;
+      if (catName) {
+        categoryId = categoryRepository.getOrCreateForeignCategory(catEmoji, catName, type, rowOwnerKey);
+      }
+
+      transactionRepository.upsertForeignTransaction(rowOwnerKey, row[0] ?? '', {
+        amount,
+        type,
+        categoryId,
+        note: note || undefined,
+        date,
+        updatedAt: updatedAt || new Date().toISOString(),
+      });
+    }
   }
 };

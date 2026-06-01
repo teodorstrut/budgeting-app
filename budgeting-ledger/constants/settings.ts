@@ -10,6 +10,12 @@ export const SETTING_KEYS = {
   GOOGLE_AUTO_SYNC_ENABLED: 'googleAutoSyncEnabled',
   GOOGLE_AUTO_SYNC_LAST_LOCAL_DAY: 'googleAutoSyncLastLocalDay',
   GOOGLE_AUTO_SYNC_LAST_RUN_AT: 'googleAutoSyncLastRunAt',
+  // Category sync
+  CATEGORY_SYNC_SPREADSHEET_ID: 'categorySyncSpreadsheetId',
+  CATEGORY_SYNC_SHEET_NAME: 'categorySyncSheetName',
+  CATEGORY_SYNC_SPREADSHEET_NAME: 'categorySyncSpreadsheetName',
+  CATEGORY_SYNC_LAST_EXPORT_AT: 'categorySyncLastExportAt',
+  CATEGORY_SYNC_LAST_IMPORT_AT: 'categorySyncLastImportAt',
 } as const;
 
 // Secure storage keys (expo-secure-store) — never store non-secret data here

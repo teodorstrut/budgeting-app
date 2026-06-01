@@ -43,6 +43,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
           categoryName={item.categoryId != null ? categoriesById.get(item.categoryId)?.name : undefined}
           onPress={onTransactionPress}
           dateDisplayMode={dateDisplayMode}
+          isForeign={item.isReadOnly === 1}
         />
       ))}
     </View>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../providers/ThemeProvider';
@@ -16,6 +16,7 @@ import { MonthNavigator } from '../components/layout/MonthNavigator';
 import { DonutChart, CHART_COLORS, type DonutSlice } from '../components/charts/DonutChart';
 import { SpendingBarChart, type BarDataPoint } from '../components/charts/SpendingBarChart';
 import { CategoryPickerModal } from '../components/ui/CategoryPickerModal';
+import { CategoryTransactionsModal } from '../components/ui/CategoryTransactionsModal';
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -65,14 +66,20 @@ export default function Reports() {
   const router = useRouter();
 
   // Month navigation
+  const hasManuallyNavigated = useRef(false);
   const [anchorMonth, setAnchorMonth] = useState<Date>(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
+    const day = settingsService.getMonthStartDay();
+    const startStr = monthUtils.getCurrentMonthStart(day);
+    const [y, m] = startStr.split('-').map(Number);
+    return new Date(y, m - 1, 1);
   });
 
   // Category filter for bar chart
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [pickerVisible, setPickerVisible] = useState(false);
+
+  // Drilldown — tapping a category row in the All Categories card
+  const [drillDownCategory, setDrillDownCategory] = useState<AllCategoryEntry | null>(null);
 
   // Donut chart type toggle
   const [donutType, setDonutType] = useState<'expense' | 'income'>('expense');
@@ -98,6 +105,7 @@ export default function Reports() {
   }, [anchorMonth]);
 
   const moveMonth = (dir: -1 | 1) => {
+    hasManuallyNavigated.current = true;
     setAnchorMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + dir, 1));
   };
 
@@ -157,6 +165,12 @@ export default function Reports() {
 
   useFocusEffect(
     useCallback(() => {
+      if (!hasManuallyNavigated.current) {
+        const day = settingsService.getMonthStartDay();
+        const startStr = monthUtils.getCurrentMonthStart(day);
+        const [y, m] = startStr.split('-').map(Number);
+        setAnchorMonth(new Date(y, m - 1, 1));
+      }
       setFocusTick((t) => t + 1);
     }, [])
   );
@@ -235,18 +249,23 @@ export default function Reports() {
                 const hasBudget = entry.budget !== null;
 
                 return (
-                  <View key={entry.categoryId} style={styles.categoryRow}>
+                  <TouchableOpacity
+                    key={entry.categoryId}
+                    style={styles.categoryRow}
+                    onPress={() => setDrillDownCategory(entry)}
+                    activeOpacity={0.75}
+                  >
                     <View style={styles.categoryRowHeader}>
                       <Text style={[styles.categoryName, { color: theme.colors.onSurface }]}>
                         {entry.emoji} {entry.categoryName}
                       </Text>
-                      <Text
-                        style={[styles.categoryAmount, { color: theme.colors.onSurfaceVariant }]}
+                      <Text style={[styles.categoryAmount, { color: theme.colors.onSurfaceVariant }]}
                       >
                         {hasBudget
                           ? `${formatCurrency(entry.spent)} / ${formatCurrency(entry.budget!)}`
                           : formatCurrency(entry.spent)}
                       </Text>
+                      <FontAwesome name="chevron-right" size={11} color={theme.colors.onSurfaceVariant} />
                     </View>
                     {hasBudget && (
                       <ProgressBar
@@ -256,7 +275,7 @@ export default function Reports() {
                         trackColor={theme.colors.surfaceContainerHigh}
                       />
                     )}
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </View>
@@ -324,6 +343,17 @@ export default function Reports() {
         onSelectAll={() => setSelectedCategoryId(null)}
       />
 
+      {/* ── Category Drilldown Modal ──────────────────────────────────────── */}
+      <CategoryTransactionsModal
+        visible={drillDownCategory !== null}
+        onClose={() => setDrillDownCategory(null)}
+        categoryId={drillDownCategory?.categoryId ?? 0}
+        categoryName={drillDownCategory?.categoryName ?? ''}
+        emoji={drillDownCategory?.emoji ?? ''}
+        periodStart={periodStart}
+        periodEnd={periodEnd}
+      />
+
       <NavBar />
     </View>
   );
@@ -359,6 +389,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
   categoryName: {
     fontSize: 14,

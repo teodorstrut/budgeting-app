@@ -20,7 +20,7 @@ const path = require('path');
 const fs = require('fs');
 
 const androidClientId = process.env.GOOGLE_ANDROID_CLIENT_ID ?? '';
-const iosClientId     = process.env.GOOGLE_IOS_CLIENT_ID     ?? '';
+const iosClientId = process.env.GOOGLE_IOS_CLIENT_ID ?? '';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
