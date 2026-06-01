@@ -410,7 +410,7 @@ export const syncService = {
       const needsSchemaMigration = settingsService.getSetting(SETTING_KEYS.GOOGLE_SYNC_SCHEMA_VERSION) !== SYNC.SCHEMA_VERSION;
 
       if (isFirstSync || needsSchemaMigration) {
-        return await performFullSync(token, encodedSheetId, sheetName, ownerKey, rowToValues);
+        return await performFullSync(token, encodedSheetId, sheetName, ownerKey, rowToValues, deletedRowValues);
       }
 
       return await performIncrementalSync(token, encodedSheetId, sheetName, ownerKey, config.lastSync!, rowToValues, deletedRowValues);
@@ -444,73 +444,93 @@ const performFullSync = async (
   sheetName: string,
   ownerKey: string,
   rowToValues: (row: SyncRow) => (string | number)[],
+  deletedRowValues: (id: number, deletedAt: string) => (string | number)[],
 ): Promise<{ rowsPushed: number; at: string }> => {
-  const myRows = transactionService.getRowsForGoogleSync();
-
-  // Read all existing rows and keep those that belong to *other* users so a
-  // full sync never destroys a co-owner's data.
-  const existingRows = await readAllDataRows(token, encodedSheetId, sheetName);
   const ownerPrefix = `${ownerKey}::`;
-  const foreignRows = existingRows.filter(
-    (row) => row.length > 0 && !(row[0] ?? '').startsWith(ownerPrefix),
-  );
 
-  // Pull foreign rows into local DB as read-only transactions
+  // 1. Read all existing rows and record each row's position in the sheet.
+  const existingRows = await readAllDataRows(token, encodedSheetId, sheetName);
+
+  // 2. Build syncKey → 1-based sheet row number for every row in the sheet.
+  //    Row 1 is the header; data starts at row 2, which is existingRows[0].
+  const keyToRow = new Map<string, number>();
+  existingRows.forEach((row, index) => {
+    const key = (row[0] ?? '').trim();
+    if (key) keyToRow.set(key, index + 2);
+  });
+
+  // 3. Pull foreign rows into local DB as read-only transactions (unchanged).
   pullForeignRowsFromSheet(ownerKey, existingRows);
 
-  // Combined set: other users' rows first (preserving their positions), then
-  // this user's freshly computed rows.
-  const combinedRows: (string | number)[][] = [
-    ...foreignRows,
-    ...myRows.map(rowToValues),
+  // 4. Get all current own transactions from DB (foreign rows already filtered).
+  const myRows = transactionService.getRowsForGoogleSync();
+  const myKeySet = new Set(myRows.map((r) => makeSyncKey(ownerKey, r.id)));
+
+  // 5a. Own DB rows that already have a sheet row → update in place.
+  const toUpdate = myRows.filter((r) => keyToRow.has(makeSyncKey(ownerKey, r.id)));
+
+  // 5b. Own DB rows with no sheet row yet → append.
+  const toAppend = myRows.filter((r) => !keyToRow.has(makeSyncKey(ownerKey, r.id)));
+
+  // 5c. Own sheet rows no longer in DB → mark as deleted in the sheet.
+  //     Load all tombstones so we can use the real deletion timestamp when available.
+  const allTombstones = new Map(
+    syncDeletionRepository.getDeletedSince('1970-01-01T00:00:00.000Z')
+      .map((d) => [d.transactionId, d.deletedAt]),
+  );
+
+  const toMarkDeleted: Array<{ syncKey: string; rowNum: number; deletedAt: string }> = [];
+  keyToRow.forEach((rowNum, syncKey) => {
+    if (!syncKey.startsWith(ownerPrefix)) return; // foreign row — never touch it
+    if (myKeySet.has(syncKey)) return; // still active in DB
+
+    // Already marked deleted in the sheet — nothing to do.
+    const rowIndex = rowNum - 2;
+    const alreadyDeletedAt = (existingRows[rowIndex]?.[8] ?? '').trim();
+    if (alreadyDeletedAt) return;
+
+    const localId = parseInt(syncKey.substring(ownerPrefix.length), 10);
+    const deletedAt = (!isNaN(localId) && allTombstones.has(localId))
+      ? allTombstones.get(localId)!
+      : new Date().toISOString();
+    toMarkDeleted.push({ syncKey, rowNum, deletedAt });
+  });
+
+  // 6. Execute batch update: update active rows in place + write deletion markers.
+  const updateData = [
+    ...toUpdate.map((row) => {
+      const syncKey = makeSyncKey(ownerKey, row.id);
+      const rowNum = keyToRow.get(syncKey)!;
+      return {
+        range: `${sheetName}!A${rowNum}:I${rowNum}`,
+        values: [rowToValues(row)],
+      };
+    }),
+    ...toMarkDeleted.map(({ syncKey, rowNum, deletedAt }) => {
+      const localId = parseInt(syncKey.substring(ownerPrefix.length), 10);
+      return {
+        range: `${sheetName}!A${rowNum}:I${rowNum}`,
+        values: [deletedRowValues(localId, deletedAt)],
+      };
+    }),
   ];
 
-  if (combinedRows.length === 0) {
-    // Nothing to write — safe to clear the whole data range in one step.
-    const clearResponse = await authorizedFetch(
+  if (updateData.length > 0) {
+    const batchResponse = await authorizedFetch(
       token,
-      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-        `${sheetName}!A2:I`,
-      )}:clear`,
-      { method: 'POST' },
-    );
-    if (!clearResponse.ok) {
-      throw new Error(await parseErrorMessage(clearResponse, 'Failed to clear existing sheet data.'));
-    }
-  } else {
-    // Write-first strategy: the sheet always contains *some* data after step 1.
-    //
-    // Step 1 — overwrite A2 with the full combined dataset.
-    //   If this fails the sheet is unchanged (old data still visible). ✓
-    const writeResponse = await authorizedFetch(
-      token,
-      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-        `${sheetName}!A2`,
-      )}?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values:batchUpdate`,
       {
-        method: 'PUT',
-        body: JSON.stringify({ values: combinedRows }),
+        method: 'POST',
+        body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data: updateData }),
       },
     );
-    if (!writeResponse.ok) {
-      throw new Error(await parseErrorMessage(writeResponse, 'Failed to write transactions to Google Sheet.'));
-    }
-
-    // Step 2 — clear stale rows below the new data.
-    //   If this fails the sheet has correct data + stale rows at the bottom —
-    //   harmless, self-healing on the next successful full sync. ✓
-    const staleStart = combinedRows.length + 2;
-    const clearTailResponse = await authorizedFetch(
-      token,
-      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-        `${sheetName}!A${staleStart}:I`,
-      )}:clear`,
-      { method: 'POST' },
-    );
-    if (!clearTailResponse.ok) {
-      throw new Error(await parseErrorMessage(clearTailResponse, 'Failed to clear stale rows from Google Sheet.'));
+    if (!batchResponse.ok) {
+      throw new Error(await parseErrorMessage(batchResponse, 'Failed to update transactions in Google Sheet.'));
     }
   }
+
+  // 7. Append DB rows that have no sheet row yet.
+  await appendNewRows(token, encodedSheetId, sheetName, toAppend, rowToValues);
 
   const at = finalizeSyncTimestamp();
   return { rowsPushed: myRows.length, at };

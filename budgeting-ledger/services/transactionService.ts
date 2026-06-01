@@ -128,7 +128,9 @@ export const transactionService = {
   getRowsForGoogleSync: (): SyncRow[] => {
     const categoriesById = getCategoryMap();
 
-    return transactionRepository.getAll().map((transaction) => {
+    return transactionRepository.getAll()
+      .filter((transaction) => !transaction.isReadOnly)
+      .map((transaction) => {
       const category = transaction.categoryId != null ? categoriesById.get(transaction.categoryId) : undefined;
       const categoryText = [category?.emoji ?? '', category?.name ?? 'Uncategorized']
         .join(' ')
@@ -152,6 +154,7 @@ export const transactionService = {
     const categoriesById = getCategoryMap();
 
     return transactionRepository.getChangedSince(lastSync)
+      .filter((transaction) => !transaction.isReadOnly)
       .map((transaction) => {
         const category = transaction.categoryId != null ? categoriesById.get(transaction.categoryId) : undefined;
         const categoryText = [category?.emoji ?? '', category?.name ?? 'Uncategorized']
