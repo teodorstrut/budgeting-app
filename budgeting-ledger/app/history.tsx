@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../providers/ThemeProvider';
@@ -15,6 +15,7 @@ import { AddTransactionButton } from '../components/layout/AddTransactionButton'
 import { MonthNavigator } from '../components/layout/MonthNavigator';
 import { TransactionItem } from '../components/data/TransactionItem';
 import { AppTextInput } from '../components/ui/AppTextInput';
+import { OwnershipToggle } from '../components/ui/OwnershipToggle';
 import { transactionService } from '../services/transactionService';
 import { settingsService } from '../services/settingsService';
 import { monthUtils } from '../utils/monthUtils';
@@ -69,15 +70,24 @@ export default function History() {
   const [query, setQuery] = useState('');
   const [refreshTick, setRefreshTick] = useState(0);
   const [monthStartDay, setMonthStartDay] = useState(1);
+  const [ownershipFilter, setOwnershipFilter] = useState<'mine' | 'all'>('mine');
+  const hasManuallyNavigated = useRef(false);
   const [anchorMonth, setAnchorMonth] = useState(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1);
+    const day = settingsService.getMonthStartDay();
+    const startStr = monthUtils.getCurrentMonthStart(day);
+    const [y, m] = startStr.split('-').map(Number);
+    return new Date(y, m - 1, 1);
   });
 
   useFocusEffect(
     React.useCallback(() => {
       const day = settingsService.getMonthStartDay();
       setMonthStartDay(day);
+      if (!hasManuallyNavigated.current) {
+        const startStr = monthUtils.getCurrentMonthStart(day);
+        const [y, m] = startStr.split('-').map(Number);
+        setAnchorMonth(new Date(y, m - 1, 1));
+      }
       setRefreshTick((current) => current + 1);
     }, [])
   );
@@ -111,6 +121,10 @@ export default function History() {
       }
 
       if (txDate < monthWindow.start || txDate > monthWindow.end) {
+        return false;
+      }
+
+      if (ownershipFilter === 'mine' && item.isReadOnly === 1) {
         return false;
       }
 
@@ -165,7 +179,7 @@ export default function History() {
       }));
   // refreshTick is intentionally included to force re-fetch from DB on screen focus
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoriesById, monthWindow.start, monthWindow.end, query, refreshTick]);
+  }, [categoriesById, monthWindow.start, monthWindow.end, query, ownershipFilter, refreshTick]);
 
   const navigateToEdit = (transaction: Transaction) => {
     if (transaction.id == null) {
@@ -175,6 +189,7 @@ export default function History() {
   };
 
   const moveMonth = (direction: -1 | 1) => {
+    hasManuallyNavigated.current = true;
     setAnchorMonth((current) => new Date(current.getFullYear(), current.getMonth() + direction, 1));
   };
 
@@ -191,6 +206,10 @@ export default function History() {
         />
 
         <Text style={[styles.periodHint, { color: theme.colors.outline }]}>Month starts on day {monthStartDay}</Text>
+
+        <View style={styles.toolbarRow}>
+          <OwnershipToggle value={ownershipFilter} onChange={setOwnershipFilter} />
+        </View>
 
         <View style={[styles.searchBox, { backgroundColor: theme.colors.surfaceContainerLow }]}>
           <FontAwesome name="search" size={14} color={theme.colors.outline} />
@@ -223,8 +242,9 @@ export default function History() {
                         transaction={transaction}
                         categoryEmoji={category?.emoji}
                         categoryName={category?.name || 'Uncategorized'}
-                        onPress={navigateToEdit}
+                        onPress={transaction.isReadOnly !== 1 ? navigateToEdit : undefined}
                         dateDisplayMode="time"
+                        isForeign={transaction.isReadOnly === 1}
                       />
                     );
                   })}
@@ -252,6 +272,11 @@ const styles = StyleSheet.create({
   periodHint: {
     fontSize: 12,
     marginBottom: 14,
+  },
+  toolbarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
   },
   searchBox: {
     flexDirection: 'row',

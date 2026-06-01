@@ -8,11 +8,12 @@ import {
   ScrollView,
   Alert,
   Platform,
+  Keyboard,
   KeyboardAvoidingView,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from 'expo-router/react-navigation';
 import { useTheme } from '../providers/ThemeProvider';
 import { transactionService } from '../services/transactionService';
 import { categoryRepository } from '../database/repositories/categoryRepository';
@@ -120,7 +121,7 @@ export default function AddTransaction() {
         date: new Date(date).toISOString(),
       });
 
-      router.replace('/history');
+      router.back();
       return;
     }
 
@@ -132,7 +133,7 @@ export default function AddTransaction() {
       date: new Date(date).toISOString(),
     });
 
-    router.push('/');
+    router.back();
   };
 
   const handleDelete = () => {
@@ -144,7 +145,7 @@ export default function AddTransaction() {
       'This cannot be undone. Are you sure?',
       () => {
         transactionService.deleteTransaction(editId);
-        router.replace('/history');
+        router.back();
       },
     );
   };
@@ -172,7 +173,7 @@ export default function AddTransaction() {
 
         <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerHigh }]}>
           <AppInputLabel>Amount</AppInputLabel>
-          <AppSelectorField onPress={() => setShowCalculator(true)}>
+          <AppSelectorField onPress={() => { Keyboard.dismiss(); setShowCalculator(true); }}>
             <Text style={[styles.amountDisplayText, { color: amount ? theme.colors.onSurface ?? theme.colors.onSurfaceVariant : theme.colors.outline }]}>
               {amount ? `$${amount}` : '$0.00'}
             </Text>
@@ -210,6 +211,7 @@ export default function AddTransaction() {
             placeholder="Optional details"
             value={note}
             onChangeText={setNote}
+            onFocus={() => setShowCalculator(false)}
           />
 
           <TransactionDateTimeField value={date} onChange={setDate} />

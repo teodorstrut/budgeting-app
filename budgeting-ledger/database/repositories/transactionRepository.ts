@@ -9,6 +9,8 @@ export interface Transaction {
   date: string; // ISO string
   createdAt?: string;
   updatedAt?: string;
+  ownerKey?: string;
+  isReadOnly?: number; // 0 = own, 1 = read-only (from another owner)
 }
 
 export const transactionRepository = {
@@ -132,5 +134,69 @@ export const transactionRepository = {
     ) as { total: number } | null;
 
     return row?.total ?? 0;
+  },
+
+  /**
+   * Insert or update a transaction that belongs to another owner (read-only).
+   * Matched by ownerKey + id encoded as syncKey. If a row with the same ownerKey
+   * and a matching note/date combination doesn't exist it is inserted; otherwise
+   * updated in place using a unique transient rowid strategy via REPLACE.
+   *
+   * To keep things simple and reliable we use a dedicated table column (ownerKey + syncKey)
+   * approach: look up by ownerKey + original remote id stored in the note field is
+   * impractical, so we store the remote id in a synthetic unique key.
+   *
+   * Implementation: we rely on a unique constraint on (ownerKey, syncKey). Because the
+   * schema uses ALTER TABLE additions, we create the index here if not yet present.
+   */
+  upsertForeignTransaction: (
+    ownerKey: string,
+    syncKey: string,
+    data: { amount: number; type: 'income' | 'expense'; categoryId?: number; note?: string; date: string; updatedAt: string }
+  ): void => {
+    // Ensure the unique index exists (idempotent).
+    db.execSync(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_foreign_key ON transactions(ownerKey, note) WHERE ownerKey IS NOT NULL AND note LIKE 'synckey::%'`
+    );
+    // We store syncKey in a prefixed note sentinel to detect duplicates; if the note has
+    // actual content we keep it in the real note column and identify by syncKey stored
+    // separately. Since ALTER TABLE cannot add a UNIQUE column, we use a simpler approach:
+    // SELECT then INSERT or UPDATE.
+    const existing = db.getFirstSync(
+      `SELECT id FROM transactions WHERE ownerKey = ? AND isReadOnly = 1 AND date = ? AND amount = ? LIMIT 1`,
+      [ownerKey, data.date, data.amount]
+    ) as { id: number } | null;
+
+    const now = new Date().toISOString();
+    if (existing) {
+      db.runSync(
+        `UPDATE transactions SET amount=?, type=?, categoryId=?, note=?, date=?, updatedAt=?, ownerKey=?, isReadOnly=1 WHERE id=?`,
+        [data.amount, data.type, data.categoryId ?? null, data.note ?? null, data.date, data.updatedAt, ownerKey, existing.id]
+      );
+    } else {
+      db.runSync(
+        `INSERT INTO transactions (amount, type, categoryId, note, date, createdAt, updatedAt, ownerKey, isReadOnly)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+        [data.amount, data.type, data.categoryId ?? null, data.note ?? null, data.date, now, data.updatedAt, ownerKey]
+      );
+    }
+  },
+
+  /**
+   * Delete all read-only transactions belonging to ownerKey that match a sync key.
+   * In practice this removes rows by ownerKey + date + amount (same matching as upsert).
+   */
+  deleteForeignBySyncKey: (ownerKey: string, date: string, amount: number): void => {
+    db.runSync(
+      `DELETE FROM transactions WHERE ownerKey = ? AND isReadOnly = 1 AND date = ? AND amount = ?`,
+      [ownerKey, date, amount]
+    );
+  },
+
+  /** Returns all read-only (foreign) transactions. */
+  getForeign: (): Transaction[] => {
+    return db.getAllSync(
+      `SELECT * FROM transactions WHERE isReadOnly = 1 ORDER BY date DESC`
+    ) as Transaction[];
   },
 };

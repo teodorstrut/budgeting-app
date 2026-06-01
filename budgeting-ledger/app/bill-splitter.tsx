@@ -167,7 +167,7 @@ export default function BillSplitter() {
           date: today,
         });
       });
-    router.replace('/history');
+    router.back();
   };
 
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;

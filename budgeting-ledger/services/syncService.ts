@@ -3,10 +3,13 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import { syncConfigRepository } from '../database/repositories/syncConfigRepository';
 import { syncDeletionRepository } from '../database/repositories/syncDeletionRepository';
+import { transactionRepository } from '../database/repositories/transactionRepository';
+import { categoryRepository } from '../database/repositories/categoryRepository';
 import { transactionService } from './transactionService';
 import { settingsService } from './settingsService';
 import { GoogleSpreadsheet, GoogleSpreadsheetPage, SyncConfig, SyncRow } from '../types/sync';
 import { SECURE_KEYS, SETTING_KEYS, SYNC } from '../constants/settings';
+import { sanitizeForSheets, authorizedFetch, parseErrorMessage } from './googleSheetsUtils';
 
 type ExtraConfig = { googleAuth?: { androidClientId?: string; iosClientId?: string } };
 
@@ -43,47 +46,22 @@ interface GoogleSheetValuesResponse {
   values?: string[][];
 }
 
-const makeSyncKey = (ownerKey: string, localId: number): string => `${ownerKey}::${localId}`;
-
-const formatAmountForExport = (amount: number): string => {
-  return String(amount).replace('.', ',');
-};
-
 /**
  * Prevent formula injection when writing user-controlled strings to Google Sheets
  * with valueInputOption=USER_ENTERED. Strings that begin with =, +, -, @, tab, or
  * carriage-return are treated as formulas by Sheets; prefixing them with a single
  * quote forces Sheets to store the value as plain text.
  */
-const sanitizeForSheets = (value: string): string => {
-  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+// sanitizeForSheets, authorizedFetch, parseErrorMessage imported from ./googleSheetsUtils
+
+const makeSyncKey = (ownerKey: string, localId: number): string => `${ownerKey}::${localId}`;
+
+const formatAmountForExport = (amount: number): string => {
+  return String(amount).replace('.', ',');
 };
 
-const authorizedFetch = async (
-  token: string,
-  url: string,
-  init?: RequestInit,
-): Promise<Response> => {
-  return fetch(url, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-  });
-};
-
-const parseErrorMessage = async (response: Response, fallback: string): Promise<string> => {
-  switch (response.status) {
-    case 401: return 'Google authentication expired. Please sign out and sign in again.';
-    case 403: return 'Access denied. Check that Google permissions are still granted.';
-    case 404: return 'The spreadsheet or sheet was not found. Check your sync configuration.';
-    case 429: return 'Too many requests. Wait a moment and try again.';
-    default:
-      return response.status >= 500 ? 'Google service error. Try again later.' : fallback;
-  }
-};
+// Prevents concurrent sync operations (e.g. background task + foreground trigger both firing).
+let isSyncing = false;
 
 export const syncService = {
   googleSheetsScope: SYNC.GOOGLE_SHEETS_SCOPE,
@@ -384,12 +362,17 @@ export const syncService = {
   },
 
   syncTransactionsToGoogleSheet: async (token: string): Promise<{ rowsPushed: number; at: string }> => {
+    if (isSyncing) {
+      throw new Error('A sync operation is already in progress.');
+    }
+
     const config = syncService.getGoogleSyncConfig();
 
     if (!config.spreadsheetId || !config.sheetName) {
       throw new Error('Spreadsheet is not configured.');
     }
 
+    isSyncing = true;
     syncConfigRepository.setGoogleStatus('syncing');
     settingsService.clearGoogleLastError();
 
@@ -406,7 +389,7 @@ export const syncService = {
       sanitizeForSheets(formatAmountForExport(row.amount)),
       sanitizeForSheets(row.datetime),
       sanitizeForSheets(row.updatedAt),
-      '',
+      '', // col I: Deleted At (empty for active rows)
     ];
 
     const deletedRowValues = (id: number, deletedAt: string): (string | number)[] => [
@@ -416,8 +399,9 @@ export const syncService = {
       '',
       '',
       '',
-      sanitizeForSheets(deletedAt),
-      sanitizeForSheets(deletedAt),
+      sanitizeForSheets(deletedAt), // col G: Datetime
+      sanitizeForSheets(deletedAt), // col H: Updated At
+      sanitizeForSheets(deletedAt), // col I: Deleted At
     ];
 
     try {
@@ -426,7 +410,7 @@ export const syncService = {
       const needsSchemaMigration = settingsService.getSetting(SETTING_KEYS.GOOGLE_SYNC_SCHEMA_VERSION) !== SYNC.SCHEMA_VERSION;
 
       if (isFirstSync || needsSchemaMigration) {
-        return await performFullSync(token, encodedSheetId, sheetName, ownerKey, rowToValues);
+        return await performFullSync(token, encodedSheetId, sheetName, ownerKey, rowToValues, deletedRowValues);
       }
 
       return await performIncrementalSync(token, encodedSheetId, sheetName, ownerKey, config.lastSync!, rowToValues, deletedRowValues);
@@ -435,6 +419,8 @@ export const syncService = {
       syncConfigRepository.setGoogleStatus('error');
       settingsService.setGoogleLastError(message);
       throw error;
+    } finally {
+      isSyncing = false;
     }
   },
 };
@@ -458,70 +444,93 @@ const performFullSync = async (
   sheetName: string,
   ownerKey: string,
   rowToValues: (row: SyncRow) => (string | number)[],
+  deletedRowValues: (id: number, deletedAt: string) => (string | number)[],
 ): Promise<{ rowsPushed: number; at: string }> => {
-  const myRows = transactionService.getRowsForGoogleSync();
-
-  // Read all existing rows and keep those that belong to *other* users so a
-  // full sync never destroys a co-owner's data.
-  const existingRows = await readAllDataRows(token, encodedSheetId, sheetName);
   const ownerPrefix = `${ownerKey}::`;
-  const foreignRows = existingRows.filter(
-    (row) => row.length > 0 && !(row[0] ?? '').startsWith(ownerPrefix),
+
+  // 1. Read all existing rows and record each row's position in the sheet.
+  const existingRows = await readAllDataRows(token, encodedSheetId, sheetName);
+
+  // 2. Build syncKey → 1-based sheet row number for every row in the sheet.
+  //    Row 1 is the header; data starts at row 2, which is existingRows[0].
+  const keyToRow = new Map<string, number>();
+  existingRows.forEach((row, index) => {
+    const key = (row[0] ?? '').trim();
+    if (key) keyToRow.set(key, index + 2);
+  });
+
+  // 3. Pull foreign rows into local DB as read-only transactions (unchanged).
+  pullForeignRowsFromSheet(ownerKey, existingRows);
+
+  // 4. Get all current own transactions from DB (foreign rows already filtered).
+  const myRows = transactionService.getRowsForGoogleSync();
+  const myKeySet = new Set(myRows.map((r) => makeSyncKey(ownerKey, r.id)));
+
+  // 5a. Own DB rows that already have a sheet row → update in place.
+  const toUpdate = myRows.filter((r) => keyToRow.has(makeSyncKey(ownerKey, r.id)));
+
+  // 5b. Own DB rows with no sheet row yet → append.
+  const toAppend = myRows.filter((r) => !keyToRow.has(makeSyncKey(ownerKey, r.id)));
+
+  // 5c. Own sheet rows no longer in DB → mark as deleted in the sheet.
+  //     Load all tombstones so we can use the real deletion timestamp when available.
+  const allTombstones = new Map(
+    syncDeletionRepository.getDeletedSince('1970-01-01T00:00:00.000Z')
+      .map((d) => [d.transactionId, d.deletedAt]),
   );
 
-  // Combined set: other users' rows first (preserving their positions), then
-  // this user's freshly computed rows.
-  const combinedRows: (string | number)[][] = [
-    ...foreignRows,
-    ...myRows.map(rowToValues),
+  const toMarkDeleted: Array<{ syncKey: string; rowNum: number; deletedAt: string }> = [];
+  keyToRow.forEach((rowNum, syncKey) => {
+    if (!syncKey.startsWith(ownerPrefix)) return; // foreign row — never touch it
+    if (myKeySet.has(syncKey)) return; // still active in DB
+
+    // Already marked deleted in the sheet — nothing to do.
+    const rowIndex = rowNum - 2;
+    const alreadyDeletedAt = (existingRows[rowIndex]?.[8] ?? '').trim();
+    if (alreadyDeletedAt) return;
+
+    const localId = parseInt(syncKey.substring(ownerPrefix.length), 10);
+    const deletedAt = (!isNaN(localId) && allTombstones.has(localId))
+      ? allTombstones.get(localId)!
+      : new Date().toISOString();
+    toMarkDeleted.push({ syncKey, rowNum, deletedAt });
+  });
+
+  // 6. Execute batch update: update active rows in place + write deletion markers.
+  const updateData = [
+    ...toUpdate.map((row) => {
+      const syncKey = makeSyncKey(ownerKey, row.id);
+      const rowNum = keyToRow.get(syncKey)!;
+      return {
+        range: `${sheetName}!A${rowNum}:I${rowNum}`,
+        values: [rowToValues(row)],
+      };
+    }),
+    ...toMarkDeleted.map(({ syncKey, rowNum, deletedAt }) => {
+      const localId = parseInt(syncKey.substring(ownerPrefix.length), 10);
+      return {
+        range: `${sheetName}!A${rowNum}:I${rowNum}`,
+        values: [deletedRowValues(localId, deletedAt)],
+      };
+    }),
   ];
 
-  if (combinedRows.length === 0) {
-    // Nothing to write — safe to clear the whole data range in one step.
-    const clearResponse = await authorizedFetch(
+  if (updateData.length > 0) {
+    const batchResponse = await authorizedFetch(
       token,
-      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-        `${sheetName}!A2:I`,
-      )}:clear`,
-      { method: 'POST' },
-    );
-    if (!clearResponse.ok) {
-      throw new Error(await parseErrorMessage(clearResponse, 'Failed to clear existing sheet data.'));
-    }
-  } else {
-    // Write-first strategy: the sheet always contains *some* data after step 1.
-    //
-    // Step 1 — overwrite A2 with the full combined dataset.
-    //   If this fails the sheet is unchanged (old data still visible). ✓
-    const writeResponse = await authorizedFetch(
-      token,
-      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-        `${sheetName}!A2`,
-      )}?valueInputOption=USER_ENTERED`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values:batchUpdate`,
       {
-        method: 'PUT',
-        body: JSON.stringify({ values: combinedRows }),
+        method: 'POST',
+        body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data: updateData }),
       },
     );
-    if (!writeResponse.ok) {
-      throw new Error(await parseErrorMessage(writeResponse, 'Failed to write transactions to Google Sheet.'));
-    }
-
-    // Step 2 — clear stale rows below the new data.
-    //   If this fails the sheet has correct data + stale rows at the bottom —
-    //   harmless, self-healing on the next successful full sync. ✓
-    const staleStart = combinedRows.length + 2;
-    const clearTailResponse = await authorizedFetch(
-      token,
-      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-        `${sheetName}!A${staleStart}:I`,
-      )}:clear`,
-      { method: 'POST' },
-    );
-    if (!clearTailResponse.ok) {
-      throw new Error(await parseErrorMessage(clearTailResponse, 'Failed to clear stale rows from Google Sheet.'));
+    if (!batchResponse.ok) {
+      throw new Error(await parseErrorMessage(batchResponse, 'Failed to update transactions in Google Sheet.'));
     }
   }
+
+  // 7. Append DB rows that have no sheet row yet.
+  await appendNewRows(token, encodedSheetId, sheetName, toAppend, rowToValues);
 
   const at = finalizeSyncTimestamp();
   return { rowsPushed: myRows.length, at };
@@ -552,6 +561,10 @@ const performIncrementalSync = async (
 
   await updateExistingRows(token, encodedSheetId, sheetName, ownerKey, toUpdateActive, toUpdateDeleted, keyToRow, rowToValues, deletedRowValues);
   await appendNewRows(token, encodedSheetId, sheetName, toAppendActive, rowToValues);
+
+  // Pull all sheet rows to sync any foreign transactions added since last run
+  const allRows = await readAllDataRows(token, encodedSheetId, sheetName);
+  pullForeignRowsFromSheet(ownerKey, allRows);
 
   const at = finalizeSyncTimestamp();
   return { rowsPushed: changedRows.length + deletedRows.length, at };
@@ -665,5 +678,58 @@ const appendNewRows = async (
   );
   if (!appendResponse.ok) {
     throw new Error(await parseErrorMessage(appendResponse, 'Failed to append new transactions to Google Sheet.'));
+  }
+};
+
+/**
+ * Parse sheet rows that belong to other owners and upsert them into the local DB
+ * as read-only (foreign) transactions.
+ *
+ * Sheet column layout (1-indexed): A=Sync Key, B=Owner Key, C=Note, D=Type,
+ * E=Category, F=Amount (comma as decimal), G=Datetime, H=Updated At, I=Deleted At
+ *
+ * Deleted rows (non-empty col I) are removed from local DB.
+ */
+const pullForeignRowsFromSheet = (ownerKey: string, rows: string[][]): void => {
+  for (const row of rows) {
+    const rowOwnerKey = (row[1] ?? '').trim();
+    if (!rowOwnerKey || rowOwnerKey === ownerKey) continue; // skip own rows
+
+    const note = (row[2] ?? '').trim();
+    if (note === '(deleted)') continue; // skip deleted marker rows without an active record
+
+    const deletedAt = (row[8] ?? '').trim();
+    const date = (row[6] ?? '').trim();
+    const amountRaw = (row[5] ?? '').trim().replace(',', '.');
+    const amount = parseFloat(amountRaw);
+    const type = (row[3] ?? '').trim() as 'income' | 'expense';
+    const updatedAt = (row[7] ?? '').trim();
+
+    if (!date || isNaN(amount) || (type !== 'income' && type !== 'expense')) continue;
+
+    if (deletedAt) {
+      // Remove from local DB if previously inserted
+      transactionRepository.deleteForeignBySyncKey(rowOwnerKey, date, amount);
+    } else {
+      // Parse category — format is "emoji name" e.g. "🍎 Groceries"
+      const categoryRaw = (row[4] ?? '').trim();
+      const spaceIdx = categoryRaw.indexOf(' ');
+      const catEmoji = spaceIdx > -1 ? categoryRaw.slice(0, spaceIdx) : '';
+      const catName = spaceIdx > -1 ? categoryRaw.slice(spaceIdx + 1) : categoryRaw;
+
+      let categoryId: number | undefined;
+      if (catName) {
+        categoryId = categoryRepository.getOrCreateForeignCategory(catEmoji, catName, type, rowOwnerKey);
+      }
+
+      transactionRepository.upsertForeignTransaction(rowOwnerKey, row[0] ?? '', {
+        amount,
+        type,
+        categoryId,
+        note: note || undefined,
+        date,
+        updatedAt: updatedAt || new Date().toISOString(),
+      });
+    }
   }
 };

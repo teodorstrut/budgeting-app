@@ -108,6 +108,8 @@ Always check `components/` before building something new. Everything here alread
 | `MonthStartDayPicker` | — | settings.tsx |
 | `TransactionDateTimeField` | — | add.tsx, bill-splitter.tsx |
 | `SplitSlider` | — | bill-splitter.tsx step 2 |
+| `CategoryTransactionsModal` | `visible`, `onClose`, `categoryId`, `categoryName`, `emoji`, `periodStart`, `periodEnd` | reports.tsx category drilldown |
+| `OwnershipToggle` | `value: 'mine' \| 'all'`, `onChange` | index.tsx, history.tsx — filters foreign vs. own transactions |
 
 ### `components/layout/`
 
@@ -123,7 +125,7 @@ Always check `components/` before building something new. Everything here alread
 | Component | Key Props | Where It Is Used |
 |---|---|---|
 | `TransactionList` | `transactions[]`, `title?`, `onTransactionPress?`, `dateDisplayMode?` | index.tsx, history.tsx |
-| `TransactionItem` | `transaction`, `categoryEmoji?`, `categoryName?`, `onPress?`, `dateDisplayMode?` | rendered inside TransactionList |
+| `TransactionItem` | `transaction`, `categoryEmoji?`, `categoryName?`, `onPress?`, `dateDisplayMode?`, `isForeign?` | rendered inside TransactionList; `isForeign=true` shows muted styling + user icon |
 
 ### `components/charts/`
 
@@ -143,8 +145,10 @@ Screens always interact with **services**. Repositories are only called from wit
 | `transactionService` | CRUD, validation, month summaries, category spending, sync export rows |
 | `budgetService` | budget health entries, category-budget joins, upsert/deleteAll |
 | `settingsService` | typed getters/setters for all app settings (DB-backed) and secure store (credentials) |
-| `syncService` | OAuth token management, Google Sheets API, spreadsheet operations, sync logic |
+| `syncService` | OAuth token management, Google Sheets API, spreadsheet operations, sync logic; also pulls foreign transactions from co-owner rows |
 | `autoSyncService` | background task registration, once-per-day auto-sync guard |
+| `categorySyncService` | exports/imports categories + budgets to a dedicated Google Sheets tab; dedup by `emoji+name`; highest-budget-wins conflict resolution |
+| `googleSheetsUtils` | shared helpers: `authorizedFetch`, `parseErrorMessage`, `sanitizeForSheets` — imported by both `syncService` and `categorySyncService` |
 
 ---
 
@@ -155,6 +159,27 @@ Screens always interact with **services**. Repositories are only called from wit
 - Repositories do **no validation** — validation belongs in services
 - Use `INSERT OR REPLACE` (upsert) for settings and budgets; explicit `INSERT`/`UPDATE` for transactions and categories
 
+**v1.1 additions to repositories:**
+
+`transactionRepository`:
+- `upsertForeignTransaction(ownerKey, syncKey, data)` — upserts a row owned by another user; always sets `isReadOnly = 1`
+- `deleteForeignBySyncKey(ownerKey, date, amount)` — removes a foreign transaction
+- `getForeign()` — returns all `isReadOnly = 1` transactions
+
+`categoryRepository`:
+- `getOrCreateForeignCategory(emoji, name, type, ownerKey)` — look up by emoji+name+ownerKey, create if not found
+- `adoptCategory(id)` — sets `isAdopted = 1`, clears `ownerKey`; category appears as own
+- `getForeignCategories()` — returns categories with `ownerKey IS NOT NULL AND isAdopted = 0`
+
+**Schema columns added by idempotent migrations in `schema.ts`:**
+
+| Table | Column | Meaning |
+|---|---|---|
+| `transactions` | `ownerKey TEXT` | NULL = own, non-null = foreign owner identifier |
+| `transactions` | `isReadOnly INTEGER DEFAULT 0` | 1 = foreign read-only, not editable by current user |
+| `categories` | `ownerKey TEXT` | NULL = own, non-null = foreign |
+| `categories` | `isAdopted INTEGER DEFAULT 0` | 1 = user adopted a foreign category as their own |
+
 ---
 
 ## Navigation — Expo Router
@@ -162,13 +187,13 @@ Screens always interact with **services**. Repositories are only called from wit
 ```ts
 router.push('/add')
 router.push({ pathname: '/add', params: { editId: String(id) } })
-router.replace('/history')
 router.back()
 ```
 
 - Route files live **only** in `app/`; no business logic beyond screen orchestration
 - Params are serialized to strings by Expo Router — parse numbers with `Number(params.editId)`
 - Use `useFocusEffect(useCallback(() => { /* load data */ }, [deps]))` to refresh data when a screen gains focus
+- **NEVER use `router.replace()` for back navigation** — it destroys the previous stack frame and resets state (e.g. month context). Always use `router.back()`.
 
 ---
 
@@ -278,6 +303,56 @@ Do not add new icon libraries.
 ### 8. State Management — React Only
 
 State is managed with `useState` and `useContext` only. Do not introduce Redux, Zustand, Jotai, MobX, or any other state library.
+
+### 9. Foreign / Multi-user Transactions
+
+Transactions and categories that belong to other users (co-owners of the same Google Sheet) are stored locally with `isReadOnly = 1` / `ownerKey != NULL`.
+
+- `TransactionItem` receives `isForeign={item.isReadOnly === 1}` — shows muted styling and blocks `onPress`
+- `TransactionList` passes `isForeign` automatically based on `isReadOnly`
+- Screens use `OwnershipToggle` (`'mine' | 'all'`) to filter the visible set
+- Foreign categories appear in a separate "Shared with You" section in `manage-categories.tsx`; users can **Adopt** them to make them their own
+- Colour tokens for muted/foreign UI: `onSurfaceVariant` (dim text), `surfaceContainerHigh` (muted bg), `outlineVariant` (dim borders)
+
+### 10. Anchorable Month Screens — `anchorMonth` Pattern
+
+Screens with navigable months (`history.tsx`, `reports.tsx`) use this pattern:
+
+```ts
+// Initialise to the current BILLING period, not the calendar month:
+const [anchorMonth, setAnchorMonth] = useState(() => {
+  const day = settingsService.getMonthStartDay();
+  const startStr = monthUtils.getCurrentMonthStart(day); // e.g. "2026-05-15"
+  const [y, m] = startStr.split('-').map(Number);
+  return new Date(y, m - 1, 1);
+});
+
+// Prevent useFocusEffect from overriding user's manual navigation:
+const hasManuallyNavigated = useRef(false);
+
+const moveMonth = (delta: number) => {
+  hasManuallyNavigated.current = true;
+  setAnchorMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+};
+
+useFocusEffect(useCallback(() => {
+  if (!hasManuallyNavigated.current) {
+    // re-align to current billing period if user hasn't navigated away
+    const day = settingsService.getMonthStartDay();
+    const startStr = monthUtils.getCurrentMonthStart(day);
+    const [y, m] = startStr.split('-').map(Number);
+    setAnchorMonth(new Date(y, m - 1, 1));
+  }
+}, []));
+```
+
+### 11. Sync Architecture Notes
+
+- A module-level `let isSyncing = false` flag in `syncService.ts` prevents concurrent sync calls (race condition guard)
+- Full sync and incremental sync both call `pullForeignRowsFromSheet()` after writing own rows
+- The Google Sheets row format: `syncKey | ownerKey | note | type | category ("emoji name") | amount | date | updatedAt | deletedAt`
+- `categorySyncService` uses a separate sheet tab with columns: `Emoji | Category Name | Type | Budget`
+- Dedup key for categories: `` `${emoji.trim()}_${name.trim().toLowerCase()}` ``
 
 ### 9. Database Security
 

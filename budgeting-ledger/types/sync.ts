@@ -32,3 +32,11 @@ export interface SyncRow {
   datetime: string;
   updatedAt: string;
 }
+
+/** One row from the Categories sync sheet: Emoji | Name | Type | Budget */
+export interface CategorySyncRow {
+  emoji: string;
+  name: string;
+  type: 'income' | 'expense';
+  budget: number | null;
+}

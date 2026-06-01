@@ -76,6 +76,27 @@ export const createTables = () => {
       FOREIGN KEY (categoryId) REFERENCES categories(id)
     );
   `);
+
+  // ── Idempotent migrations for foreign-user support ────────────────────────
+  // These columns are added if they don't yet exist, so existing installs are
+  // migrated safely on first open after the app update.
+  const txCols = db.getAllSync(`PRAGMA table_info(transactions)`) as Array<{ name: string }>;
+  const txColNames = new Set(txCols.map((c) => c.name));
+  if (!txColNames.has('ownerKey')) {
+    db.execSync(`ALTER TABLE transactions ADD COLUMN ownerKey TEXT;`);
+  }
+  if (!txColNames.has('isReadOnly')) {
+    db.execSync(`ALTER TABLE transactions ADD COLUMN isReadOnly INTEGER NOT NULL DEFAULT 0;`);
+  }
+
+  const catCols = db.getAllSync(`PRAGMA table_info(categories)`) as Array<{ name: string }>;
+  const catColNames = new Set(catCols.map((c) => c.name));
+  if (!catColNames.has('ownerKey')) {
+    db.execSync(`ALTER TABLE categories ADD COLUMN ownerKey TEXT;`);
+  }
+  if (!catColNames.has('isAdopted')) {
+    db.execSync(`ALTER TABLE categories ADD COLUMN isAdopted INTEGER NOT NULL DEFAULT 0;`);
+  }
 };
 
 const seedData = () => {

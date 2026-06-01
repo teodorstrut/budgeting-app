@@ -128,7 +128,9 @@ export const transactionService = {
   getRowsForGoogleSync: (): SyncRow[] => {
     const categoriesById = getCategoryMap();
 
-    return transactionRepository.getAll().map((transaction) => {
+    return transactionRepository.getAll()
+      .filter((transaction) => !transaction.isReadOnly)
+      .map((transaction) => {
       const category = transaction.categoryId != null ? categoriesById.get(transaction.categoryId) : undefined;
       const categoryText = [category?.emoji ?? '', category?.name ?? 'Uncategorized']
         .join(' ')
@@ -152,6 +154,7 @@ export const transactionService = {
     const categoriesById = getCategoryMap();
 
     return transactionRepository.getChangedSince(lastSync)
+      .filter((transaction) => !transaction.isReadOnly)
       .map((transaction) => {
         const category = transaction.categoryId != null ? categoriesById.get(transaction.categoryId) : undefined;
         const categoryText = [category?.emoji ?? '', category?.name ?? 'Uncategorized']
@@ -205,5 +208,15 @@ export const transactionService = {
       end,
       total: transactionRepository.getExpenseTotalForDateRange(start, end, categoryId),
     }));
+  },
+
+  /**
+   * Returns all transactions for a specific category within a date range,
+   * ordered newest first. Used for the Reports category drilldown modal.
+   */
+  getTransactionsForCategory: (categoryId: number, startDate: string, endDate: string): Transaction[] => {
+    return transactionRepository
+      .getByDateRange(startDate, endDate)
+      .filter((t) => t.categoryId === categoryId);
   },
 };

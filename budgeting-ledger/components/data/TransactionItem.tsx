@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 import { Transaction } from '../../database/repositories/transactionRepository';
 import { useTheme } from '../../providers/ThemeProvider';
 import { formatAmount, formatRelativeDate, formatTime } from '../../utils/formatting';
@@ -12,6 +13,8 @@ interface TransactionItemProps {
   categoryName?: string;
   onPress?: (transaction: Transaction) => void;
   dateDisplayMode?: DateDisplayMode;
+  /** When true the row is styled as read-only (belongs to another user). */
+  isForeign?: boolean;
 }
 
 export const TransactionItem: React.FC<TransactionItemProps> = ({
@@ -20,6 +23,7 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   categoryName,
   onPress,
   dateDisplayMode = 'relative',
+  isForeign = false,
 }) => {
   const { theme } = useTheme();
 
@@ -27,10 +31,18 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 
   return (
     <TouchableOpacity
-      style={[styles.container, { backgroundColor: theme.colors.surfaceContainerLow }]}
-      onPress={onPress ? () => onPress(transaction) : undefined}
-      activeOpacity={onPress ? 0.75 : 1}
-      disabled={!onPress}
+      style={[
+        styles.container,
+        {
+          backgroundColor: isForeign
+            ? theme.colors.surfaceContainerHigh
+            : theme.colors.surfaceContainerLow,
+          opacity: isForeign ? 0.7 : 1,
+        },
+      ]}
+      onPress={!isForeign && onPress ? () => onPress(transaction) : undefined}
+      activeOpacity={!isForeign && onPress ? 0.75 : 1}
+      disabled={isForeign || !onPress}
     >
       <View style={styles.leftSection}>
         <View
@@ -43,7 +55,17 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
         </View>
 
         <View style={styles.left}>
-          <Text style={[styles.name, { color: theme.colors.onSurfaceVariant }]}>{transaction.note || 'Unnamed'}</Text>
+          <View style={styles.nameRow}>
+            <Text style={[styles.name, { color: theme.colors.onSurfaceVariant }]}>{transaction.note || 'Unnamed'}</Text>
+            {isForeign && (
+              <FontAwesome
+                name="user"
+                size={10}
+                color={theme.colors.onSurfaceVariant}
+                style={styles.foreignIcon}
+              />
+            )}
+          </View>
           <View style={styles.metaRow}>
             {categoryName ? (
               <Text style={[styles.metaText, { color: theme.colors.outline }]}>{categoryName}</Text>
@@ -90,9 +112,17 @@ const styles = StyleSheet.create({
   left: {
     flex: 1,
   },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
   name: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  foreignIcon: {
+    marginTop: 2,
   },
   metaRow: {
     flexDirection: 'row',

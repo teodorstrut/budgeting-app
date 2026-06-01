@@ -19,8 +19,10 @@ import { useTheme } from '../providers/ThemeProvider';
 import { useSharedStyles } from '../theme/styles';
 import { Card } from '../components/ui/Card';
 import { syncService } from '../services/syncService';
+import { categorySyncService } from '../services/categorySyncService';
 import { settingsService } from '../services/settingsService';
 import { GoogleSpreadsheet, SyncConfig } from '../types/sync';
+import { SETTING_KEYS } from '../constants/settings';
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 import { AppInputLabel } from '../components/ui/AppInputLabel';
 import { AppTextInput } from '../components/ui/AppTextInput';
@@ -59,6 +61,27 @@ export default function SyncSettings() {
   const [nextSheetPageToken, setNextSheetPageToken] = useState<string | undefined>(undefined);
   const [authRefreshing, setAuthRefreshing] = useState(false);
   const lastPromptAtRef = useRef(0);
+
+  // Category sync state
+  const [catSpreadsheets, setCatSpreadsheets] = useState<GoogleSpreadsheet[]>([]);
+  const [catSelectedSpreadsheetId, setCatSelectedSpreadsheetId] = useState<string>(
+    () => settingsService.getSetting(SETTING_KEYS.CATEGORY_SYNC_SPREADSHEET_ID) ?? ''
+  );
+  const [catSelectedSpreadsheetName, setCatSelectedSpreadsheetName] = useState<string>(
+    () => settingsService.getSetting(SETTING_KEYS.CATEGORY_SYNC_SPREADSHEET_NAME) ?? ''
+  );
+  const [catTabName, setCatTabName] = useState<string>(
+    () => settingsService.getSetting(SETTING_KEYS.CATEGORY_SYNC_SHEET_NAME) ?? 'BudgetingLedger_Categories'
+  );
+  const [catLoadingSheets, setCatLoadingSheets] = useState(false);
+  const [catExporting, setCatExporting] = useState(false);
+  const [catImporting, setCatImporting] = useState(false);
+  const [catLastExportAt, setCatLastExportAt] = useState<string | null>(
+    () => settingsService.getSetting(SETTING_KEYS.CATEGORY_SYNC_LAST_EXPORT_AT) ?? null
+  );
+  const [catLastImportAt, setCatLastImportAt] = useState<string | null>(
+    () => settingsService.getSetting(SETTING_KEYS.CATEGORY_SYNC_LAST_IMPORT_AT) ?? null
+  );
 
   const extraConfig = (Constants.expoConfig?.extra ?? {}) as ExtraConfig;
   const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
@@ -390,6 +413,83 @@ export default function SyncSettings() {
     }
   };
 
+  const handleCatLoadSpreadsheets = async () => {
+    const freshToken = token ?? await syncService.getGoogleAccessToken();
+    if (!freshToken) {
+      Alert.alert('Sign in required', 'Connect Google first to load spreadsheets.');
+      return;
+    }
+    setCatLoadingSheets(true);
+    try {
+      const next = await syncService.listSpreadsheets(freshToken);
+      setCatSpreadsheets(next.items);
+      if (next.items.length === 0) {
+        Alert.alert('No sheets found', 'No spreadsheets were found in this account.');
+      }
+    } catch {
+      Alert.alert('Load failed', 'Could not load spreadsheets. Check your connection and try again.');
+    } finally {
+      setCatLoadingSheets(false);
+    }
+  };
+
+  const handleSaveCatConfig = () => {
+    if (!catSelectedSpreadsheetId || !catTabName.trim()) {
+      Alert.alert('Missing fields', 'Select a spreadsheet and enter a tab name.');
+      return;
+    }
+    settingsService.setSetting(SETTING_KEYS.CATEGORY_SYNC_SPREADSHEET_ID, catSelectedSpreadsheetId);
+    settingsService.setSetting(SETTING_KEYS.CATEGORY_SYNC_SPREADSHEET_NAME, catSelectedSpreadsheetName);
+    settingsService.setSetting(SETTING_KEYS.CATEGORY_SYNC_SHEET_NAME, catTabName.trim());
+    Alert.alert('Saved', 'Category sync configuration saved.');
+  };
+
+  const handleCatExport = async () => {
+    const freshToken = token ?? await syncService.getGoogleAccessToken();
+    if (!freshToken) {
+      Alert.alert('Sign in required', 'Connect Google first.');
+      return;
+    }
+    if (!catSelectedSpreadsheetId || !catTabName.trim()) {
+      Alert.alert('Configuration required', 'Save the category sync configuration first.');
+      return;
+    }
+    setCatExporting(true);
+    try {
+      const result = await categorySyncService.exportCategories(freshToken);
+      setCatLastExportAt(settingsService.getSetting(SETTING_KEYS.CATEGORY_SYNC_LAST_EXPORT_AT));
+      Alert.alert('Export complete', `Wrote ${result.rowsWritten} category row${result.rowsWritten !== 1 ? 's' : ''}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error.';
+      Alert.alert('Export failed', message);
+    } finally {
+      setCatExporting(false);
+    }
+  };
+
+  const handleCatImport = async () => {
+    const freshToken = token ?? await syncService.getGoogleAccessToken();
+    if (!freshToken) {
+      Alert.alert('Sign in required', 'Connect Google first.');
+      return;
+    }
+    if (!catSelectedSpreadsheetId || !catTabName.trim()) {
+      Alert.alert('Configuration required', 'Save the category sync configuration first.');
+      return;
+    }
+    setCatImporting(true);
+    try {
+      const result = await categorySyncService.importCategories(freshToken);
+      setCatLastImportAt(settingsService.getSetting(SETTING_KEYS.CATEGORY_SYNC_LAST_IMPORT_AT));
+      Alert.alert('Import complete', `Processed ${result.categoriesProcessed} categor${result.categoriesProcessed !== 1 ? 'ies' : 'y'}.`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error.';
+      Alert.alert('Import failed', message);
+    } finally {
+      setCatImporting(false);
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -547,6 +647,70 @@ export default function SyncSettings() {
             <Text style={[styles.statusText, { color: theme.colors.secondary }]}>Last error: {config.lastError}</Text>
           )}
         </Card>
+
+        <Card style={styles.cardMargin}>
+          <Text style={[styles.title, { color: theme.colors.onSurface }]}>Category &amp; Budget Sync</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.onSurfaceVariant }]}>Export or import your categories and budgets to/from a separate Google Sheet tab.</Text>
+
+          <TouchableOpacity style={shared.buttons.secondary} onPress={handleCatLoadSpreadsheets}>
+            <Text style={shared.buttons.secondaryText}>
+              {catLoadingSheets ? 'Loading...' : 'Load Spreadsheets'}
+            </Text>
+          </TouchableOpacity>
+
+          {catSpreadsheets.map((sheet) => (
+            <TouchableOpacity
+              key={sheet.id}
+              style={[
+                styles.sheetOption,
+                {
+                  borderColor: catSelectedSpreadsheetId === sheet.id ? theme.colors.primary : theme.colors.outlineVariant,
+                  backgroundColor:
+                    catSelectedSpreadsheetId === sheet.id ? theme.colors.primaryContainer : theme.colors.surfaceContainerHigh,
+                },
+              ]}
+              onPress={() => {
+                setCatSelectedSpreadsheetId(sheet.id);
+                setCatSelectedSpreadsheetName(sheet.name);
+              }}
+            >
+              <Text style={[styles.sheetOptionText, { color: theme.colors.onSurface }]}>{sheet.name}</Text>
+            </TouchableOpacity>
+          ))}
+
+          <AppInputLabel>Tab Name</AppInputLabel>
+          <AppTextInput
+            placeholder="BudgetingLedger_Categories"
+            value={catTabName}
+            onChangeText={setCatTabName}
+          />
+
+          <TouchableOpacity style={shared.buttons.primary} onPress={handleSaveCatConfig}>
+            <Text style={shared.buttons.primaryText}>Save Category Sync Configuration</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>Configured target: {catSelectedSpreadsheetName || 'Not set'} / {catTabName || 'Not set'}</Text>
+
+          <View style={styles.rowButtons}>
+            <TouchableOpacity
+              style={[shared.buttons.primary, styles.halfButton, catExporting && { opacity: 0.6 }]}
+              onPress={handleCatExport}
+              disabled={catExporting || catImporting}
+            >
+              <Text style={shared.buttons.primaryText}>{catExporting ? 'Exporting...' : 'Export'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[shared.buttons.secondary, styles.halfButton, catImporting && { opacity: 0.6 }]}
+              onPress={handleCatImport}
+              disabled={catExporting || catImporting}
+            >
+              <Text style={shared.buttons.secondaryText}>{catImporting ? 'Importing...' : 'Import'}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>Last export: {catLastExportAt ?? 'Never'}</Text>
+          <Text style={[styles.statusText, { color: theme.colors.onSurfaceVariant }]}>Last import: {catLastImportAt ?? 'Never'}</Text>
+        </Card>
       </ScrollView>
     </View>
   );
@@ -616,6 +780,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '700',
+  },
+  rowButtons: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  halfButton: {
+    flex: 1,
   },
   statusText: {
     fontSize: 12,
