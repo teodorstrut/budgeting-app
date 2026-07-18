@@ -277,7 +277,7 @@ export function useSharedStyles() {
     // ── Modal / Bottom Sheet ──────────────────────────────────────────────────
     modal: StyleSheet.create({
       backdrop: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         backgroundColor: 'rgba(0,0,0,0.5)',
       },
       sheet: {

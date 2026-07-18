@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   ScrollView,
@@ -11,7 +11,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { AnimatedBackdrop } from './AnimatedBackdrop';
 import { useTheme } from '../../providers/ThemeProvider';
-import { Transaction } from '../../database/repositories/transactionRepository';
 import { transactionService } from '../../services/transactionService';
 import { TransactionItem } from '../data/TransactionItem';
 import { formatAmount } from '../../utils/formatting';
@@ -39,19 +38,16 @@ export const CategoryTransactionsModal: React.FC<CategoryTransactionsModalProps>
   const insets = useSafeAreaInsets();
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-
-  const translateY = useRef(new Animated.Value(600)).current;
-  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const [translateY] = useState(() => new Animated.Value(600));
+  const [backdropOpacity] = useState(() => new Animated.Value(0));
   const heightRef = useRef(0);
   const hasLaidOut = useRef(false);
 
   // Load transactions whenever the modal opens
-  useEffect(() => {
-    if (visible) {
-      setTransactions(transactionService.getTransactionsForCategory(categoryId, periodStart, periodEnd));
-    }
-  }, [visible, categoryId, periodStart, periodEnd]);
+  const transactions = useMemo(
+    () => (visible ? transactionService.getTransactionsForCategory(categoryId, periodStart, periodEnd) : []),
+    [visible, categoryId, periodStart, periodEnd]
+  );
 
   useEffect(() => {
     if (!hasLaidOut.current) return;

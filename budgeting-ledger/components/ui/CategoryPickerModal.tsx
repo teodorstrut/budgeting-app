@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   ScrollView,
@@ -48,8 +48,8 @@ export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
   const accentColor = selectedColor ?? theme.colors.primary;
 
-  const translateY = useRef(new Animated.Value(visible ? 0 : 600)).current;
-  const backdropOpacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const [translateY] = useState(() => new Animated.Value(visible ? 0 : 600));
+  const [backdropOpacity] = useState(() => new Animated.Value(visible ? 1 : 0));
   const heightRef = useRef(0);
   const hasLaidOut = useRef(false);
 

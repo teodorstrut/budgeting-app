@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -13,7 +13,7 @@ import { useTheme } from '../providers/ThemeProvider';
 import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
 import { MonthNavigator } from '../components/layout/MonthNavigator';
-import { DonutChart, CHART_COLORS, type DonutSlice } from '../components/charts/DonutChart';
+import { DonutChart, CHART_COLORS } from '../components/charts/DonutChart';
 import { SpendingBarChart, type BarDataPoint } from '../components/charts/SpendingBarChart';
 import { CategoryPickerModal } from '../components/ui/CategoryPickerModal';
 import { CategoryTransactionsModal } from '../components/ui/CategoryTransactionsModal';
@@ -23,7 +23,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { transactionService } from '../services/transactionService';
 import { budgetService } from '../services/budgetService';
-import { categoryRepository, type Category } from '../database/repositories/categoryRepository';
+import { categoryRepository } from '../database/repositories/categoryRepository';
 import { settingsService } from '../services/settingsService';
 import { monthUtils } from '../utils/monthUtils';
 
@@ -87,12 +87,6 @@ export default function Reports() {
   // Incremented on every screen focus to trigger a data reload
   const [focusTick, setFocusTick] = useState(0);
 
-  // Data state
-  const [donutSlices, setDonutSlices] = useState<DonutSlice[]>([]);
-  const [allCategoryData, setAllCategoryData] = useState<AllCategoryEntry[]>([]);
-  const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
-  const [totalSpent, setTotalSpent] = useState(0);
-
   // ── month period ─────────────────────────────────────────────────────────
   const { periodStart, periodEnd, monthLabel } = useMemo(() => {
     const day = settingsService.getMonthStartDay();
@@ -109,32 +103,38 @@ export default function Reports() {
     setAnchorMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + dir, 1));
   };
 
-  // ── load data ─────────────────────────────────────────────────────────────
-  useEffect(() => {
-    // 1. Donut chart — category spending (respects donutType: expense | income)
+  // ── load data (sync SQLite → useMemo, see evolutionData note below) ───────
+  // 1. Donut chart — category spending (respects donutType: expense | income)
+  const { totalSpent, donutSlices } = useMemo(() => {
     const categorySpending = transactionService.getCategorySpendingForMonth(
       periodStart,
       periodEnd,
       donutType
     );
-    const spent = categorySpending.reduce((acc, s) => acc + s.totalSpent, 0);
-    setTotalSpent(spent);
-    setDonutSlices(
-      categorySpending.map((s, i) => ({
+    return {
+      totalSpent: categorySpending.reduce((acc, s) => acc + s.totalSpent, 0),
+      donutSlices: categorySpending.map((s, i) => ({
         label: `${s.emoji} ${s.categoryName}`,
         value: s.totalSpent,
         color: CHART_COLORS[i % CHART_COLORS.length],
-      }))
-    );
-
-    // 2. All Categories list (expense budget view — always loaded for quick switch)
-    const allData = budgetService.getAllCategoryBudgetData(periodStart, periodEnd);
-    setAllCategoryData(allData);
-
-    // 3. Expense categories for the picker
-    const cats = categoryRepository.getAll().filter((c) => c.type === 'expense');
-    setExpenseCategories(cats);
+      })),
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodStart, periodEnd, donutType, focusTick]);
+
+  // 2. All Categories list (expense budget view — always loaded for quick switch)
+  const allCategoryData = useMemo(
+    () => budgetService.getAllCategoryBudgetData(periodStart, periodEnd),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periodStart, periodEnd, focusTick]
+  );
+
+  // 3. Expense categories for the picker
+  const expenseCategories = useMemo(
+    () => categoryRepository.getAll().filter((c) => c.type === 'expense'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [focusTick]
+  );
 
   // ── spending evolution (sync SQLite → useMemo so data is ready on same render
   //    as the key change, preventing gifted-charts from mounting with stale data) ──

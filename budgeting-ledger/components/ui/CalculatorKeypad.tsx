@@ -39,13 +39,17 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   const isFirstInputRef = useRef(true);
 
   // Slide animation — start at the initial visibility state to avoid a flash
-  const translateY = useRef(new Animated.Value(visible ? 0 : 600)).current;
-  const backdropOpacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const [translateY] = useState(() => new Animated.Value(visible ? 0 : 600));
+  const [backdropOpacity] = useState(() => new Animated.Value(visible ? 1 : 0));
   const heightRef = useRef(0);
   const hasLaidOut = useRef(false);
 
+  // Resets the calculator's editing state each time it reopens. The sheet stays
+  // mounted while hidden (to animate closed), so this can't be modeled as a
+  // lazy useState initializer or a `key`-driven remount.
   useEffect(() => {
     if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInput(initialValue || '');
       setTape('');
       setRunningVal(null);

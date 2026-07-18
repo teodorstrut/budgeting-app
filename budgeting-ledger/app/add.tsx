@@ -41,19 +41,13 @@ export default function AddTransaction() {
 
   const [calcHeight, setCalcHeight] = useState(0);
   const [amount, setAmount] = useState('');
-  const [showCalculator, setShowCalculator] = useState(true);
+  const [showCalculator, setShowCalculator] = useState(() => !isEditing);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date());
   const [categories, setCategories] = useState(categoryRepository.getAllSortedByUsage());
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
-
-  useEffect(() => {
-    if (isEditing) {
-      setShowCalculator(false);
-    }
-  }, [isEditing]);
 
   useFocusEffect(
     useCallback(() => {
@@ -62,6 +56,9 @@ export default function AddTransaction() {
     }, [])
   );
 
+  // Loads the edited transaction into form state and navigates away if it was
+  // deleted elsewhere — genuine side effects (DB read + Alert/navigation), not
+  // pure derived state, so it can't be moved into a memo or render-time adjustment.
   useEffect(() => {
     if (!isEditing || editId == null) {
       return;
@@ -75,6 +72,7 @@ export default function AddTransaction() {
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAmount(existing.amount.toString());
     setType(existing.type);
     setNote(existing.note ?? '');
@@ -96,7 +94,11 @@ export default function AddTransaction() {
     [categories, categoryId]
   );
 
+  // Re-validates categoryId against both `type` and `categories` (which can change
+  // independently via useFocusEffect above) — keeping this as an effect avoids a
+  // fragile render-time diff across two independent dependencies.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCategoryId((prev) => {
       if (prev != null && categories.some((cat) => cat.id === prev && cat.type === type)) {
         return prev;

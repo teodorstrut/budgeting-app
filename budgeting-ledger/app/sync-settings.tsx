@@ -115,10 +115,13 @@ export default function SyncSettings() {
     },
   });
 
+  // Mirrors the persisted sync config into local editable state, alongside the
+  // async SecureStore token read — a genuine external-system sync, not derived state.
   useEffect(() => {
     syncService.getGoogleAccessToken().then((stored) => setToken(stored));
 
     if (config.spreadsheetId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedSpreadsheetId(config.spreadsheetId);
     }
     if (config.spreadsheetName) {

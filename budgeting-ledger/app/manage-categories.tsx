@@ -41,13 +41,15 @@ export default function ManageCategories() {
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [foreignCategories, setForeignCategories] = useState<Category[]>([]);
-  const [selectedType, setSelectedType] = useState<CategoryType>('expense');
+  const [selectedType, setSelectedType] = useState<CategoryType>(() =>
+    params.type === 'income' || params.type === 'expense' ? params.type : 'expense'
+  );
 
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const modalTranslateY = useRef(new Animated.Value(600)).current;
-  const modalBackdropOpacity = useRef(new Animated.Value(0)).current;
+  const [modalTranslateY] = useState(() => new Animated.Value(600));
+  const [modalBackdropOpacity] = useState(() => new Animated.Value(0));
   const modalHasLaidOut = useRef(false);
   const modalHeightRef = useRef(0);
 
@@ -80,13 +82,6 @@ export default function ManageCategories() {
       loadCategories();
     }, [loadCategories])
   );
-
-  useEffect(() => {
-    const routeType = params.type;
-    if (routeType === 'income' || routeType === 'expense') {
-      setSelectedType(routeType);
-    }
-  }, [params.type]);
 
   const usageByCategoryId = useMemo(() => {
     const map = new Map<number, number>();

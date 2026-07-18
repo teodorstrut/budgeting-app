@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../providers/ThemeProvider';
@@ -15,13 +15,7 @@ export default function Settings() {
   const { theme, colorScheme, setColorScheme } = useTheme();
   const router = useRouter();
   const [resetDone, setResetDone] = useState(false);
-  const [monthStartDay, setMonthStartDay] = useState(1);
-
-  useEffect(() => {
-    // Load the monthStartDay setting
-    const day = settingsService.getMonthStartDay();
-    setMonthStartDay(day);
-  }, []);
+  const [monthStartDay, setMonthStartDay] = useState(() => settingsService.getMonthStartDay());
 
   const handleReset = () => {
     confirmDialog(

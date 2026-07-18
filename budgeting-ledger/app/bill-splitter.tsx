@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -41,19 +41,16 @@ export default function BillSplitter() {
   const [note, setNote] = useState('');
   const [calculatorVisible, setCalculatorVisible] = useState(true);
   const [calculatorTarget, setCalculatorTarget] = useState<'total' | number>('total');
-  const [expenseCategories, setExpenseCategories] = useState<Category[]>([]);
   const [splits, setSplits] = useState<Split[]>([]);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
 
   const noteRef = useRef<TextInput>(null);
   const [calcHeight, setCalcHeight] = useState(0);
 
-  useEffect(() => {
-    if (step === 2) {
-      const categories = categoryRepository.getAllSortedByUsage().filter((c) => c.type === 'expense');
-      setExpenseCategories(categories);
-    }
-  }, [step]);
+  const expenseCategories = useMemo(
+    () => (step === 2 ? categoryRepository.getAllSortedByUsage().filter((c) => c.type === 'expense') : []),
+    [step]
+  );
 
   const total = parseFloat(totalAmount) || 0;
   const allocatedAmount = splits.reduce((sum, s) => sum + s.amount, 0);
