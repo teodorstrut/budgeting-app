@@ -182,28 +182,31 @@ export default function SyncSettings() {
 
   const loadSpreadsheetPage = useCallback(
     async (pageToken?: string) => {
-      if (!token) {
+      const freshToken = await syncService.getGoogleAccessToken();
+      if (!freshToken) {
         Alert.alert('Sign in required', 'Connect Google first to load spreadsheets.');
         return false;
       }
+      setToken(freshToken);
 
       setLoadingSheets(true);
       try {
-        const next = await syncService.listSpreadsheets(token, pageToken);
+        const next = await syncService.listSpreadsheets(freshToken, pageToken);
         setSpreadsheets(next.items);
         setNextSheetPageToken(next.nextPageToken);
         if (next.items.length === 0) {
           Alert.alert('No sheets found', 'No spreadsheets were found in this account for this page.');
         }
         return true;
-      } catch {
-        Alert.alert('Load failed', 'Could not load spreadsheets. Check your connection and try again.');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Could not load spreadsheets. Check your connection and try again.';
+        Alert.alert('Load failed', message);
         return false;
       } finally {
         setLoadingSheets(false);
       }
     },
-    [token],
+    [],
   );
 
   const maybePromptForReauth = useCallback(async () => {
@@ -334,10 +337,12 @@ export default function SyncSettings() {
   };
 
   const handleSaveSheetConfig = async () => {
-    if (!token) {
+    const freshToken = await syncService.getGoogleAccessToken();
+    if (!freshToken) {
       Alert.alert('Sign in required', 'Connect Google first to configure sync.');
       return;
     }
+    setToken(freshToken);
 
     const preferredTab = tabName.trim() || syncService.getDefaultSheetName();
 
@@ -353,7 +358,7 @@ export default function SyncSettings() {
           return;
         }
 
-        const created = await syncService.createSpreadsheet(token, title);
+        const created = await syncService.createSpreadsheet(freshToken, title);
         spreadsheetId = created.id;
         spreadsheetName = created.name;
       } else if (!spreadsheetId || !spreadsheetName) {
@@ -361,7 +366,7 @@ export default function SyncSettings() {
         return;
       }
 
-      const appTab = await syncService.ensureAppSheetTab(token, spreadsheetId, preferredTab);
+      const appTab = await syncService.ensureAppSheetTab(freshToken, spreadsheetId, preferredTab);
 
       syncService.saveGoogleSheetSelection({
         spreadsheetId,
@@ -374,8 +379,9 @@ export default function SyncSettings() {
       setSelectedSpreadsheetName(spreadsheetName);
       setTabName(appTab);
       Alert.alert('Saved', `Sync target configured: ${spreadsheetName} / ${appTab}`);
-    } catch {
-      Alert.alert('Save failed', 'Could not save sync configuration. Check your connection and Google permissions.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not save sync configuration. Check your connection and Google permissions.';
+      Alert.alert('Save failed', message);
     } finally {
       setSavingConfig(false);
     }
@@ -417,7 +423,7 @@ export default function SyncSettings() {
   };
 
   const handleCatLoadSpreadsheets = async () => {
-    const freshToken = token ?? await syncService.getGoogleAccessToken();
+    const freshToken = await syncService.getGoogleAccessToken();
     if (!freshToken) {
       Alert.alert('Sign in required', 'Connect Google first to load spreadsheets.');
       return;
@@ -448,7 +454,7 @@ export default function SyncSettings() {
   };
 
   const handleCatExport = async () => {
-    const freshToken = token ?? await syncService.getGoogleAccessToken();
+    const freshToken = await syncService.getGoogleAccessToken();
     if (!freshToken) {
       Alert.alert('Sign in required', 'Connect Google first.');
       return;
@@ -471,7 +477,7 @@ export default function SyncSettings() {
   };
 
   const handleCatImport = async () => {
-    const freshToken = token ?? await syncService.getGoogleAccessToken();
+    const freshToken = await syncService.getGoogleAccessToken();
     if (!freshToken) {
       Alert.alert('Sign in required', 'Connect Google first.');
       return;

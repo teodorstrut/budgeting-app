@@ -203,6 +203,7 @@ export const syncService = {
       status: 'active',
     });
     settingsService.setGoogleSpreadsheetName(args.spreadsheetName);
+    settingsService.setGoogleSyncEnabled(true);
     settingsService.clearGoogleLastError();
   },
 
