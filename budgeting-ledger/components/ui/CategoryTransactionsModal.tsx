@@ -23,6 +23,7 @@ interface CategoryTransactionsModalProps {
   emoji: string;
   periodStart: string;
   periodEnd: string;
+  type?: 'expense' | 'income';
 }
 
 export const CategoryTransactionsModal: React.FC<CategoryTransactionsModalProps> = ({
@@ -33,6 +34,7 @@ export const CategoryTransactionsModal: React.FC<CategoryTransactionsModalProps>
   emoji,
   periodStart,
   periodEnd,
+  type = 'expense',
 }) => {
   const { theme } = useTheme();
   const insets = useSafeAreaInsets();
@@ -101,7 +103,7 @@ export const CategoryTransactionsModal: React.FC<CategoryTransactionsModalProps>
               {emoji ? `${emoji} ` : ''}{categoryName}
             </Text>
             <Text style={[styles.totalText, { color: theme.colors.onSurfaceVariant }]}>
-              {transactions.length} transaction{transactions.length !== 1 ? 's' : ''} · {formatAmount(totalAmount, 'expense')}
+              {transactions.length} transaction{transactions.length !== 1 ? 's' : ''} · {formatAmount(totalAmount, type)}
             </Text>
           </View>
           <TouchableOpacity onPress={onClose}>

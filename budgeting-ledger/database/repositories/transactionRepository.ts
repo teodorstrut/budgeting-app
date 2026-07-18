@@ -121,16 +121,17 @@ export const transactionRepository = {
   getExpenseTotalForDateRange: (
     startDate: string,
     endDate: string,
-    categoryId?: number | null
+    categoryId?: number | null,
+    type: 'expense' | 'income' = 'expense'
   ): number => {
     const row = db.getFirstSync(
       `SELECT COALESCE(SUM(amount), 0) AS total
        FROM transactions
-       WHERE type = 'expense'
+       WHERE type = ?
          AND substr(date, 1, 10) >= ?
          AND substr(date, 1, 10) <= ?
          AND (? IS NULL OR categoryId = ?)`,
-      [startDate, endDate, categoryId ?? null, categoryId ?? null]
+      [type, startDate, endDate, categoryId ?? null, categoryId ?? null]
     ) as { total: number } | null;
 
     return row?.total ?? 0;

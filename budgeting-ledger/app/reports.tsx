@@ -57,6 +57,7 @@ interface AllCategoryEntry {
   emoji: string;
   spent: number;
   budget: number | null;
+  type: 'expense' | 'income';
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
@@ -122,19 +123,38 @@ export default function Reports() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodStart, periodEnd, donutType, focusTick]);
 
-  // 2. All Categories list (expense budget view — always loaded for quick switch)
-  const allCategoryData = useMemo(
-    () => budgetService.getAllCategoryBudgetData(periodStart, periodEnd),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [periodStart, periodEnd, focusTick]
-  );
+  // 2. All Categories list — expense budget view, or income-per-category totals
+  const allCategoryData = useMemo<AllCategoryEntry[]>(() => {
+    if (donutType === 'income') {
+      return transactionService
+        .getCategorySpendingForMonth(periodStart, periodEnd, 'income')
+        .map((s) => ({
+          categoryId: s.categoryId,
+          categoryName: s.categoryName,
+          emoji: s.emoji,
+          spent: s.totalSpent,
+          budget: null,
+          type: 'income' as const,
+        }));
+    }
+    return budgetService
+      .getAllCategoryBudgetData(periodStart, periodEnd)
+      .map((e) => ({ ...e, type: 'expense' as const }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodStart, periodEnd, donutType, focusTick]);
 
-  // 3. Expense categories for the picker
+  // 3. Expense/income categories for the picker
   const expenseCategories = useMemo(
     () => categoryRepository.getAll().filter((c) => c.type === 'expense'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [focusTick]
   );
+  const incomeCategories = useMemo(
+    () => categoryRepository.getAll().filter((c) => c.type === 'income'),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [focusTick]
+  );
+  const pickerCategories = donutType === 'income' ? incomeCategories : expenseCategories;
 
   // ── spending evolution (sync SQLite → useMemo so data is ready on same render
   //    as the key change, preventing gifted-charts from mounting with stale data) ──
@@ -153,7 +173,8 @@ export default function Reports() {
     }
     const totals = transactionService.getSpendingEvolutionForPeriods(
       windowPeriods,
-      selectedCategoryId
+      selectedCategoryId,
+      donutType
     );
     return totals.map((p, i) => ({
       label: windowPeriods[i].calLabel,
@@ -161,7 +182,7 @@ export default function Reports() {
       isCurrent: i === 3,
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anchorMonth, selectedCategoryId, focusTick]);
+  }, [anchorMonth, selectedCategoryId, donutType, focusTick]);
 
   useFocusEffect(
     useCallback(() => {
@@ -178,9 +199,9 @@ export default function Reports() {
   // ── category picker label ─────────────────────────────────────────────────
   const selectedCategoryName = useMemo(() => {
     if (selectedCategoryId === null) return 'All Categories';
-    const cat = expenseCategories.find((c) => c.id === selectedCategoryId);
+    const cat = pickerCategories.find((c) => c.id === selectedCategoryId);
     return cat ? `${cat.emoji ?? ''} ${cat.name}`.trim() : 'All Categories';
-  }, [selectedCategoryId, expenseCategories]);
+  }, [selectedCategoryId, pickerCategories]);
 
   // ── render ────────────────────────────────────────────────────────────────
   return (
@@ -209,7 +230,10 @@ export default function Reports() {
               { label: 'Income', value: 'income' },
             ]}
             selected={donutType}
-            onSelect={setDonutType}
+            onSelect={(value) => {
+              setDonutType(value);
+              setSelectedCategoryId(null);
+            }}
             activeColor={donutType === 'expense' ? theme.colors.secondary : theme.colors.primary}
             activeTextColor={theme.colors.surface}
             inactiveTextColor={theme.colors.onSurfaceVariant}
@@ -232,7 +256,11 @@ export default function Reports() {
           {allCategoryData.length === 0 ? (
             <EmptyState
               title="No transactions"
-              subtitle="No expense transactions recorded this month."
+              subtitle={
+                donutType === 'income'
+                  ? 'No income transactions recorded this month.'
+                  : 'No expense transactions recorded this month.'
+              }
             />
           ) : (
             <View style={styles.categoriesList}>
@@ -256,16 +284,20 @@ export default function Reports() {
                     activeOpacity={0.75}
                   >
                     <View style={styles.categoryRowHeader}>
-                      <Text style={[styles.categoryName, { color: theme.colors.onSurface }]}>
+                      <Text
+                        style={[styles.categoryName, { color: theme.colors.onSurface }]}
+                        numberOfLines={1}
+                      >
                         {entry.emoji} {entry.categoryName}
                       </Text>
-                      <Text style={[styles.categoryAmount, { color: theme.colors.onSurfaceVariant }]}
-                      >
-                        {hasBudget
-                          ? `${formatCurrency(entry.spent)} / ${formatCurrency(entry.budget!)}`
-                          : formatCurrency(entry.spent)}
-                      </Text>
-                      <FontAwesome name="chevron-right" size={11} color={theme.colors.onSurfaceVariant} />
+                      <View style={styles.categoryRowRight}>
+                        <Text style={[styles.categoryAmount, { color: theme.colors.onSurfaceVariant }]}>
+                          {hasBudget
+                            ? `${formatCurrency(entry.spent)} / ${formatCurrency(entry.budget!)}`
+                            : formatCurrency(entry.spent)}
+                        </Text>
+                        <FontAwesome name="chevron-right" size={11} color={theme.colors.onSurfaceVariant} />
+                      </View>
                     </View>
                     {hasBudget && (
                       <ProgressBar
@@ -322,7 +354,7 @@ export default function Reports() {
           </View>
 
           <SpendingBarChart
-            key={`${anchorMonth.getFullYear()}-${anchorMonth.getMonth()}-${selectedCategoryId ?? 'all'}`}
+            key={`${anchorMonth.getFullYear()}-${anchorMonth.getMonth()}-${donutType}-${selectedCategoryId ?? 'all'}`}
             data={evolutionData}
           />
         </Card>
@@ -332,7 +364,7 @@ export default function Reports() {
       <CategoryPickerModal
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
-        categories={expenseCategories}
+        categories={pickerCategories}
         onSelectCategory={(cat) => {
           setSelectedCategoryId(cat.id ?? null);
           setPickerVisible(false);
@@ -352,6 +384,7 @@ export default function Reports() {
         emoji={drillDownCategory?.emoji ?? ''}
         periodStart={periodStart}
         periodEnd={periodEnd}
+        type={drillDownCategory?.type ?? 'expense'}
       />
 
       <NavBar />
@@ -387,19 +420,23 @@ const styles = StyleSheet.create({
   },
   categoryRowHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     gap: 8,
   },
   categoryName: {
     fontSize: 14,
     fontWeight: '700',
+    flex: 1,
     flexShrink: 1,
+  },
+  categoryRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   categoryAmount: {
     fontSize: 12,
     fontWeight: '500',
-    marginLeft: 8,
   },
   // Evolution
   evolutionHeader: {

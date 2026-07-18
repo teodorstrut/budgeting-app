@@ -1,6 +1,6 @@
 # Development History
 
-Historical record of what shipped in past milestones. **This is not current-state documentation** — for that, see [ARCHITECTURE.md](./ARCHITECTURE.md), [TECHNICAL.md](./TECHNICAL.md), and [FUNCTIONAL.md](./FUNCTIONAL.md). This file condenses the original `development-plan.md`, `development-plan-1-1.md`, and `development-plan-1-1-tech-details.md` (superseded and removed) so the history isn't lost.
+Historical record of what shipped in past milestones. **This is not current-state documentation** — for that, see [ARCHITECTURE.md](./ARCHITECTURE.md), [TECHNICAL.md](./TECHNICAL.md), [FUNCTIONAL.md](./FUNCTIONAL.md), [GOTCHAS.md](./GOTCHAS.md), and [MANUAL_TESTING.md](./MANUAL_TESTING.md). This file condenses the original `development-plan.md`, `development-plan-1-1.md`, and `development-plan-1-1-tech-details.md` (superseded and removed) so the history isn't lost.
 
 ## v1.0 — Initial build
 
@@ -32,6 +32,20 @@ Phase 5 (tests, CI, accessibility polish, localization) was never implemented �
 - **Read-only foreign transactions** ("multi-user via shared spreadsheet") — the largest feature of v1.1. Added `ownerKey`/`isReadOnly` to `transactions` and `ownerKey`/`isAdopted` to `categories` via idempotent migrations; sync now pulls other owners' rows from the shared sheet and stores them locally as read-only; added the "Mine/All" `OwnershipToggle`, muted styling for foreign `TransactionItem`s, and a "From Other Users" adoption flow in Manage Categories.
 
 All of the above is current, shipped behavior — see [FUNCTIONAL.md](./FUNCTIONAL.md) for the user-facing description and [TECHNICAL.md](./TECHNICAL.md) for the implementation detail.
+
+## Reports: Expense/Income toggle now drives every card
+
+Previously the Expense/Income toggle in "Monthly Spending" only affected the donut chart — the "All Categories" list and "Spending Evolution" filter/chart were always expense-only, regardless of the toggle.
+
+- **All Categories** now shows income-per-category totals (no budget/progress bar — budgets are expense-only in this schema) when Income is selected, via `transactionService.getCategorySpendingForMonth(..., 'income')`; the category drilldown modal now shows `+`/`-` to match the category's type.
+- **Spending Evolution**'s category picker now lists income or expense categories depending on the toggle, and its trend data follows suit — `transactionService.getSpendingEvolutionForPeriods` and `transactionRepository.getExpenseTotalForDateRange` both gained a `type: 'expense' | 'income'` parameter (default `'expense'`, so no other caller's behavior changed). Switching the toggle resets the category filter back to "All Categories" since a selected category from one type won't exist in the other's list.
+- Fixed "All Categories" row alignment — the spent/budget text and the drilldown chevron used to be spread across the row by a 3-child `space-between` flex row, so their horizontal position shifted with each category name's length. They're now grouped into one right-aligned block that sits flush against the row edge regardless of name length.
+
+## Documentation: GOTCHAS.md and MANUAL_TESTING.md added
+
+Added two new reference docs, cross-linked from the existing four:
+- **[GOTCHAS.md](./GOTCHAS.md)** — non-obvious constraints, workarounds, and ordering dependencies across sync, the database layer, UI animation, theming, and date math, each with a file:line reference and why it matters. Several entries note real discrepancies worth fixing eventually (e.g. `budgetService.getBudgetHealthData` compares raw date strings instead of the `substr(date,1,10)` pattern used everywhere else, silently undercounting transactions on a period's last day; foreign-transaction sync dedups by `ownerKey + date + amount` rather than a stable id).
+- **[MANUAL_TESTING.md](./MANUAL_TESTING.md)** — a per-screen manual verification checklist (golden path + known edge cases), since the app has no automated test suite.
 
 ## Source material
 

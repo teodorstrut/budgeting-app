@@ -201,12 +201,13 @@ export const transactionService = {
    */
   getSpendingEvolutionForPeriods: (
     periods: { start: string; end: string }[],
-    categoryId?: number | null
+    categoryId?: number | null,
+    type: 'expense' | 'income' = 'expense'
   ): { start: string; end: string; total: number }[] => {
     return periods.map(({ start, end }) => ({
       start,
       end,
-      total: transactionRepository.getExpenseTotalForDateRange(start, end, categoryId),
+      total: transactionRepository.getExpenseTotalForDateRange(start, end, categoryId, type),
     }));
   },
 

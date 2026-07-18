@@ -5,6 +5,7 @@ import { useTheme } from '../providers/ThemeProvider';
 import { Header } from '../components/layout/Header';
 import { Card } from '../components/ui/Card';
 import { resetAndReseed } from '../database/schema';
+import { seedMockData } from '../database/mockData';
 import { settingsService } from '../services/settingsService';
 import { syncService } from '../services/syncService';
 import { MonthStartDayPicker } from '../components/ui/MonthStartDayPicker';
@@ -15,6 +16,7 @@ export default function Settings() {
   const { theme, colorScheme, setColorScheme } = useTheme();
   const router = useRouter();
   const [resetDone, setResetDone] = useState(false);
+  const [mockDataMessage, setMockDataMessage] = useState<string | null>(null);
   const [monthStartDay, setMonthStartDay] = useState(() => settingsService.getMonthStartDay());
 
   const handleReset = () => {
@@ -32,6 +34,22 @@ export default function Settings() {
         });
       },
       'Reset',
+    );
+  };
+
+  const handleSeedMockData = () => {
+    confirmDialog(
+      'Load mock data',
+      'This replaces all current categories, transactions, and budgets with generated sample data for local testing.',
+      () => {
+        try {
+          const summary = seedMockData();
+          setMockDataMessage(`Loaded ${summary.categories} categories, ${summary.transactions} transactions, ${summary.budgets} budgets.`);
+        } catch (error) {
+          Alert.alert('Mock data failed', error instanceof Error ? error.message : 'An unexpected error occurred.');
+        }
+      },
+      'Load Mock Data',
     );
   };
 
@@ -112,6 +130,29 @@ export default function Settings() {
               <Text style={[styles.linkChevron, { color: theme.colors.primary }]}>›</Text>
             </TouchableOpacity>
           </Card>
+
+          {__DEV__ && (
+            <Card style={styles.sectionCard}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Developer Tools</Text>
+              <Text style={[styles.hint, { color: theme.colors.outline }]}>Dev-build only — not shown in production.</Text>
+
+              <TouchableOpacity
+                style={[styles.resetButton, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}
+                onPress={handleSeedMockData}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.resetButtonText, { color: theme.colors.onPrimary ?? '#fff' }]}>
+                  Load mock data
+                </Text>
+              </TouchableOpacity>
+
+              {mockDataMessage && (
+                <Text style={[styles.successText, { color: theme.colors.primary }]}>
+                  {mockDataMessage}
+                </Text>
+              )}
+            </Card>
+          )}
 
           <Card style={styles.sectionCard}>
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Danger Zone</Text>

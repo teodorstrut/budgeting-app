@@ -89,12 +89,15 @@ export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
         onLayout={(e) => {
           const h = e.nativeEvent.layout.height;
           heightRef.current = h;
-          if (!hasLaidOut.current) {
-            hasLaidOut.current = true;
-            if (!visible) {
-              translateY.setValue(h);
-              backdropOpacity.setValue(0);
-            }
+          hasLaidOut.current = true;
+          // Keep the hidden resting position in sync with content height while
+          // closed — the same modal instance is reused for different category
+          // lists (e.g. switching Expenses/Income), whose sheets render at
+          // different heights, so a stale translateY would leave the sheet
+          // partially visible above the screen bottom.
+          if (!visible) {
+            translateY.setValue(h);
+            backdropOpacity.setValue(0);
           }
         }}
       >

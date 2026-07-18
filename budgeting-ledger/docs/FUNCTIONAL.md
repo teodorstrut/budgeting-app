@@ -1,6 +1,6 @@
 # Functional Documentation
 
-What the app does, from a product/user perspective. For how it's built see [ARCHITECTURE.md](./ARCHITECTURE.md) and [TECHNICAL.md](./TECHNICAL.md).
+What the app does, from a product/user perspective. For how it's built see [ARCHITECTURE.md](./ARCHITECTURE.md) and [TECHNICAL.md](./TECHNICAL.md); for a per-screen manual verification checklist see [MANUAL_TESTING.md](./MANUAL_TESTING.md).
 
 ## What it is
 
@@ -15,7 +15,7 @@ A free, personal budget tracker for iOS and Android. Data lives on-device by def
 | History | `app/history.tsx` | Browse past billing periods, search by note/amount/category, transactions grouped by date, month navigation |
 | Budgets | `app/budgets.tsx` | Set/edit a monthly spending limit per category |
 | Budget Health | `app/budget-health.tsx` | Detailed budget-vs-actual per category, with progress bars |
-| Reports | `app/reports.tsx` | Donut chart (category breakdown) + bar chart (monthly trend), budget-overlay toggle, tap a category to drill into its transactions for the period |
+| Reports | `app/reports.tsx` | Donut chart, "All Categories" list, and bar chart trend — all driven by one Expense/Income toggle; tap a category to drill into its transactions for the period |
 | Manage Categories | `app/manage-categories.tsx` | Create/edit/delete categories (emoji + name + income/expense); adopt categories shared by other users |
 | Settings | `app/settings.tsx` | Theme (light/dark), month-start-day configuration, links to category management and sync settings |
 | Sync Settings | `app/sync-settings.tsx` | Connect/disconnect Google account, choose spreadsheet + tab for transaction sync and for category/budget sync, manual "Sync Now", sync status |
@@ -34,7 +34,12 @@ One optional monthly budget per category. Budget Health and the Dashboard widget
 
 ### Reports & category drilldown
 
-Reports shows a donut chart (category breakdown for the period) and a bar chart (trend across several periods), with a toggle to overlay budget lines on actuals. Tapping a category in the "All Categories" list opens a slide-up modal listing every transaction in that category for the period.
+Reports has three cards, all driven by a single Expense/Income toggle at the top ("Monthly Spending"):
+- A **donut chart** — category breakdown for the period, for whichever type is selected.
+- An **"All Categories" list** — spend-vs-budget per category (with a progress bar) when Expenses is selected, since budgets only apply to expenses; income totals per category (no budget/progress bar) when Income is selected.
+- A **"Spending Evolution" bar chart** — trend across several periods, with its own category-filter picker that also switches between expense and income categories depending on the toggle; switching the toggle resets the filter back to "All Categories".
+
+Tapping a category in "All Categories" opens a slide-up modal listing every transaction in that category for the period, with the total shown as `+` (income) or `-` (expense) to match.
 
 ### Bill Splitter
 

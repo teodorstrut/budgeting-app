@@ -1,6 +1,6 @@
 # Technical Reference
 
-Implementation-level detail: schema, data access layer, sync protocol, component library, build config, security posture. For the high-level system map see [ARCHITECTURE.md](./ARCHITECTURE.md); for product behavior see [FUNCTIONAL.md](./FUNCTIONAL.md).
+Implementation-level detail: schema, data access layer, sync protocol, component library, build config, security posture. For the high-level system map see [ARCHITECTURE.md](./ARCHITECTURE.md); for product behavior see [FUNCTIONAL.md](./FUNCTIONAL.md); for non-obvious constraints and workarounds see [GOTCHAS.md](./GOTCHAS.md); for a manual verification checklist see [MANUAL_TESTING.md](./MANUAL_TESTING.md).
 
 ## Database schema
 
@@ -25,17 +25,19 @@ Relationships: `transactions.categoryId → categories.id`, `budgets.categoryId 
 
 | Repository | Type | Notable methods |
 |---|---|---|
-| `transactionRepository.ts` | `Transaction` | `create`, `getAll`, `getByDateRange`, `getChangedSince(sinceIso)`, `getById`, `update`, `delete`, `getCategoryTotalsForDateRange`, `getExpenseTotalForDateRange`, `upsertForeignTransaction`, `deleteForeignBySyncKey`, `getForeign` |
+| `transactionRepository.ts` | `Transaction` | `create`, `getAll`, `getByDateRange`, `getChangedSince(sinceIso)`, `getById`, `update`, `delete`, `getCategoryTotalsForDateRange(…, type?)`, `getExpenseTotalForDateRange(…, categoryId?, type?)`, `upsertForeignTransaction`, `deleteForeignBySyncKey`, `getForeign` |
 | `categoryRepository.ts` | `Category` | CRUD, `getAllSortedByUsage`, `getOrCreateForeignCategory`, `adoptCategory`, `getForeignCategories` |
 | `budgetRepository.ts` | `Budget` | `upsert` (`INSERT OR REPLACE`), `getAll`, `getByCategory`, `delete`, `deleteAll` |
 | `syncConfigRepository.ts` | — | `getGoogleConfig`, `upsertGoogleConfig`, `setGoogleStatus` |
 | `syncDeletionRepository.ts` | — | `recordTransactionDeletion` (upsert via `ON CONFLICT`), `getDeletedSince`, `purgeOldTombstones` |
 
+`getExpenseTotalForDateRange` and `getCategoryTotalsForDateRange` both default their `type` param to `'expense'` but accept `'income'` too — despite the former's name, both are used to power expense *or* income aggregates (see Reports in [FUNCTIONAL.md](./FUNCTIONAL.md)).
+
 **Services** (`services/`) sit above repositories and hold everything else — screens call these, never repositories directly:
 
 | Service | Responsibility |
 |---|---|
-| `transactionService.ts` | `validateTransaction` (positive finite amount, valid type, valid ISO date, existing category); `addTransaction`/`updateTransaction`/`deleteTransaction` (the delete path is the one place raw `db.execSync` transaction control — explicit `BEGIN/COMMIT/ROLLBACK` — is used, wrapping the tombstone insert + row delete); month-aware summaries (`getCurrentMonthSummary`, `getMonthlySummaries`); reporting helpers (`getCategorySpendingForMonth`, `getSpendingEvolutionForPeriods`, `getTransactionsForCategory`); sync row shaping (`getRowsForGoogleSync`, `getRowsChangedSince`, `getDeletedRowsChangedSince`) |
+| `transactionService.ts` | `validateTransaction` (positive finite amount, valid type, valid ISO date, existing category); `addTransaction`/`updateTransaction`/`deleteTransaction` (the delete path is the one place raw `db.execSync` transaction control — explicit `BEGIN/COMMIT/ROLLBACK` — is used, wrapping the tombstone insert + row delete); month-aware summaries (`getCurrentMonthSummary`, `getMonthlySummaries`); reporting helpers (`getCategorySpendingForMonth(…, type?)`, `getSpendingEvolutionForPeriods(…, categoryId?, type?)`, `getTransactionsForCategory`); sync row shaping (`getRowsForGoogleSync`, `getRowsChangedSince`, `getDeletedRowsChangedSince`) |
 | `budgetService.ts` | `getBudgetsWithCategories`, `saveBudgets` (delete-all + re-insert), `getBudgetHealthData` (a multi-table JOIN run directly via `db.getAllSync`, the one place a service bypasses the repository layer), `getAllCategoryBudgetData` |
 | `settingsService.ts` | Generic get/set/number/boolean helpers over the `settings` table, plus Google-sync-specific convenience getters/setters (enabled flag, spreadsheet name, last error, auto-sync bookkeeping, owner key) |
 | `syncService.ts` | Google OAuth token lifecycle, Sheets API calls, transaction sync orchestration (full + incremental), foreign-row pull/merge |
@@ -111,7 +113,7 @@ Check these before writing new UI — everything here already exists.
 | `MonthStartDayPicker` | — | `settings.tsx` |
 | `TransactionDateTimeField` | — | `add.tsx`, `bill-splitter.tsx` |
 | `SplitSlider` | — | `bill-splitter.tsx` step 2 |
-| `CategoryTransactionsModal` | `visible`, `onClose`, `categoryId`, `categoryName`, `emoji`, `periodStart`, `periodEnd` | `reports.tsx` category drilldown |
+| `CategoryTransactionsModal` | `visible`, `onClose`, `categoryId`, `categoryName`, `emoji`, `periodStart`, `periodEnd`, `type?: 'expense'\|'income'` (default `'expense'`, controls the +/- sign on the total) | `reports.tsx` category drilldown |
 | `OwnershipToggle` | `value: 'mine' \| 'all'`, `onChange` | `index.tsx`, `history.tsx` — filters foreign vs. own transactions |
 
 ### `components/layout/`

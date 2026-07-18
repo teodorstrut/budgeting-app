@@ -1,6 +1,6 @@
 # Architecture
 
-System-level map of the app. For schema/API detail see [TECHNICAL.md](./TECHNICAL.md); for what each screen does see [FUNCTIONAL.md](./FUNCTIONAL.md).
+System-level map of the app. For schema/API detail see [TECHNICAL.md](./TECHNICAL.md); for what each screen does see [FUNCTIONAL.md](./FUNCTIONAL.md); for non-obvious constraints see [GOTCHAS.md](./GOTCHAS.md); for a manual verification checklist see [MANUAL_TESTING.md](./MANUAL_TESTING.md).
 
 ## What this is
 
@@ -69,7 +69,7 @@ budgeting-ledger/
 ├── constants/settings.ts       SETTING_KEYS / SECURE_KEYS constants
 ├── utils/                       formatting.ts, monthUtils.ts (billing-period math), confirmDialog.ts
 ├── config/android/              Hand-authored XML consumed by app.config.js's config plugins
-├── docs/                        You are here
+├── docs/                        You are here — ARCHITECTURE/TECHNICAL/FUNCTIONAL/DEVELOPMENT_HISTORY/GOTCHAS/MANUAL_TESTING
 ├── mdfiles/app-description.md   Original informal product/tech brief (source material, not documentation)
 ├── assets/                       Icons, splash, store images
 ├── app.config.js                 Dynamic Expo config
