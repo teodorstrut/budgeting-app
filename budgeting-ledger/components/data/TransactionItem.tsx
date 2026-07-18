@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { Transaction } from '../../database/repositories/transactionRepository';
 import { useTheme } from '../../providers/ThemeProvider';
+import { useSharedStyles } from '../../theme/styles';
 import { formatAmount, formatRelativeDate, formatTime } from '../../utils/formatting';
 
 type DateDisplayMode = 'relative' | 'time';
@@ -26,12 +27,14 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
   isForeign = false,
 }) => {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
 
   const dateLabel = dateDisplayMode === 'time' ? formatTime(transaction.date) : formatRelativeDate(transaction.date);
 
   return (
     <TouchableOpacity
       style={[
+        shared.containers.rowBetween,
         styles.container,
         {
           backgroundColor: isForeign
@@ -84,9 +87,6 @@ export const TransactionItem: React.FC<TransactionItemProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     borderRadius: 12,
     padding: 12,
     marginVertical: 4,

@@ -1,16 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import {
-  Animated,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { AnimatedBackdrop } from './AnimatedBackdrop';
+import { BottomSheetModal } from './BottomSheetModal';
 import { useTheme } from '../../providers/ThemeProvider';
+import { useSharedStyles } from '../../theme/styles';
 
 import { Category } from '../../database/repositories/categoryRepository';
 
@@ -44,159 +43,94 @@ export const CategoryPickerModal: React.FC<CategoryPickerModalProps> = ({
   onSelectAll,
 }) => {
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
+  const shared = useSharedStyles();
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
   const accentColor = selectedColor ?? theme.colors.primary;
 
-  const [translateY] = useState(() => new Animated.Value(visible ? 0 : 600));
-  const [backdropOpacity] = useState(() => new Animated.Value(visible ? 1 : 0));
-  const heightRef = useRef(0);
-  const hasLaidOut = useRef(false);
-
-  useEffect(() => {
-    if (!hasLaidOut.current) return;
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: visible ? 0 : heightRef.current,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: visible ? 1 : 0,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
-
   return (
-    <>
-      {/* Backdrop */}
-      <AnimatedBackdrop opacity={backdropOpacity} visible={visible} onPress={onClose} />
+    <BottomSheetModal visible={visible} onClose={onClose} sheetStyle={styles.sheet}>
+      <View style={shared.modal.sheetHeader}>
+        <Text style={shared.modal.sheetTitle}>{title}</Text>
+        <TouchableOpacity onPress={onClose}>
+          <FontAwesome name="times" size={18} color={theme.colors.onSurfaceVariant} />
+        </TouchableOpacity>
+      </View>
 
-      {/* Sheet */}
-      <Animated.View
-        pointerEvents={visible ? 'auto' : 'none'}
-        style={[
-          styles.sheet,
-          {
-            backgroundColor: theme.colors.surfaceContainerLow,
-            paddingBottom: Math.max(insets.bottom, 16) + 16,
-            transform: [{ translateY }],
-          },
-        ]}
-        onLayout={(e) => {
-          const h = e.nativeEvent.layout.height;
-          heightRef.current = h;
-          hasLaidOut.current = true;
-          // Keep the hidden resting position in sync with content height while
-          // closed — the same modal instance is reused for different category
-          // lists (e.g. switching Expenses/Income), whose sheets render at
-          // different heights, so a stale translateY would leave the sheet
-          // partially visible above the screen bottom.
-          if (!visible) {
-            translateY.setValue(h);
-            backdropOpacity.setValue(0);
-          }
-        }}
-      >
-        <View style={styles.sheetHeader}>
-          <Text style={[styles.sheetTitle, { color: onSurface }]}>{title}</Text>
-          <TouchableOpacity onPress={onClose}>
-            <FontAwesome name="times" size={18} color={theme.colors.onSurfaceVariant} />
-          </TouchableOpacity>
-        </View>
-
-        {categories.length === 0 ? (
-          <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
-            {emptyMessage}
-          </Text>
-        ) : (
-          <ScrollView contentContainerStyle={styles.chipGrid} keyboardShouldPersistTaps="handled">
-            {showAllOption && (
+      {categories.length === 0 ? (
+        <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
+          {emptyMessage}
+        </Text>
+      ) : (
+        <ScrollView contentContainerStyle={styles.chipGrid} keyboardShouldPersistTaps="handled">
+          {showAllOption && (
+            <TouchableOpacity
+              style={[
+                styles.categoryChip,
+                {
+                  backgroundColor:
+                    selectedCategoryId == null ? accentColor : theme.colors.surfaceContainerHigh,
+                  borderColor:
+                    selectedCategoryId == null ? accentColor : theme.colors.outlineVariant,
+                },
+              ]}
+              onPress={() => { onSelectAll?.(); onClose(); }}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.chipText,
+                  {
+                    color:
+                      selectedCategoryId == null
+                        ? theme.colors.onPrimary
+                        : onSurface,
+                  },
+                ]}
+              >
+                All Categories
+              </Text>
+            </TouchableOpacity>
+          )}
+          {categories.map((cat) => {
+            const isSelected = selectedCategoryId != null && cat.id === selectedCategoryId;
+            return (
               <TouchableOpacity
+                key={cat.id}
                 style={[
                   styles.categoryChip,
                   {
-                    backgroundColor:
-                      selectedCategoryId == null ? accentColor : theme.colors.surfaceContainerHigh,
-                    borderColor:
-                      selectedCategoryId == null ? accentColor : theme.colors.outlineVariant,
+                    backgroundColor: isSelected ? accentColor : theme.colors.surfaceContainerHigh,
+                    borderColor: isSelected ? accentColor : theme.colors.outlineVariant,
                   },
                 ]}
-                onPress={() => { onSelectAll?.(); onClose(); }}
+                onPress={() => onSelectCategory(cat)}
                 activeOpacity={0.8}
               >
-                <Text
-                  style={[
-                    styles.chipText,
-                    {
-                      color:
-                        selectedCategoryId == null
-                          ? theme.colors.onPrimary
-                          : onSurface,
-                    },
-                  ]}
-                >
-                  All Categories
+                <Text style={[styles.chipText, { color: isSelected ? theme.colors.onPrimary : onSurface }]}>
+                  {cat.emoji ? `${cat.emoji} ` : ''}{cat.name}
                 </Text>
               </TouchableOpacity>
-            )}
-            {categories.map((cat) => {
-              const isSelected = selectedCategoryId != null && cat.id === selectedCategoryId;
-              return (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.categoryChip,
-                    {
-                      backgroundColor: isSelected ? accentColor : theme.colors.surfaceContainerHigh,
-                      borderColor: isSelected ? accentColor : theme.colors.outlineVariant,
-                    },
-                  ]}
-                  onPress={() => onSelectCategory(cat)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.chipText, { color: isSelected ? theme.colors.onPrimary : onSurface }]}>
-                    {cat.emoji ? `${cat.emoji} ` : ''}{cat.name}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        )}
+            );
+          })}
+        </ScrollView>
+      )}
 
-        {onManageCategories && (
-          <TouchableOpacity
-            style={[styles.manageCategoriesButton, { borderColor: theme.colors.outlineVariant }]}
-            onPress={onManageCategories}
-          >
-            <Text style={[styles.manageCategoriesText, { color: theme.colors.primary }]}>
-              + Manage Categories
-            </Text>
-          </TouchableOpacity>
-        )}
-      </Animated.View>
-    </>
+      {onManageCategories && (
+        <TouchableOpacity
+          style={[styles.manageCategoriesButton, { borderColor: theme.colors.outlineVariant }]}
+          onPress={onManageCategories}
+        >
+          <Text style={[styles.manageCategoriesText, { color: theme.colors.primary }]}>
+            + Manage Categories
+          </Text>
+        </TouchableOpacity>
+      )}
+    </BottomSheetModal>
   );
 };
 
 const styles = StyleSheet.create({
-
-  sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 11,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '75%',
-    padding: 24,
-  },
-  sheetHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  sheetTitle: { fontSize: 18, fontWeight: '700' },
+  sheet: { padding: 24 },
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingBottom: 8 },
   categoryChip: { borderWidth: 1, borderRadius: 9999, paddingHorizontal: 14, paddingVertical: 8 },
   chipText: { fontSize: 14, fontWeight: '600' },

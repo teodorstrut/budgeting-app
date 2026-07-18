@@ -1,11 +1,8 @@
-import React, { useCallback, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { useTheme } from '../providers/ThemeProvider';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router/react-navigation';
 import { transactionService } from '../services/transactionService';
-import { settingsService } from '../services/settingsService';
-import { monthUtils } from '../utils/monthUtils';
 import { SummaryTile } from '../components/ui/SummaryTile';
 import { BudgetHealthWidget } from '../components/ui/BudgetHealthWidget';
 import { TransactionList } from '../components/data/TransactionList';
@@ -13,44 +10,39 @@ import { Transaction } from '../database/repositories/transactionRepository';
 import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
 import { AddTransactionButton } from '../components/layout/AddTransactionButton';
-import { budgetService, BudgetHealthEntry } from '../services/budgetService';
+import { budgetService } from '../services/budgetService';
 import { OwnershipToggle } from '../components/ui/OwnershipToggle';
-
-const getMonthLabel = (startDate: string): string => {
-  const [y, m] = startDate.split('-').map(Number);
-  return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-};
+import { useCurrentMonthPeriod } from '../hooks/useCurrentMonthPeriod';
+import { formatCurrency, formatMonthLabel } from '../utils/formatting';
 
 export default function Index() {
   const { theme } = useTheme();
   const router = useRouter();
-  const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, balance: 0 });
-  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
-  const [monthLabel, setMonthLabel] = useState('');
-  const [budgetHealthData, setBudgetHealthData] = useState<BudgetHealthEntry[]>([]);
-  const [hasBudgets, setHasBudgets] = useState(false);
   const [ownershipFilter, setOwnershipFilter] = useState<'mine' | 'all'>('mine');
+  const { periodStart, periodEnd, focusTick } = useCurrentMonthPeriod();
 
-  useFocusEffect(
-    useCallback(() => {
-      const day = settingsService.getMonthStartDay();
-      
-      const start = monthUtils.getCurrentMonthStart(day);
-      const end = monthUtils.getCurrentMonthEnd(day);
-      
-      setSummary(transactionService.getSummaryForDateRange(start, end));
-      const allRecent = transactionService.getRecentTransactionsForDateRange(start, end, 5);
-      setRecentTransactions(allRecent);
-      setMonthLabel(getMonthLabel(start));
-      const budgetsExist = budgetService.hasBudgets();
-      setHasBudgets(budgetsExist);
-      if (budgetsExist) {
-        setBudgetHealthData(budgetService.getBudgetHealthData(start, end));
-      }
-    }, [])
+  const summary = useMemo(
+    () => transactionService.getSummaryForDateRange(periodStart, periodEnd),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periodStart, periodEnd, focusTick]
+  );
+  const recentTransactions = useMemo(
+    () => transactionService.getRecentTransactionsForDateRange(periodStart, periodEnd, 5),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periodStart, periodEnd, focusTick]
+  );
+  const hasBudgets = useMemo(
+    () => budgetService.hasBudgets(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [focusTick]
+  );
+  const budgetHealthData = useMemo(
+    () => (hasBudgets ? budgetService.getBudgetHealthData(periodStart, periodEnd) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [hasBudgets, periodStart, periodEnd, focusTick]
   );
 
-  const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
+  const monthLabel = formatMonthLabel(periodStart);
   const navigateToEdit = (transaction: Transaction) => {
     if (transaction.id == null) {
       return;

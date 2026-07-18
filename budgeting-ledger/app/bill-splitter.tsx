@@ -14,6 +14,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../providers/ThemeProvider';
+import { useSharedStyles } from '../theme/styles';
 
 import { EmptyState } from '../components/ui/EmptyState';
 import { Category, categoryRepository } from '../database/repositories/categoryRepository';
@@ -24,6 +25,8 @@ import { AppInputLabel } from '../components/ui/AppInputLabel';
 import { AppTextInput } from '../components/ui/AppTextInput';
 import { Header } from '../components/layout/Header';
 import { CategoryPickerModal } from '../components/ui/CategoryPickerModal';
+import { useCalculatorKeypad } from '../hooks/useCalculatorKeypad';
+import { formatAmountForCalculator } from '../utils/formatting';
 
 type Split = {
   category: Category;
@@ -33,19 +36,18 @@ type Split = {
 
 export default function BillSplitter() {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [totalAmount, setTotalAmount] = useState('');
   const [note, setNote] = useState('');
-  const [calculatorVisible, setCalculatorVisible] = useState(true);
-  const [calculatorTarget, setCalculatorTarget] = useState<'total' | number>('total');
+  const calc = useCalculatorKeypad<'total' | number>(true, 'total');
   const [splits, setSplits] = useState<Split[]>([]);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
 
   const noteRef = useRef<TextInput>(null);
-  const [calcHeight, setCalcHeight] = useState(0);
 
   const expenseCategories = useMemo(
     () => (step === 2 ? categoryRepository.getAllSortedByUsage().filter((c) => c.type === 'expense') : []),
@@ -110,20 +112,20 @@ export default function BillSplitter() {
   };
 
   const handleCalculatorConfirm = (value: string) => {
-    if (calculatorTarget === 'total') {
+    if (calc.target === 'total') {
       setTotalAmount(value);
-      setCalculatorVisible(false);
+      calc.close();
       setTimeout(() => noteRef.current?.focus(), 300);
     } else {
-      updateSplitByAmount(calculatorTarget, parseFloat(value) || 0);
-      setCalculatorVisible(false);
+      updateSplitByAmount(calc.target ?? 0, parseFloat(value) || 0);
+      calc.close();
     }
   };
 
   const calcInitialValue = (): string => {
-    if (calculatorTarget === 'total') return totalAmount;
-    const amount = splits[calculatorTarget]?.amount ?? 0;
-    return amount % 1 === 0 ? String(amount) : amount.toFixed(2);
+    if (calc.target === 'total' || calc.target == null) return totalAmount;
+    const amount = splits[calc.target]?.amount ?? 0;
+    return formatAmountForCalculator(amount);
   };
 
   const openCategoryPicker = () => setCategoryPickerVisible(true);
@@ -133,8 +135,7 @@ export default function BillSplitter() {
     setSplits((prev) => [...prev, { category, amount: 0, percentage: 0 }]);
     setCategoryPickerVisible(false);
     setTimeout(() => {
-      setCalculatorTarget(newIndex);
-      setCalculatorVisible(true);
+      calc.open(newIndex);
     }, 300);
   };
 
@@ -177,7 +178,7 @@ export default function BillSplitter() {
     >
       {step === 1 ? (
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: calculatorVisible && calcHeight > 0 ? calcHeight : insets.bottom + 32 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: calc.visible && calc.height > 0 ? calc.height : insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
           <Header
@@ -191,10 +192,7 @@ export default function BillSplitter() {
 
           <TouchableOpacity
             style={[styles.amountDisplayPill, { backgroundColor: theme.colors.surfaceContainerHigh }]}
-            onPress={() => {
-              setCalculatorTarget('total');
-              setCalculatorVisible(true);
-            }}
+            onPress={() => calc.open('total')}
             activeOpacity={0.8}
           >
             <Text style={[styles.currencySign, { color: theme.colors.primaryContainer }]}>$</Text>
@@ -213,6 +211,7 @@ export default function BillSplitter() {
 
           <TouchableOpacity
             style={[
+              shared.buttons.primaryLarge,
               styles.continueButton,
               { backgroundColor: total > 0 ? theme.colors.primary : theme.colors.surfaceContainerHigh },
             ]}
@@ -222,7 +221,7 @@ export default function BillSplitter() {
           >
             <Text
               style={[
-                styles.continueText,
+                shared.buttons.primaryLargeText,
                 { color: total > 0 ? theme.colors.onPrimary : theme.colors.onSurfaceVariant },
               ]}
             >
@@ -232,7 +231,7 @@ export default function BillSplitter() {
         </ScrollView>
       ) : (
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: calculatorVisible && calcHeight > 0 ? calcHeight : insets.bottom + 32 }]}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: calc.visible && calc.height > 0 ? calc.height : insets.bottom + 32 }]}
           keyboardShouldPersistTaps="handled"
         >
           <Header
@@ -306,10 +305,7 @@ export default function BillSplitter() {
                   <View style={styles.cardRightActions}>
                     <TouchableOpacity
                       style={[styles.amountPill, { backgroundColor: theme.colors.surfaceContainerHigh }]}
-                      onPress={() => {
-                        setCalculatorTarget(index);
-                        setCalculatorVisible(true);
-                      }}
+                      onPress={() => calc.open(index)}
                       activeOpacity={0.8}
                     >
                       <Text style={[styles.amountPillText, { color: theme.colors.primary }]}>
@@ -364,6 +360,7 @@ export default function BillSplitter() {
 
           <TouchableOpacity
             style={[
+              shared.buttons.primaryLarge,
               styles.finalizeButton,
               { backgroundColor: allocatedAmount > 0 ? theme.colors.primary : theme.colors.surfaceContainerHigh },
             ]}
@@ -373,7 +370,7 @@ export default function BillSplitter() {
           >
             <Text
               style={[
-                styles.finalizeText,
+                shared.buttons.primaryLargeText,
                 { color: allocatedAmount > 0 ? theme.colors.onPrimary : theme.colors.onSurfaceVariant },
               ]}
             >
@@ -399,11 +396,11 @@ export default function BillSplitter() {
         title="Pick Expense Category"
       />
       <CalculatorKeypad
-        visible={calculatorVisible}
+        visible={calc.visible}
         initialValue={calcInitialValue()}
-        onHeightChange={setCalcHeight}
+        onHeightChange={calc.onHeightChange}
         onConfirm={handleCalculatorConfirm}
-        onDismiss={() => setCalculatorVisible(false)}
+        onDismiss={calc.close}
       />
     </View>
   );
@@ -445,15 +442,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   continueButton: {
-    borderRadius: 32,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 8,
-  },
-  continueText: {
-    fontSize: 16,
-    fontWeight: '700',
   },
   allocationHeader: {
     flexDirection: 'row',
@@ -582,16 +571,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   finalizeButton: {
-    borderRadius: 32,
-    paddingVertical: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     marginTop: 8,
     marginBottom: 16,
-  },
-  finalizeText: {
-    fontSize: 17,
-    fontWeight: '700',
   },
 });

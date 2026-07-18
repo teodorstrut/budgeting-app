@@ -1,16 +1,15 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
-  Animated,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
-import { AnimatedBackdrop } from './AnimatedBackdrop';
+import { BottomSheetModal } from './BottomSheetModal';
 import { useTheme } from '../../providers/ThemeProvider';
+import { useSharedStyles } from '../../theme/styles';
 import { transactionService } from '../../services/transactionService';
 import { TransactionItem } from '../data/TransactionItem';
 import { formatAmount } from '../../utils/formatting';
@@ -37,13 +36,7 @@ export const CategoryTransactionsModal: React.FC<CategoryTransactionsModalProps>
   type = 'expense',
 }) => {
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
-  const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
-
-  const [translateY] = useState(() => new Animated.Value(600));
-  const [backdropOpacity] = useState(() => new Animated.Value(0));
-  const heightRef = useRef(0);
-  const hasLaidOut = useRef(false);
+  const shared = useSharedStyles();
 
   // Load transactions whenever the modal opens
   const transactions = useMemo(
@@ -51,101 +44,52 @@ export const CategoryTransactionsModal: React.FC<CategoryTransactionsModalProps>
     [visible, categoryId, periodStart, periodEnd]
   );
 
-  useEffect(() => {
-    if (!hasLaidOut.current) return;
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: visible ? 0 : heightRef.current,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: visible ? 1 : 0,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
-
   const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
 
   return (
-    <>
-      <AnimatedBackdrop opacity={backdropOpacity} visible={visible} onPress={onClose} />
-
-      <Animated.View
-        pointerEvents={visible ? 'auto' : 'none'}
-        style={[
-          styles.sheet,
-          {
-            backgroundColor: theme.colors.surfaceContainerLow,
-            paddingBottom: Math.max(insets.bottom, 16) + 16,
-            transform: [{ translateY }],
-          },
-        ]}
-        onLayout={(e) => {
-          const h = e.nativeEvent.layout.height;
-          heightRef.current = h;
-          if (!hasLaidOut.current) {
-            hasLaidOut.current = true;
-            if (!visible) {
-              translateY.setValue(h);
-              backdropOpacity.setValue(0);
-            }
-          }
-        }}
-      >
-        {/* Header */}
-        <View style={styles.sheetHeader}>
-          <View style={styles.headerLeft}>
-            <Text style={[styles.sheetTitle, { color: onSurface }]}>
-              {emoji ? `${emoji} ` : ''}{categoryName}
-            </Text>
-            <Text style={[styles.totalText, { color: theme.colors.onSurfaceVariant }]}>
-              {transactions.length} transaction{transactions.length !== 1 ? 's' : ''} · {formatAmount(totalAmount, type)}
-            </Text>
-          </View>
-          <TouchableOpacity onPress={onClose}>
-            <FontAwesome name="times" size={18} color={theme.colors.onSurfaceVariant} />
-          </TouchableOpacity>
-        </View>
-
-        {transactions.length === 0 ? (
-          <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
-            No transactions in this period.
+    <BottomSheetModal visible={visible} onClose={onClose} sheetStyle={styles.sheet}>
+      {/* Header */}
+      <View style={styles.sheetHeader}>
+        <View style={styles.headerLeft}>
+          <Text style={[shared.modal.sheetTitle, styles.sheetTitle]}>
+            {emoji ? `${emoji} ` : ''}{categoryName}
           </Text>
-        ) : (
-          <ScrollView
-            contentContainerStyle={styles.listContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {transactions.map((t) => (
-              <TransactionItem
-                key={t.id}
-                transaction={t}
-                categoryEmoji={emoji}
-                categoryName={categoryName}
-                dateDisplayMode="relative"
-              />
-            ))}
-          </ScrollView>
-        )}
-      </Animated.View>
-    </>
+          <Text style={[styles.totalText, { color: theme.colors.onSurfaceVariant }]}>
+            {transactions.length} transaction{transactions.length !== 1 ? 's' : ''} · {formatAmount(totalAmount, type)}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={onClose}>
+          <FontAwesome name="times" size={18} color={theme.colors.onSurfaceVariant} />
+        </TouchableOpacity>
+      </View>
+
+      {transactions.length === 0 ? (
+        <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>
+          No transactions in this period.
+        </Text>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.listContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {transactions.map((t) => (
+            <TransactionItem
+              key={t.id}
+              transaction={t}
+              categoryEmoji={emoji}
+              categoryName={categoryName}
+              dateDisplayMode="relative"
+            />
+          ))}
+        </ScrollView>
+      )}
+    </BottomSheetModal>
   );
 };
 
 const styles = StyleSheet.create({
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 11,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
     maxHeight: '80%',
     padding: 24,
   },
@@ -160,8 +104,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   sheetTitle: {
-    fontSize: 18,
-    fontWeight: '700',
     marginBottom: 2,
   },
   totalText: {

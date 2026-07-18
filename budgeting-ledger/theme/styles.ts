@@ -21,6 +21,14 @@ export const shadows = {
     shadowRadius: 48,
     elevation: 4,
   },
+  // Used by Header, NavBar, and AddTransactionButton — shadowColor is theme-dependent
+  // so callers spread this and add their own shadowColor.
+  elevated: {
+    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+    elevation: 6,
+  },
 };
 
 // Gradients (For CTAs, use react-native-linear-gradient if needed)
@@ -252,6 +260,19 @@ export function useSharedStyles() {
         alignItems: 'center',
         justifyContent: 'center',
       },
+      // Full-width pill CTA at the bottom of a form screen (Add Transaction,
+      // Bill Splitter, Budgets, Settings). Color is caller-supplied via a
+      // style-array override since it varies (primary/primaryContainer/secondary).
+      primaryLarge: {
+        borderRadius: 9999,
+        minHeight: 54,
+        paddingVertical: 16,
+        flexDirection: 'row' as const,
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+      },
+      primaryLargeText: { fontSize: 16, fontWeight: '700' as const },
     }),
 
     // ── Inputs ────────────────────────────────────────────────────────────────

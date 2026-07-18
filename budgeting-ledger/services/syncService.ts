@@ -10,6 +10,8 @@ import { settingsService } from './settingsService';
 import { GoogleSpreadsheet, GoogleSpreadsheetPage, SyncConfig, SyncRow } from '../types/sync';
 import { SECURE_KEYS, SETTING_KEYS, SYNC } from '../constants/settings';
 import { sanitizeForSheets, authorizedFetch, parseErrorMessage } from './googleSheetsUtils';
+import { isValidTransactionType } from '../utils/validators';
+import { readSheetRange, buildRowIndex, batchUpdateRows, appendRows } from './sync/sheetRowSync';
 
 type ExtraConfig = { googleAuth?: { androidClientId?: string; iosClientId?: string } };
 
@@ -40,10 +42,6 @@ interface SpreadsheetDetailsResponse {
       title?: string;
     };
   }>;
-}
-
-interface GoogleSheetValuesResponse {
-  values?: string[][];
 }
 
 /**
@@ -450,15 +448,11 @@ const performFullSync = async (
   const ownerPrefix = `${ownerKey}::`;
 
   // 1. Read all existing rows and record each row's position in the sheet.
-  const existingRows = await readAllDataRows(token, encodedSheetId, sheetName);
+  const existingRows = await readSheetRange(token, encodedSheetId, sheetName, 'A2:I');
 
   // 2. Build syncKey → 1-based sheet row number for every row in the sheet.
   //    Row 1 is the header; data starts at row 2, which is existingRows[0].
-  const keyToRow = new Map<string, number>();
-  existingRows.forEach((row, index) => {
-    const key = (row[0] ?? '').trim();
-    if (key) keyToRow.set(key, index + 2);
-  });
+  const keyToRow = buildRowIndex(existingRows, (row) => row[0] ?? '', 2);
 
   // 3. Pull foreign rows into local DB as read-only transactions (unchanged).
   pullForeignRowsFromSheet(ownerKey, existingRows);
@@ -501,37 +495,18 @@ const performFullSync = async (
   const updateData = [
     ...toUpdate.map((row) => {
       const syncKey = makeSyncKey(ownerKey, row.id);
-      const rowNum = keyToRow.get(syncKey)!;
-      return {
-        range: `${sheetName}!A${rowNum}:I${rowNum}`,
-        values: [rowToValues(row)],
-      };
+      return { rowNum: keyToRow.get(syncKey)!, values: rowToValues(row) };
     }),
     ...toMarkDeleted.map(({ syncKey, rowNum, deletedAt }) => {
       const localId = parseInt(syncKey.substring(ownerPrefix.length), 10);
-      return {
-        range: `${sheetName}!A${rowNum}:I${rowNum}`,
-        values: [deletedRowValues(localId, deletedAt)],
-      };
+      return { rowNum, values: deletedRowValues(localId, deletedAt) };
     }),
   ];
 
-  if (updateData.length > 0) {
-    const batchResponse = await authorizedFetch(
-      token,
-      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values:batchUpdate`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data: updateData }),
-      },
-    );
-    if (!batchResponse.ok) {
-      throw new Error(await parseErrorMessage(batchResponse, 'Failed to update transactions in Google Sheet.'));
-    }
-  }
+  await batchUpdateRows(token, encodedSheetId, sheetName, 'A:I', updateData);
 
   // 7. Append DB rows that have no sheet row yet.
-  await appendNewRows(token, encodedSheetId, sheetName, toAppend, rowToValues);
+  await appendRows(token, encodedSheetId, sheetName, 'A:I', toAppend.map(rowToValues));
 
   const at = finalizeSyncTimestamp();
   return { rowsPushed: myRows.length, at };
@@ -554,132 +529,32 @@ const performIncrementalSync = async (
     return { rowsPushed: 0, at };
   }
 
-  const keyToRow = await readSyncKeyColumn(token, encodedSheetId, sheetName);
+  const keyColumnRows = await readSheetRange(token, encodedSheetId, sheetName, 'A2:A');
+  const keyToRow = buildRowIndex(keyColumnRows, (row) => row[0] ?? '', 2);
 
   const toUpdateActive = changedRows.filter((r) => keyToRow.has(makeSyncKey(ownerKey, r.id)));
   const toAppendActive = changedRows.filter((r) => !keyToRow.has(makeSyncKey(ownerKey, r.id)));
   const toUpdateDeleted = deletedRows.filter((r) => keyToRow.has(makeSyncKey(ownerKey, r.id)));
 
-  await updateExistingRows(token, encodedSheetId, sheetName, ownerKey, toUpdateActive, toUpdateDeleted, keyToRow, rowToValues, deletedRowValues);
-  await appendNewRows(token, encodedSheetId, sheetName, toAppendActive, rowToValues);
+  const updateData = [
+    ...toUpdateActive.map((row) => ({
+      rowNum: keyToRow.get(makeSyncKey(ownerKey, row.id))!,
+      values: rowToValues(row),
+    })),
+    ...toUpdateDeleted.map((row) => ({
+      rowNum: keyToRow.get(makeSyncKey(ownerKey, row.id))!,
+      values: deletedRowValues(row.id, row.deletedAt),
+    })),
+  ];
+  await batchUpdateRows(token, encodedSheetId, sheetName, 'A:I', updateData);
+  await appendRows(token, encodedSheetId, sheetName, 'A:I', toAppendActive.map(rowToValues));
 
   // Pull all sheet rows to sync any foreign transactions added since last run
-  const allRows = await readAllDataRows(token, encodedSheetId, sheetName);
+  const allRows = await readSheetRange(token, encodedSheetId, sheetName, 'A2:I');
   pullForeignRowsFromSheet(ownerKey, allRows);
 
   const at = finalizeSyncTimestamp();
   return { rowsPushed: changedRows.length + deletedRows.length, at };
-};
-
-const readAllDataRows = async (
-  token: string,
-  encodedSheetId: string,
-  sheetName: string,
-): Promise<string[][]> => {
-  const response = await authorizedFetch(
-    token,
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-      `${sheetName}!A2:I`,
-    )}`,
-  );
-  if (!response.ok) {
-    throw new Error(await parseErrorMessage(response, 'Failed to read existing sheet data.'));
-  }
-  const data = (await response.json()) as GoogleSheetValuesResponse;
-  return data.values ?? [];
-};
-
-const readSyncKeyColumn = async (
-  token: string,
-  encodedSheetId: string,
-  sheetName: string,
-): Promise<Map<string, number>> => {
-  const keyColumnResponse = await authorizedFetch(
-    token,
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-      `${sheetName}!A:A`,
-    )}`,
-  );
-  if (!keyColumnResponse.ok) {
-    throw new Error(await parseErrorMessage(keyColumnResponse, 'Failed to read existing sheet sync keys.'));
-  }
-  const keyColumnData = (await keyColumnResponse.json()) as GoogleSheetValuesResponse;
-  const keyToRow = new Map<string, number>();
-  (keyColumnData.values ?? []).forEach((cell, index) => {
-    if (index === 0) return;
-    const key = (cell[0] ?? '').trim();
-    if (key) {
-      keyToRow.set(key, index + 1);
-    }
-  });
-  return keyToRow;
-};
-
-const updateExistingRows = async (
-  token: string,
-  encodedSheetId: string,
-  sheetName: string,
-  ownerKey: string,
-  toUpdateActive: SyncRow[],
-  toUpdateDeleted: Array<{ id: number; deletedAt: string }>,
-  keyToRow: Map<string, number>,
-  rowToValues: (row: SyncRow) => (string | number)[],
-  deletedRowValues: (id: number, deletedAt: string) => (string | number)[],
-): Promise<void> => {
-  if (toUpdateActive.length === 0 && toUpdateDeleted.length === 0) return;
-
-  const updateData = [
-    ...toUpdateActive.map((row) => {
-      const syncKey = makeSyncKey(ownerKey, row.id);
-      return {
-        range: `${sheetName}!A${keyToRow.get(syncKey)}:I${keyToRow.get(syncKey)}`,
-        values: [rowToValues(row)],
-      };
-    }),
-    ...toUpdateDeleted.map((row) => {
-      const syncKey = makeSyncKey(ownerKey, row.id);
-      return {
-        range: `${sheetName}!A${keyToRow.get(syncKey)}:I${keyToRow.get(syncKey)}`,
-        values: [deletedRowValues(row.id, row.deletedAt)],
-      };
-    }),
-  ];
-
-  const batchResponse = await authorizedFetch(
-    token,
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values:batchUpdate`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ valueInputOption: 'USER_ENTERED', data: updateData }),
-    },
-  );
-  if (!batchResponse.ok) {
-    throw new Error(await parseErrorMessage(batchResponse, 'Failed to update changed rows in Google Sheet.'));
-  }
-};
-
-const appendNewRows = async (
-  token: string,
-  encodedSheetId: string,
-  sheetName: string,
-  toAppendActive: SyncRow[],
-  rowToValues: (row: SyncRow) => (string | number)[],
-): Promise<void> => {
-  if (toAppendActive.length === 0) return;
-
-  const appendResponse = await authorizedFetch(
-    token,
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${encodeURIComponent(
-      `${sheetName}!A:I`,
-    )}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-    {
-      method: 'POST',
-      body: JSON.stringify({ values: toAppendActive.map(rowToValues) }),
-    },
-  );
-  if (!appendResponse.ok) {
-    throw new Error(await parseErrorMessage(appendResponse, 'Failed to append new transactions to Google Sheet.'));
-  }
 };
 
 /**
@@ -703,10 +578,10 @@ const pullForeignRowsFromSheet = (ownerKey: string, rows: string[][]): void => {
     const date = (row[6] ?? '').trim();
     const amountRaw = (row[5] ?? '').trim().replace(',', '.');
     const amount = parseFloat(amountRaw);
-    const type = (row[3] ?? '').trim() as 'income' | 'expense';
+    const type = (row[3] ?? '').trim();
     const updatedAt = (row[7] ?? '').trim();
 
-    if (!date || isNaN(amount) || (type !== 'income' && type !== 'expense')) continue;
+    if (!date || isNaN(amount) || !isValidTransactionType(type)) continue;
 
     if (deletedAt) {
       // Remove from local DB if previously inserted

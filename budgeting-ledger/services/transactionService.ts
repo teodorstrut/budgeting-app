@@ -5,6 +5,7 @@ import { settingsService } from './settingsService';
 import { monthUtils } from '../utils/monthUtils';
 import { SyncRow } from '../types/sync';
 import db from '../database/connection';
+import { isValidTransactionType } from '../utils/validators';
 
 const toIsoDate = (raw: string | undefined): string => {
   if (!raw) return '';
@@ -14,11 +15,31 @@ const toIsoDate = (raw: string | undefined): string => {
 const getCategoryMap = () =>
   new Map(categoryRepository.getAll().map((category) => [category.id, category]));
 
+const toSyncRow = (
+  transaction: Transaction,
+  categoriesById: ReturnType<typeof getCategoryMap>
+): SyncRow => {
+  const category = transaction.categoryId != null ? categoriesById.get(transaction.categoryId) : undefined;
+  const categoryText = [category?.emoji ?? '', category?.name ?? 'Uncategorized']
+    .join(' ')
+    .trim();
+
+  return {
+    id: transaction.id!,
+    name: transaction.note?.trim() || 'Untitled transaction',
+    type: transaction.type,
+    category: categoryText,
+    amount: transaction.amount,
+    datetime: transaction.date,
+    updatedAt: toIsoDate(transaction.updatedAt),
+  };
+};
+
 const validateTransaction = (transaction: { amount: number; type: string; date: string; categoryId?: number }) => {
   if (typeof transaction.amount !== 'number' || transaction.amount <= 0 || !Number.isFinite(transaction.amount)) {
     throw new Error('Amount must be a positive number.');
   }
-  if (transaction.type !== 'income' && transaction.type !== 'expense') {
+  if (!isValidTransactionType(transaction.type)) {
     throw new Error("Type must be 'income' or 'expense'.");
   }
   if (!transaction.date || Number.isNaN(new Date(transaction.date).getTime())) {
@@ -127,52 +148,16 @@ export const transactionService = {
 
   getRowsForGoogleSync: (): SyncRow[] => {
     const categoriesById = getCategoryMap();
-
     return transactionRepository.getAll()
       .filter((transaction) => !transaction.isReadOnly)
-      .map((transaction) => {
-      const category = transaction.categoryId != null ? categoriesById.get(transaction.categoryId) : undefined;
-      const categoryText = [category?.emoji ?? '', category?.name ?? 'Uncategorized']
-        .join(' ')
-        .trim();
-
-      const updatedAt = toIsoDate(transaction.updatedAt);
-
-      return {
-        id: transaction.id!,
-        name: transaction.note?.trim() || 'Untitled transaction',
-        type: transaction.type,
-        category: categoryText,
-        amount: transaction.amount,
-        datetime: transaction.date,
-        updatedAt,
-      };
-    });
+      .map((transaction) => toSyncRow(transaction, categoriesById));
   },
 
   getRowsChangedSince: (lastSync: string): SyncRow[] => {
     const categoriesById = getCategoryMap();
-
     return transactionRepository.getChangedSince(lastSync)
       .filter((transaction) => !transaction.isReadOnly)
-      .map((transaction) => {
-        const category = transaction.categoryId != null ? categoriesById.get(transaction.categoryId) : undefined;
-        const categoryText = [category?.emoji ?? '', category?.name ?? 'Uncategorized']
-          .join(' ')
-          .trim();
-
-        const updatedAt = toIsoDate(transaction.updatedAt);
-
-        return {
-          id: transaction.id!,
-          name: transaction.note?.trim() || 'Untitled transaction',
-          type: transaction.type,
-          category: categoryText,
-          amount: transaction.amount,
-          datetime: transaction.date,
-          updatedAt,
-        };
-      });
+      .map((transaction) => toSyncRow(transaction, categoriesById));
   },
 
   getDeletedRowsChangedSince: (lastSync: string): Array<{ id: number; deletedAt: string }> => {

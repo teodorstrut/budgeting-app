@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
-  Animated,
   Keyboard,
   ScrollView,
   StyleSheet,
@@ -10,7 +9,6 @@ import {
   View,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router/react-navigation';
 import { FontAwesome } from '@expo/vector-icons';
 import { Header } from '../components/layout/Header';
@@ -23,12 +21,11 @@ import { transactionRepository } from '../database/repositories/transactionRepos
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 import { AppInputLabel } from '../components/ui/AppInputLabel';
 import { AppTextInput } from '../components/ui/AppTextInput';
-import { AnimatedBackdrop } from '../components/ui/AnimatedBackdrop';
+import { BottomSheetModal } from '../components/ui/BottomSheetModal';
 import { confirmDialog } from '../utils/confirmDialog';
+import { getCategoryAccentBg } from '../utils/categoryColors';
 
 type CategoryType = 'income' | 'expense';
-
-const CONTAINER_BG_COLORS = ['#4fd1c528', '#ffb86628', '#ffa2c528', '#5adace28'];
 
 const EMPTY_MODAL_FORM = { emoji: '', name: '', type: 'expense' as CategoryType };
 
@@ -36,7 +33,6 @@ export default function ManageCategories() {
   const { theme } = useTheme();
   const shared = useSharedStyles();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ from?: string; type?: CategoryType }>();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -48,10 +44,6 @@ export default function ManageCategories() {
   // Modal state
   const [modalVisible, setModalVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [modalTranslateY] = useState(() => new Animated.Value(600));
-  const [modalBackdropOpacity] = useState(() => new Animated.Value(0));
-  const modalHasLaidOut = useRef(false);
-  const modalHeightRef = useRef(0);
 
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', (e) => setKeyboardHeight(e.endCoordinates.height));
@@ -59,15 +51,6 @@ export default function ManageCategories() {
     return () => { show.remove(); hide.remove(); };
   }, []);
 
-  useEffect(() => {
-    if (!modalHasLaidOut.current) return;
-    if (!modalVisible) return;
-    Animated.parallel([
-      Animated.timing(modalTranslateY, { toValue: 0, duration: 280, useNativeDriver: true }),
-      Animated.timing(modalBackdropOpacity, { toValue: 1, duration: 280, useNativeDriver: true }),
-    ]).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modalVisible]);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
   const [modalForm, setModalForm] = useState(EMPTY_MODAL_FORM);
@@ -101,12 +84,10 @@ export default function ManageCategories() {
     [categories, selectedType]
   );
 
-  const bgForIndex = (i: number) => CONTAINER_BG_COLORS[i % CONTAINER_BG_COLORS.length];
+  const bgForIndex = getCategoryAccentBg;
 
   // ── Modal helpers ──────────────────────────────────────────────────────────
   const openModal = () => {
-    modalTranslateY.setValue(modalHeightRef.current || 600);
-    modalBackdropOpacity.setValue(0);
     setModalVisible(true);
   };
 
@@ -129,21 +110,8 @@ export default function ManageCategories() {
   };
 
   const closeModal = () => {
-    Animated.parallel([
-      Animated.timing(modalTranslateY, {
-        toValue: modalHeightRef.current,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-      Animated.timing(modalBackdropOpacity, {
-        toValue: 0,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      setModalVisible(false);
-      setEditingCategoryId(null);
-    });
+    setModalVisible(false);
+    setEditingCategoryId(null);
   };
 
   const handleModalSave = () => {
@@ -321,33 +289,12 @@ export default function ManageCategories() {
         )}
       </ScrollView>
 
-      {/* Backdrop */}
-      <AnimatedBackdrop opacity={modalBackdropOpacity} visible={modalVisible} onPress={closeModal} />
-
       {/* Add / Edit Sheet */}
-      <Animated.View
-        pointerEvents={modalVisible ? 'auto' : 'none'}
-        style={[shared.modal.sheet, styles.sheetPadding, {
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          backgroundColor: theme.colors.surfaceContainerLow,
-          zIndex: 11,
-          paddingBottom: Math.max(insets.bottom, 16) + 16 + keyboardHeight,
-          transform: [{ translateY: modalTranslateY }],
-        }]}
-        onLayout={(e) => {
-          const h = e.nativeEvent.layout.height;
-          modalHeightRef.current = h;
-          if (!modalHasLaidOut.current) {
-            modalHasLaidOut.current = true;
-            if (!modalVisible) {
-              modalTranslateY.setValue(h);
-              modalBackdropOpacity.setValue(0);
-            }
-          }
-        }}
+      <BottomSheetModal
+        visible={modalVisible}
+        onClose={closeModal}
+        sheetStyle={styles.sheetPadding}
+        extraBottomPadding={keyboardHeight}
       >
               {/* Sheet Header */}
               <View style={shared.modal.sheetHeader}>
@@ -405,7 +352,7 @@ export default function ManageCategories() {
                   <Text style={shared.buttons.secondaryText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
-      </Animated.View>
+      </BottomSheetModal>
     </View>
   );
 }

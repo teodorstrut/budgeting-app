@@ -1,4 +1,6 @@
 import db from '../connection';
+import { isValidTransactionType } from '../../utils/validators';
+import { buildSetClause } from './queryHelpers';
 
 export interface Category {
   id?: number;
@@ -15,7 +17,7 @@ export const categoryRepository = {
     if (!name) {
       throw new Error('Category name is required.');
     }
-    if (category.type !== 'income' && category.type !== 'expense') {
+    if (!isValidTransactionType(category.type)) {
       throw new Error("Category type must be 'income' or 'expense'.");
     }
     const result = db.runSync(
@@ -46,22 +48,12 @@ export const categoryRepository = {
   },
 
   update: (id: number, category: Partial<Omit<Category, 'id'>>) => {
-    const fields = [];
-    const values = [];
-    if (category.emoji !== undefined) {
-      fields.push('emoji = ?');
-      values.push(category.emoji);
-    }
-    if (category.name !== undefined) {
-      fields.push('name = ?');
-      values.push(category.name);
-    }
-    if (category.type !== undefined) {
-      fields.push('type = ?');
-      values.push(category.type);
-    }
-    values.push(id);
-    db.runSync(`UPDATE categories SET ${fields.join(', ')} WHERE id = ?`, values);
+    const { clause, values } = buildSetClause({
+      emoji: category.emoji,
+      name: category.name,
+      type: category.type,
+    });
+    db.runSync(`UPDATE categories SET ${clause} WHERE id = ?`, [...values, id]);
   },
 
   delete: (id: number) => {

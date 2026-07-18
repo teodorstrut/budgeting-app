@@ -1,4 +1,5 @@
 import db from '../connection';
+import { buildSetClause } from './queryHelpers';
 
 export interface Transaction {
   id?: number;
@@ -50,32 +51,15 @@ export const transactionRepository = {
   },
 
   update: (id: number, transaction: Partial<Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>>) => {
-    const fields = [];
-    const values = [];
-    if (transaction.amount !== undefined) {
-      fields.push('amount = ?');
-      values.push(transaction.amount);
-    }
-    if (transaction.type !== undefined) {
-      fields.push('type = ?');
-      values.push(transaction.type);
-    }
-    if (transaction.categoryId !== undefined) {
-      fields.push('categoryId = ?');
-      values.push(transaction.categoryId);
-    }
-    if (transaction.note !== undefined) {
-      fields.push('note = ?');
-      values.push(transaction.note);
-    }
-    if (transaction.date !== undefined) {
-      fields.push('date = ?');
-      values.push(transaction.date);
-    }
-    fields.push('updatedAt = ?');
-    values.push(new Date().toISOString());
-    values.push(id);
-    db.runSync(`UPDATE transactions SET ${fields.join(', ')} WHERE id = ?`, values);
+    const { clause, values } = buildSetClause({
+      amount: transaction.amount,
+      type: transaction.type,
+      categoryId: transaction.categoryId,
+      note: transaction.note,
+      date: transaction.date,
+      updatedAt: new Date().toISOString(),
+    });
+    db.runSync(`UPDATE transactions SET ${clause} WHERE id = ?`, [...values, id]);
   },
 
   delete: (id: number) => {

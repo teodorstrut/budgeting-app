@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../../providers/ThemeProvider';
+import { shadows, useSharedStyles } from '../../theme/styles';
 
 interface HeaderProps {
   title: string;
@@ -25,10 +26,12 @@ export const Header: React.FC<HeaderProps> = ({
   titleStyle,
 }) => {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
 
   return (
     <View
       style={[
+        shared.containers.rowBetween,
         styles.headerRow,
         {
           backgroundColor: theme.colors.surfaceContainerHigh,
@@ -77,19 +80,13 @@ export const Header: React.FC<HeaderProps> = ({
 const styles = StyleSheet.create({
   headerRow: {
     width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 16,
     marginTop: 24,
     borderRadius: 24,
     borderWidth: 1,
     paddingHorizontal: 8,
     paddingVertical: 8,
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 6,
+    ...shadows.elevated,
   },
   headerLeft: {
     flexDirection: 'row',

@@ -20,25 +20,25 @@ import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
+import { getCategoryAccentColor, getCategoryAccentBg } from '../utils/categoryColors';
+import { useSharedStyles } from '../theme/styles';
+import { useCalculatorKeypad } from '../hooks/useCalculatorKeypad';
+import { formatAmountForCalculator } from '../utils/formatting';
 
 type BudgetRow = BudgetEntry;
 
-const ACCENT_COLORS = ['#4fd1c5', '#ffb866', '#ffa2c5', '#5adace'];
-const CONTAINER_BG_COLORS = ['#4fd1c528', '#ffb86628', '#ffa2c528', '#5adace28'];
-
 export default function Budgets() {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const [rows, setRows] = useState<BudgetRow[]>([]);
   const [allExpenseCategories, setAllExpenseCategories] = useState<Category[]>([]);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
-  const [calculatorVisible, setCalculatorVisible] = useState(false);
-  const [calculatorTarget, setCalculatorTarget] = useState<number>(0);
+  const calc = useCalculatorKeypad<number>();
 
   const scrollViewRef = useRef<ScrollView>(null);
-  const [calcHeight, setCalcHeight] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -59,8 +59,8 @@ export default function Budgets() {
     return allExpenseCategories.filter((c) => !usedIds.has(c.id!));
   }, [allExpenseCategories, rows]);
 
-  const colorForIndex = (i: number) => ACCENT_COLORS[i % ACCENT_COLORS.length];
-  const bgForIndex = (i: number) => CONTAINER_BG_COLORS[i % CONTAINER_BG_COLORS.length];
+  const colorForIndex = getCategoryAccentColor;
+  const bgForIndex = getCategoryAccentBg;
 
   const handleAddCategory = (cat: Category) => {
     const newIndex = rows.length;
@@ -80,21 +80,21 @@ export default function Budgets() {
   };
 
   const openCalculatorFor = (index: number) => {
-    setCalculatorTarget(index);
-    setCalculatorVisible(true);
+    calc.open(index);
   };
 
   const handleCalculatorConfirm = (value: string) => {
     const amount = parseFloat(value) || 0;
+    const target = calc.target ?? 0;
     setRows((prev) =>
-      prev.map((r, i) => (i === calculatorTarget ? { ...r, amount } : r))
+      prev.map((r, i) => (i === target ? { ...r, amount } : r))
     );
-    setCalculatorVisible(false);
+    calc.close();
   };
 
   const calcInitialValue = (): string => {
-    const amount = rows[calculatorTarget]?.amount ?? 0;
-    return amount > 0 ? (amount % 1 === 0 ? String(amount) : amount.toFixed(2)) : '';
+    const amount = rows[calc.target ?? 0]?.amount ?? 0;
+    return amount > 0 ? formatAmountForCalculator(amount) : '';
   };
 
   const handleSave = () => {
@@ -113,7 +113,7 @@ export default function Budgets() {
     <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: calculatorVisible && calcHeight > 0 ? calcHeight + 16 : insets.bottom + 160 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: calc.visible && calc.height > 0 ? calc.height + 16 : insets.bottom + 160 }]}
         keyboardShouldPersistTaps="handled"
       >
         <Header
@@ -202,12 +202,12 @@ export default function Budgets() {
         ]}
       >
         <TouchableOpacity
-          style={[styles.saveButton, { backgroundColor: theme.colors.primaryContainer }]}
+          style={[shared.buttons.primaryLarge, styles.saveButton, { backgroundColor: theme.colors.primaryContainer }]}
           onPress={handleSave}
           activeOpacity={0.85}
         >
           <FontAwesome name="save" size={18} color={theme.colors.onPrimary} style={styles.saveIcon} />
-          <Text style={[styles.saveText, { color: theme.colors.onPrimary }]}>Save Budgets</Text>
+          <Text style={[shared.buttons.primaryLargeText, styles.saveText, { color: theme.colors.onPrimary }]}>Save Budgets</Text>
         </TouchableOpacity>
       </View>
 
@@ -222,11 +222,11 @@ export default function Budgets() {
       />
 
       <CalculatorKeypad
-        visible={calculatorVisible}
+        visible={calc.visible}
         initialValue={calcInitialValue()}
-        onHeightChange={setCalcHeight}
+        onHeightChange={calc.onHeightChange}
         onConfirm={handleCalculatorConfirm}
-        onDismiss={() => setCalculatorVisible(false)}
+        onDismiss={calc.close}
       />
     </View>
   );
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
   deleteButton: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
 
   saveButtonContainer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 16, paddingTop: 12 },
-  saveButton: { borderRadius: 9999, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  saveButton: { paddingVertical: 18 },
   saveIcon: { marginRight: 10 },
-  saveText: { fontSize: 17, fontWeight: '700' },
+  saveText: { fontSize: 17 },
 });

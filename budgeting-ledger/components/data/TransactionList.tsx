@@ -4,6 +4,7 @@ import { Transaction } from '../../database/repositories/transactionRepository';
 import { TransactionItem } from './TransactionItem';
 import { useTheme } from '../../providers/ThemeProvider';
 import { categoryRepository } from '../../database/repositories/categoryRepository';
+import { EmptyState } from '../ui/EmptyState';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -25,11 +26,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   );
 
   if (transactions.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}>No transactions yet</Text>
-      </View>
-    );
+    return <EmptyState title="No transactions yet" />;
   }
 
   return (
@@ -59,14 +56,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 12,
     paddingHorizontal: 16,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
-  },
-  emptyText: {
-    fontSize: 16,
   },
 });

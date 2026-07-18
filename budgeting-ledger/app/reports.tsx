@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router/react-navigation';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../providers/ThemeProvider';
@@ -24,8 +23,10 @@ import { ProgressBar } from '../components/ui/ProgressBar';
 import { transactionService } from '../services/transactionService';
 import { budgetService } from '../services/budgetService';
 import { categoryRepository } from '../database/repositories/categoryRepository';
-import { settingsService } from '../services/settingsService';
 import { monthUtils } from '../utils/monthUtils';
+import { formatCurrency } from '../utils/formatting';
+import { getBudgetRatioColor } from '../utils/budgetColors';
+import { useMonthAnchor } from '../hooks/useMonthAnchor';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,20 +34,6 @@ const toDateInMonth = (anchorMonth: Date): string => {
   const y = anchorMonth.getFullYear();
   const m = String(anchorMonth.getMonth() + 1).padStart(2, '0');
   return `${y}-${m}-15`;
-};
-
-const formatMonthLabel = (start: string): string => {
-  const [y, mo] = start.split('-').map(Number);
-  const d = new Date(y, mo - 1, 1);
-  return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-};
-
-const formatCurrency = (value: number): string => `$${value.toFixed(2)}`;
-
-const barColorForRatio = (ratio: number, primary: string, secondary: string): string => {
-  if (ratio >= 1) return '#ef4444';
-  if (ratio >= 0.8) return secondary;
-  return primary;
 };
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -67,13 +54,8 @@ export default function Reports() {
   const router = useRouter();
 
   // Month navigation
-  const hasManuallyNavigated = useRef(false);
-  const [anchorMonth, setAnchorMonth] = useState<Date>(() => {
-    const day = settingsService.getMonthStartDay();
-    const startStr = monthUtils.getCurrentMonthStart(day);
-    const [y, m] = startStr.split('-').map(Number);
-    return new Date(y, m - 1, 1);
-  });
+  const { anchorMonth, monthStartDay, periodStart, periodEnd, monthLabel, moveMonth, focusTick } =
+    useMonthAnchor();
 
   // Category filter for bar chart
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
@@ -84,25 +66,6 @@ export default function Reports() {
 
   // Donut chart type toggle
   const [donutType, setDonutType] = useState<'expense' | 'income'>('expense');
-
-  // Incremented on every screen focus to trigger a data reload
-  const [focusTick, setFocusTick] = useState(0);
-
-  // ── month period ─────────────────────────────────────────────────────────
-  const { periodStart, periodEnd, monthLabel } = useMemo(() => {
-    const day = settingsService.getMonthStartDay();
-    const [start, end] = monthUtils.getMonthPeriodForDate(day, toDateInMonth(anchorMonth));
-    return {
-      periodStart: start,
-      periodEnd: end,
-      monthLabel: formatMonthLabel(start),
-    };
-  }, [anchorMonth]);
-
-  const moveMonth = (dir: -1 | 1) => {
-    hasManuallyNavigated.current = true;
-    setAnchorMonth((prev) => new Date(prev.getFullYear(), prev.getMonth() + dir, 1));
-  };
 
   // ── load data (sync SQLite → useMemo, see evolutionData note below) ───────
   // 1. Donut chart — category spending (respects donutType: expense | income)
@@ -159,7 +122,7 @@ export default function Reports() {
   // ── spending evolution (sync SQLite → useMemo so data is ready on same render
   //    as the key change, preventing gifted-charts from mounting with stale data) ──
   const evolutionData = useMemo<BarDataPoint[]>(() => {
-    const day = settingsService.getMonthStartDay();
+    const day = monthStartDay;
     const windowPeriods: { start: string; end: string; calLabel: string }[] = [];
     let cur = new Date(anchorMonth.getFullYear(), anchorMonth.getMonth() - 3, 1);
     for (let i = 0; i < 7; i++) {
@@ -183,18 +146,6 @@ export default function Reports() {
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [anchorMonth, selectedCategoryId, donutType, focusTick]);
-
-  useFocusEffect(
-    useCallback(() => {
-      if (!hasManuallyNavigated.current) {
-        const day = settingsService.getMonthStartDay();
-        const startStr = monthUtils.getCurrentMonthStart(day);
-        const [y, m] = startStr.split('-').map(Number);
-        setAnchorMonth(new Date(y, m - 1, 1));
-      }
-      setFocusTick((t) => t + 1);
-    }, [])
-  );
 
   // ── category picker label ─────────────────────────────────────────────────
   const selectedCategoryName = useMemo(() => {
@@ -269,7 +220,7 @@ export default function Reports() {
                   entry.budget != null && entry.budget > 0
                     ? Math.min(entry.spent / entry.budget, 1)
                     : 0;
-                const barColor = barColorForRatio(
+                const barColor = getBudgetRatioColor(
                   ratio,
                   theme.colors.primary,
                   theme.colors.secondary

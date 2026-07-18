@@ -1,11 +1,10 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router/react-navigation';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../providers/ThemeProvider';
@@ -17,11 +16,11 @@ import { TransactionItem } from '../components/data/TransactionItem';
 import { AppTextInput } from '../components/ui/AppTextInput';
 import { OwnershipToggle } from '../components/ui/OwnershipToggle';
 import { transactionService } from '../services/transactionService';
-import { settingsService } from '../services/settingsService';
-import { monthUtils } from '../utils/monthUtils';
+import { parseLocalDate } from '../utils/monthUtils';
 import { categoryRepository } from '../database/repositories/categoryRepository';
 import { Transaction } from '../database/repositories/transactionRepository';
 import { parseMaybeDate } from '../utils/formatting';
+import { useMonthAnchor } from '../hooks/useMonthAnchor';
 
 interface GroupedTransactions {
   key: string;
@@ -68,49 +67,24 @@ export default function History() {
   const { theme } = useTheme();
   const router = useRouter();
   const [query, setQuery] = useState('');
-  const [refreshTick, setRefreshTick] = useState(0);
-  const [monthStartDay, setMonthStartDay] = useState(1);
   const [ownershipFilter, setOwnershipFilter] = useState<'mine' | 'all'>('mine');
-  const hasManuallyNavigated = useRef(false);
-  const [anchorMonth, setAnchorMonth] = useState(() => {
-    const day = settingsService.getMonthStartDay();
-    const startStr = monthUtils.getCurrentMonthStart(day);
-    const [y, m] = startStr.split('-').map(Number);
-    return new Date(y, m - 1, 1);
-  });
+  const { periodStart, periodEnd, monthStartDay, moveMonth, focusTick } = useMonthAnchor();
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const day = settingsService.getMonthStartDay();
-      setMonthStartDay(day);
-      if (!hasManuallyNavigated.current) {
-        const startStr = monthUtils.getCurrentMonthStart(day);
-        const [y, m] = startStr.split('-').map(Number);
-        setAnchorMonth(new Date(y, m - 1, 1));
-      }
-      setRefreshTick((current) => current + 1);
-    }, [])
-  );
   const categoriesById = useMemo(
     () => new Map(categoryRepository.getAll().map((category) => [category.id, category])),
     []
   );
 
   const monthWindow = useMemo(() => {
-    // Get any date in the month being viewed, then find the period boundaries.
-    // Format as a local date string directly to avoid UTC conversion shifting the day.
-    const y = anchorMonth.getFullYear();
-    const m = String(anchorMonth.getMonth() + 1).padStart(2, '0');
-    const dateInMonthStr = `${y}-${m}-15`;
-    const [periodStart, periodEnd] = monthUtils.getMonthPeriodForDate(monthStartDay, dateInMonthStr);
-    
+    const end = parseLocalDate(periodEnd);
+    end.setHours(23, 59, 59, 999);
     return {
       startStr: periodStart,
       endStr: periodEnd,
-      start: (() => { const [y, m, d] = periodStart.split('-').map(Number); return new Date(y, m - 1, d); })(),
-      end: (() => { const [y, m, d] = periodEnd.split('-').map(Number); return new Date(y, m - 1, d, 23, 59, 59, 999); })(),
+      start: parseLocalDate(periodStart),
+      end,
     };
-  }, [anchorMonth, monthStartDay]);
+  }, [periodStart, periodEnd]);
 
   const groupedTransactions = useMemo<GroupedTransactions[]>(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -177,20 +151,15 @@ export default function History() {
         heading: formatSectionHeading(value.date),
         items: value.items,
       }));
-  // refreshTick is intentionally included to force re-fetch from DB on screen focus
+  // focusTick is intentionally included to force re-fetch from DB on screen focus
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoriesById, monthWindow.start, monthWindow.end, query, ownershipFilter, refreshTick]);
+  }, [categoriesById, monthWindow.start, monthWindow.end, query, ownershipFilter, focusTick]);
 
   const navigateToEdit = (transaction: Transaction) => {
     if (transaction.id == null) {
       return;
     }
     router.push({ pathname: '/add', params: { editId: transaction.id.toString() } });
-  };
-
-  const moveMonth = (direction: -1 | 1) => {
-    hasManuallyNavigated.current = true;
-    setAnchorMonth((current) => new Date(current.getFullYear(), current.getMonth() + direction, 1));
   };
 
 

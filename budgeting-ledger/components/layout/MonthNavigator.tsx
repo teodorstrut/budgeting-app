@@ -17,6 +17,7 @@ export const MonthNavigator: React.FC<MonthNavigatorProps> = ({ label, onPreviou
   return (
     <View
       style={[
+        shared.containers.rowBetween,
         styles.container,
         {
           backgroundColor: theme.colors.surfaceContainerLow,
@@ -49,9 +50,6 @@ export const MonthNavigator: React.FC<MonthNavigatorProps> = ({ label, onPreviou
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: 12,

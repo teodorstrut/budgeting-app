@@ -7,6 +7,7 @@ import type { BudgetHealthEntry } from '../../services/budgetService';
 import { Card } from './Card';
 import { EmptyState } from './EmptyState';
 import { ProgressBar } from './ProgressBar';
+import { formatCurrency } from '../../utils/formatting';
 
 interface BudgetHealthWidgetProps {
   entries: BudgetHealthEntry[];
@@ -31,7 +32,7 @@ export const BudgetHealthWidget: React.FC<BudgetHealthWidgetProps> = ({ entries 
   return (
     <Card style={[styles.cardExtra, { marginTop: 16, marginBottom: 4 }]}>
       {/* Widget Header */}
-      <View style={styles.header}>
+      <View style={[shared.containers.rowBetween, styles.header]}>
         <Text style={[styles.title, { color: onSurface }]}>Budget Health</Text>
         <TouchableOpacity
           style={[shared.buttons.pill, { backgroundColor: theme.colors.primaryContainer + '22' }]}
@@ -58,7 +59,7 @@ export const BudgetHealthWidget: React.FC<BudgetHealthWidgetProps> = ({ entries 
             return (
               <View key={entry.categoryId} style={[styles.entryRow, !isLast && styles.entryRowBorder, { borderColor: theme.colors.outlineVariant }]}>
                 {/* Top row: emoji + name | spent/budget */}
-                <View style={styles.entryTopRow}>
+                <View style={[shared.containers.rowBetween, styles.entryTopRow]}>
                   <View style={styles.entryLeft}>
                     <Text style={styles.entryEmoji}>{entry.emoji}</Text>
                     <Text style={[styles.entryName, { color: onSurface }]} numberOfLines={1}>
@@ -66,9 +67,9 @@ export const BudgetHealthWidget: React.FC<BudgetHealthWidgetProps> = ({ entries 
                     </Text>
                   </View>
                   <Text style={[styles.entryAmounts, { color: barColor }]}>
-                    ${entry.spent.toFixed(0)}{' '}
+                    {formatCurrency(entry.spent, 0)}{' '}
                     <Text style={[styles.entryBudget, { color: theme.colors.onSurfaceVariant }]}>
-                      / ${entry.amount.toFixed(0)}
+                      / {formatCurrency(entry.amount, 0)}
                     </Text>
                   </Text>
                 </View>
@@ -94,9 +95,6 @@ const styles = StyleSheet.create({
     gap: 0,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 16,
   },
   title: {
@@ -119,9 +117,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   entryTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 6,
   },
   entryLeft: {

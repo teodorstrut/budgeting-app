@@ -3,7 +3,9 @@ import { budgetRepository } from '../database/repositories/budgetRepository';
 import { settingsService } from './settingsService';
 import { CategorySyncRow } from '../types/sync';
 import { SETTING_KEYS } from '../constants/settings';
-import { sanitizeForSheets, authorizedFetch, parseErrorMessage } from './googleSheetsUtils';
+import { sanitizeForSheets } from './googleSheetsUtils';
+import { isValidTransactionType } from '../utils/validators';
+import { readSheetRange, buildRowIndex, batchUpdateRows, appendRows } from './sync/sheetRowSync';
 
 // ─── sheet layout ─────────────────────────────────────────────────────────────
 // Col A: Emoji | Col B: Category Name | Col C: Type | Col D: Budget
@@ -20,34 +22,15 @@ const makeDedupKey = (emoji: string, name: string): string =>
 const parseSheetRow = (row: string[]): CategorySyncRow | null => {
   const emoji = row[0]?.trim() ?? '';
   const name = row[1]?.trim() ?? '';
-  const type = row[2]?.trim() as 'income' | 'expense';
+  const type = row[2]?.trim() ?? '';
   const budgetRaw = row[3]?.trim() ?? '';
 
-  if (!name || (type !== 'income' && type !== 'expense')) return null;
+  if (!name || !isValidTransactionType(type)) return null;
 
   const budgetNum = budgetRaw ? Number(budgetRaw.replace(',', '.')) : NaN;
   const budget = !isNaN(budgetNum) && budgetNum > 0 ? budgetNum : null;
 
   return { emoji, name, type, budget };
-};
-
-/** PUT a single row into the sheet at the specified 1-based row number. */
-const writeSheetRow = async (
-  token: string,
-  encodedSheetId: string,
-  sheetName: string,
-  rowNum: number,
-  values: (string | number)[],
-): Promise<void> => {
-  const cellRange = encodeURIComponent(`${sheetName}!A${rowNum}:D${rowNum}`);
-  const res = await authorizedFetch(
-    token,
-    `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${cellRange}?valueInputOption=USER_ENTERED`,
-    { method: 'PUT', body: JSON.stringify({ values: [values] }) },
-  );
-  if (!res.ok) {
-    throw new Error(await parseErrorMessage(res, `Failed to update sheet row ${rowNum}.`));
-  }
 };
 
 // ─── config ───────────────────────────────────────────────────────────────────
@@ -79,41 +62,33 @@ export const categorySyncService = {
 
     const { spreadsheetId, sheetName } = config;
     const encodedSheetId = encodeURIComponent(spreadsheetId);
-    const sheetRange = encodeURIComponent(`${sheetName}!A:D`);
 
-    // 1. Read current sheet contents
-    const getRes = await authorizedFetch(
-      token,
-      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${sheetRange}`,
-    );
-    if (!getRes.ok) {
-      throw new Error(await parseErrorMessage(getRes, 'Failed to read category sheet.'));
-    }
-    const existing: { values?: string[][] } = await getRes.json();
-    const existingRows: string[][] = existing.values ?? [];
+    // 1. Read current sheet contents (including the header row, if any).
+    const existingRows = await readSheetRange(token, encodedSheetId, sheetName, 'A:D');
 
     // 2. Ensure header row exists
     const hasHeader =
       existingRows.length > 0 &&
       existingRows[0][0]?.toLowerCase() === 'emoji';
-    if (!hasHeader) {
-      await writeSheetRow(token, encodedSheetId, sheetName, 1, SHEET_HEADERS);
-    }
 
-    // 3. Build dedup map: key → 1-based sheet row number
+    // 3. Build dedup map: key → 1-based sheet row number.
     //    Row 1 is the header, data starts at row 2 (index 1 in existingRows).
-    const dedupMap = new Map<string, number>();
-    for (let i = 1; i < existingRows.length; i++) {
-      const key = makeDedupKey(existingRows[i][0] ?? '', existingRows[i][1] ?? '');
-      if (key !== '_') dedupMap.set(key, i + 1);
-    }
+    const dedupMap = buildRowIndex(
+      existingRows.slice(1),
+      (row) => {
+        const emoji = row[0] ?? '';
+        const name = row[1] ?? '';
+        return emoji.trim() || name.trim() ? makeDedupKey(emoji, name) : '';
+      },
+      2,
+    );
 
     // 4. Gather local categories and budget amounts
     const categories = categoryRepository.getAll();
     const budgetMap = new Map(budgetRepository.getAll().map((b) => [b.categoryId, b.amount]));
 
     const rowsToAppend: (string | number)[][] = [];
-    let rowsUpdated = 0;
+    const rowsToUpdate: Array<{ rowNum: number; values: (string | number)[] }> = [];
 
     for (const cat of categories) {
       const emoji = cat.emoji ?? '';
@@ -128,31 +103,25 @@ export const categorySyncService = {
       const key = makeDedupKey(emoji, cat.name);
       const existingRowNum = dedupMap.get(key);
       if (existingRowNum != null) {
-        await writeSheetRow(token, encodedSheetId, sheetName, existingRowNum, rowValues);
-        rowsUpdated++;
+        rowsToUpdate.push({ rowNum: existingRowNum, values: rowValues });
       } else {
         rowsToAppend.push(rowValues);
       }
     }
 
-    // 5. Batch-append new rows
-    if (rowsToAppend.length > 0) {
-      const appendRange = encodeURIComponent(`${sheetName}!A:D`);
-      const appendRes = await authorizedFetch(
-        token,
-        `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${appendRange}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,
-        { method: 'POST', body: JSON.stringify({ values: rowsToAppend }) },
-      );
-      if (!appendRes.ok) {
-        throw new Error(await parseErrorMessage(appendRes, 'Failed to append category rows.'));
-      }
+    if (!hasHeader) {
+      rowsToUpdate.push({ rowNum: 1, values: SHEET_HEADERS });
     }
+
+    // 5. Batch-update existing rows (+ header if missing), then append new ones.
+    await batchUpdateRows(token, encodedSheetId, sheetName, 'A:D', rowsToUpdate);
+    await appendRows(token, encodedSheetId, sheetName, 'A:D', rowsToAppend);
 
     settingsService.setSetting(
       SETTING_KEYS.CATEGORY_SYNC_LAST_EXPORT_AT,
       new Date().toISOString(),
     );
-    return { rowsWritten: rowsUpdated + rowsToAppend.length };
+    return { rowsWritten: rowsToUpdate.length - (hasHeader ? 0 : 1) + rowsToAppend.length };
   },
 
   /**
@@ -167,17 +136,7 @@ export const categorySyncService = {
 
     const { spreadsheetId, sheetName } = config;
     const encodedSheetId = encodeURIComponent(spreadsheetId);
-    const sheetRange = encodeURIComponent(`${sheetName}!A:D`);
-
-    const getRes = await authorizedFetch(
-      token,
-      `https://sheets.googleapis.com/v4/spreadsheets/${encodedSheetId}/values/${sheetRange}`,
-    );
-    if (!getRes.ok) {
-      throw new Error(await parseErrorMessage(getRes, 'Failed to read category sheet.'));
-    }
-    const data: { values?: string[][] } = await getRes.json();
-    const rows: string[][] = data.values ?? [];
+    const rows = await readSheetRange(token, encodedSheetId, sheetName, 'A:D');
 
     // Nothing to import (empty sheet or header only)
     if (rows.length <= 1) {

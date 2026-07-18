@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { AnimatedBackdrop } from './AnimatedBackdrop';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { BottomSheetModal } from './BottomSheetModal';
 import { FontAwesome } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTheme } from '../../providers/ThemeProvider';
-
+import { formatAmountForCalculator } from '../../utils/formatting';
 
 interface CalculatorKeypadProps {
   visible: boolean;
@@ -15,8 +14,6 @@ interface CalculatorKeypadProps {
   onHeightChange?: (height: number) => void;
 }
 
-const fmt = (n: number): string => (n % 1 === 0 ? String(n) : n.toFixed(2));
-
 export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   visible,
   initialValue,
@@ -25,7 +22,6 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   onHeightChange,
 }) => {
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
 
   // Current number being typed
@@ -37,12 +33,6 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   const [pendingOp, setPendingOp] = useState<'+' | '-' | null>(null);
   // Resets input on the very first digit/dot key after the calculator opens
   const isFirstInputRef = useRef(true);
-
-  // Slide animation — start at the initial visibility state to avoid a flash
-  const [translateY] = useState(() => new Animated.Value(visible ? 0 : 600));
-  const [backdropOpacity] = useState(() => new Animated.Value(visible ? 1 : 0));
-  const heightRef = useRef(0);
-  const hasLaidOut = useRef(false);
 
   // Resets the calculator's editing state each time it reopens. The sheet stays
   // mounted while hidden (to animate closed), so this can't be modeled as a
@@ -57,23 +47,6 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
       isFirstInputRef.current = true;
     }
   }, [visible, initialValue]);
-
-  useEffect(() => {
-    if (!hasLaidOut.current) return;
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: visible ? 0 : heightRef.current,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-      Animated.timing(backdropOpacity, {
-        toValue: visible ? 1 : 0,
-        duration: 280,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
 
   const haptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -96,7 +69,7 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
       } else {
         result = parseFloat(input) || 0;
       }
-      onConfirm(fmt(result));
+      onConfirm(formatAmountForCalculator(result));
       return;
     }
 
@@ -115,14 +88,14 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
         // First operator press
         setRunningVal(inputVal);
         setPendingOp(key);
-        setTape(`${fmt(inputVal)} ${key}`);
+        setTape(`${formatAmountForCalculator(inputVal)} ${key}`);
         setInput('');
       } else {
         // Subsequent operator press — evaluate previous step, show result in tape
         const newVal = pendingOp === '+' ? runningVal + inputVal : runningVal - inputVal;
         setRunningVal(newVal);
         setPendingOp(key);
-        setTape(`${fmt(newVal)} ${key}`);
+        setTape(`${formatAmountForCalculator(newVal)} ${key}`);
         setInput('');
       }
       return;
@@ -149,35 +122,13 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   ];
 
   return (
-    <>
-      {/* Backdrop — fades in/out, dismisses on tap */}
-      <AnimatedBackdrop opacity={backdropOpacity} visible={visible} onPress={onDismiss} />
-
-      {/* Keypad sheet — slides up from bottom */}
-      <Animated.View
-        pointerEvents={visible ? 'auto' : 'none'}
-        style={[
-          styles.sheet,
-          {
-            backgroundColor: theme.colors.surfaceContainerLow,
-            paddingBottom: Math.max(insets.bottom, 32) + 16,
-            transform: [{ translateY }],
-          },
-        ]}
-        onLayout={(e) => {
-          const h = e.nativeEvent.layout.height;
-          heightRef.current = h;
-          onHeightChange?.(h);
-          if (!hasLaidOut.current) {
-            hasLaidOut.current = true;
-            // Snap to correct off-screen position after first measurement
-            if (!visible) {
-              translateY.setValue(h);
-              backdropOpacity.setValue(0);
-            }
-          }
-        }}
-      >
+    <BottomSheetModal
+      visible={visible}
+      onClose={onDismiss}
+      sheetStyle={styles.sheet}
+      onHeightChange={onHeightChange}
+      minBottomInset={32}
+    >
         {/* Tape: accumulated expression above the main number */}
         <Text
           style={[styles.tapeValue, { color: theme.colors.onSurfaceVariant }]}
@@ -250,19 +201,13 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
             </TouchableOpacity>
           </View>
         </View>
-      </Animated.View>
-    </>
+    </BottomSheetModal>
   );
 };
 
 const styles = StyleSheet.create({
 
   sheet: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    zIndex: 11,
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 16,

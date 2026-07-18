@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../providers/ThemeProvider';
+import { shadows } from '../../theme/styles';
 
 type NavItem = {
   label: string;
@@ -80,10 +81,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     paddingVertical: 8,
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 6,
+    ...shadows.elevated,
   },
   tab: {
     flex: 1,

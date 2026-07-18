@@ -4,10 +4,12 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../providers/ThemeProvider';
 import { FontAwesome } from '@expo/vector-icons';
+import { shadows, useSharedStyles } from '../../theme/styles';
 
 export const AddTransactionButton: React.FC = () => {
   const router = useRouter();
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
   const [progress] = useState(() => new Animated.Value(0));
@@ -46,7 +48,7 @@ export const AddTransactionButton: React.FC = () => {
         },
       ]}
     >
-      <View style={styles.mainRow}>
+      <View style={[shared.containers.rowBetween, styles.mainRow]}>
         <TouchableOpacity
           style={styles.labelArea}
           onPress={() => router.push('/add')}
@@ -79,7 +81,7 @@ export const AddTransactionButton: React.FC = () => {
       <Animated.View style={[styles.expandedArea, { height: expandedHeight, opacity: expandedOpacity }]}>
         <View style={[styles.divider, { backgroundColor: theme.colors.outlineVariant }]} />
         <TouchableOpacity
-          style={styles.secondaryRow}
+          style={[shared.containers.rowBetween, styles.secondaryRow]}
           onPress={() => router.push('/bill-splitter')}
           activeOpacity={0.75}
         >
@@ -109,16 +111,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     flexDirection: 'column',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 6,
+    ...shadows.elevated,
   },
-  mainRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  mainRow: {},
   labelArea: {
     flex: 1,
     marginRight: 12,
@@ -151,11 +146,7 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     opacity: 0.4,
   },
-  secondaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
+  secondaryRow: {},
   secondaryLabel: {
     flex: 1,
     flexDirection: 'column',

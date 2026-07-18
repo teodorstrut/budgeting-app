@@ -1,39 +1,32 @@
-import React, { useCallback, useState } from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router/react-navigation';
 import { useTheme } from '../providers/ThemeProvider';
 
 import { Card } from '../components/ui/Card';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ProgressBar } from '../components/ui/ProgressBar';
 import { budgetService, BudgetHealthEntry } from '../services/budgetService';
-import { settingsService } from '../services/settingsService';
-import { monthUtils } from '../utils/monthUtils';
 import { Header } from '../components/layout/Header';
 import { NavBar } from '../components/layout/NavBar';
+import { getBudgetRatioColor } from '../utils/budgetColors';
+import { useCurrentMonthPeriod } from '../hooks/useCurrentMonthPeriod';
 
 export default function BudgetHealth() {
   const { theme } = useTheme();
   const router = useRouter();
-  const [entries, setEntries] = useState<BudgetHealthEntry[]>([]);
+  const { periodStart, periodEnd, focusTick } = useCurrentMonthPeriod();
 
-  useFocusEffect(
-    useCallback(() => {
-      const day = settingsService.getMonthStartDay();
-      const start = monthUtils.getCurrentMonthStart(day);
-      const end = monthUtils.getCurrentMonthEnd(day);
-      setEntries(budgetService.getBudgetHealthData(start, end));
-    }, [])
+  const entries = useMemo(
+    () => budgetService.getBudgetHealthData(periodStart, periodEnd),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [periodStart, periodEnd, focusTick]
   );
 
   const onSurface = theme.colors.onSurface ?? theme.colors.onSurfaceVariant;
 
-  const barColorForRatio = (ratio: number): string => {
-    if (ratio >= 1) return '#ef4444';
-    if (ratio >= 0.8) return theme.colors.secondary;
-    return theme.colors.primary;
-  };
+  const barColorForRatio = (ratio: number): string =>
+    getBudgetRatioColor(ratio, theme.colors.primary, theme.colors.secondary);
 
   const deltaLabel = (entry: BudgetHealthEntry): { text: string; color: string } => {
     const abs = Math.abs(entry.delta);

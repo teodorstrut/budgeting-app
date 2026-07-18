@@ -15,6 +15,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router/react-navigation';
 import { useTheme } from '../providers/ThemeProvider';
+import { useSharedStyles } from '../theme/styles';
 import { transactionService } from '../services/transactionService';
 import { categoryRepository } from '../database/repositories/categoryRepository';
 import { TransactionDateTimeField } from '../components/ui/TransactionDateTimeField';
@@ -28,9 +29,11 @@ import { AppTextInput } from '../components/ui/AppTextInput';
 import { AppSelectorField } from '../components/ui/AppSelectorField';
 import { transactionRepository } from '../database/repositories/transactionRepository';
 import { confirmDialog } from '../utils/confirmDialog';
+import { useCalculatorKeypad } from '../hooks/useCalculatorKeypad';
 
 export default function AddTransaction() {
   const { theme } = useTheme();
+  const shared = useSharedStyles();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ editId?: string }>();
@@ -39,9 +42,8 @@ export default function AddTransaction() {
 
   const noteRef = useRef<TextInput>(null);
 
-  const [calcHeight, setCalcHeight] = useState(0);
+  const calc = useCalculatorKeypad(!isEditing);
   const [amount, setAmount] = useState('');
-  const [showCalculator, setShowCalculator] = useState(() => !isEditing);
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [note, setNote] = useState('');
   const [date, setDate] = useState(new Date());
@@ -160,7 +162,7 @@ export default function AddTransaction() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 24 : 0}
     >
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: showCalculator && calcHeight > 0 ? calcHeight : Math.max(insets.bottom + 16, 32) }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: calc.visible && calc.height > 0 ? calc.height : Math.max(insets.bottom + 16, 32) }]}
         keyboardShouldPersistTaps="handled"
       >
         <Header
@@ -175,7 +177,7 @@ export default function AddTransaction() {
 
         <View style={[styles.card, { backgroundColor: theme.colors.surfaceContainerHigh }]}>
           <AppInputLabel>Amount</AppInputLabel>
-          <AppSelectorField onPress={() => { Keyboard.dismiss(); setShowCalculator(true); }}>
+          <AppSelectorField onPress={() => { Keyboard.dismiss(); calc.open(); }}>
             <Text style={[styles.amountDisplayText, { color: amount ? theme.colors.onSurface ?? theme.colors.onSurfaceVariant : theme.colors.outline }]}>
               {amount ? `$${amount}` : '$0.00'}
             </Text>
@@ -213,7 +215,7 @@ export default function AddTransaction() {
             placeholder="Optional details"
             value={note}
             onChangeText={setNote}
-            onFocus={() => setShowCalculator(false)}
+            onFocus={calc.close}
           />
 
           <TransactionDateTimeField value={date} onChange={setDate} />
@@ -229,8 +231,11 @@ export default function AddTransaction() {
             },
           ]}
         >
-          <TouchableOpacity style={[styles.saveButton, { backgroundColor: theme.colors.primary }]} onPress={handleSave}>
-            <Text style={[styles.saveButtonText, { color: theme.colors.onPrimary }]}>
+          <TouchableOpacity
+            style={[shared.buttons.primaryLarge, styles.saveButton, { backgroundColor: theme.colors.primary }]}
+            onPress={handleSave}
+          >
+            <Text style={[shared.buttons.primaryLargeText, { color: theme.colors.onPrimary }]}>
               {isEditing ? 'Update Transaction' : 'Save Transaction'}
             </Text>
           </TouchableOpacity>
@@ -263,17 +268,17 @@ export default function AddTransaction() {
         }}
       />
       <CalculatorKeypad
-        visible={showCalculator}
+        visible={calc.visible}
         initialValue={amount}
-        onHeightChange={setCalcHeight}
+        onHeightChange={calc.onHeightChange}
         onConfirm={(val) => {
           setAmount(val);
-          setShowCalculator(false);
+          calc.close();
           if (!isEditing) {
             setCategoryPickerVisible(true);
           }
         }}
-        onDismiss={() => setShowCalculator(false)}
+        onDismiss={calc.close}
       />
     </View>
   );
@@ -308,14 +313,6 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     flexGrow: 1,
-    borderRadius: 24,
-    height: 54,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  saveButtonText: {
-    fontWeight: '700',
-    fontSize: 16,
   },
   deleteButton: {
     borderRadius: 24,

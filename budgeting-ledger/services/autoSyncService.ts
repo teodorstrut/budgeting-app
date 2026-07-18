@@ -3,20 +3,14 @@ import * as BackgroundTask from 'expo-background-task';
 import * as TaskManager from 'expo-task-manager';
 import { settingsService } from './settingsService';
 import { syncService } from './syncService';
+import { toLocalDateString } from '../utils/monthUtils';
 
 const GOOGLE_AUTO_SYNC_TASK = 'budgeting-ledger-google-auto-sync';
 const AUTO_SYNC_HOUR = 2;
 
-const toLocalDayStamp = (date: Date): string => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-};
-
 const shouldRunAutoSyncNow = (): { shouldRun: boolean; localDay: string } => {
   const now = new Date();
-  const localDay = toLocalDayStamp(now);
+  const localDay = toLocalDateString(now);
   const hasPassed2am = now.getHours() >= AUTO_SYNC_HOUR;
   const lastRunDay = settingsService.getGoogleAutoSyncLastLocalDay();
   return {

@@ -2,22 +2,25 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../providers/ThemeProvider';
+import { useSharedStyles } from '../theme/styles';
 import { Header } from '../components/layout/Header';
 import { Card } from '../components/ui/Card';
 import { resetAndReseed } from '../database/schema';
 import { seedMockData } from '../database/mockData';
 import { settingsService } from '../services/settingsService';
 import { syncService } from '../services/syncService';
-import { MonthStartDayPicker } from '../components/ui/MonthStartDayPicker';
+import { MonthStartDayPicker, CustomDayPickerModal } from '../components/ui/MonthStartDayPicker';
 import { ToggleButtonGroup } from '../components/ui/ToggleButtonGroup';
 import { confirmDialog } from '../utils/confirmDialog';
 
 export default function Settings() {
   const { theme, colorScheme, setColorScheme } = useTheme();
+  const shared = useSharedStyles();
   const router = useRouter();
   const [resetDone, setResetDone] = useState(false);
   const [mockDataMessage, setMockDataMessage] = useState<string | null>(null);
   const [monthStartDay, setMonthStartDay] = useState(() => settingsService.getMonthStartDay());
+  const [showCustomDayPicker, setShowCustomDayPicker] = useState(false);
 
   const handleReset = () => {
     confirmDialog(
@@ -56,6 +59,7 @@ export default function Settings() {
   const handleMonthStartDayChange = (day: number) => {
     setMonthStartDay(day);
     settingsService.setMonthStartDay(day);
+    setShowCustomDayPicker(false);
   };
 
   return (
@@ -99,6 +103,7 @@ export default function Settings() {
               value={monthStartDay}
               onChange={handleMonthStartDayChange}
               theme={theme}
+              onOpenCustomPicker={() => setShowCustomDayPicker(true)}
             />
 
             <TouchableOpacity
@@ -137,11 +142,11 @@ export default function Settings() {
               <Text style={[styles.hint, { color: theme.colors.outline }]}>Dev-build only — not shown in production.</Text>
 
               <TouchableOpacity
-                style={[styles.resetButton, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}
+                style={[shared.buttons.primaryLarge, styles.resetButton, { backgroundColor: theme.colors.primary, borderColor: theme.colors.primary }]}
                 onPress={handleSeedMockData}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.resetButtonText, { color: theme.colors.onPrimary ?? '#fff' }]}>
+                <Text style={[shared.buttons.primaryLargeText, styles.resetButtonText, { color: theme.colors.onPrimary ?? '#fff' }]}>
                   Load mock data
                 </Text>
               </TouchableOpacity>
@@ -158,11 +163,11 @@ export default function Settings() {
             <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>Danger Zone</Text>
 
             <TouchableOpacity
-              style={[styles.resetButton, { backgroundColor: theme.colors.secondary, borderColor: theme.colors.secondary }]}
+              style={[shared.buttons.primaryLarge, styles.resetButton, { backgroundColor: theme.colors.secondary, borderColor: theme.colors.secondary }]}
               onPress={handleReset}
               activeOpacity={0.8}
             >
-              <Text style={[styles.resetButtonText, { color: theme.colors.onSecondary ?? '#fff' }]}>
+              <Text style={[shared.buttons.primaryLargeText, styles.resetButtonText, { color: theme.colors.onSecondary ?? '#fff' }]}>
                 Reset all data
               </Text>
             </TouchableOpacity>
@@ -179,6 +184,14 @@ export default function Settings() {
           </Card>
         </View>
       </ScrollView>
+
+      <CustomDayPickerModal
+        visible={showCustomDayPicker}
+        currentDay={monthStartDay}
+        onSelect={handleMonthStartDayChange}
+        onClose={() => setShowCustomDayPicker(false)}
+        theme={theme}
+      />
     </View>
   );
 }
@@ -230,10 +243,8 @@ const styles = StyleSheet.create({
   },
 
   resetButton: {
-    borderRadius: 999,
     borderWidth: 1,
     paddingVertical: 14,
-    alignItems: 'center',
   },
   resetButtonText: {
     fontSize: 15,

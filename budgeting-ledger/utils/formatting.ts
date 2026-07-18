@@ -1,3 +1,5 @@
+import { parseLocalDate } from './monthUtils';
+
 export const parseMaybeDate = (value: string): Date | null => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
@@ -54,6 +56,26 @@ export const formatAmount = (amount: number, type: 'income' | 'expense' | string
   const sign = type === 'income' ? '+' : '-';
   return `${sign}$${amount.toFixed(2)}`;
 };
+
+/**
+ * Formats a plain dollar amount with no +/- sign, e.g. formatCurrency(124.5) => '$124.50'
+ */
+export const formatCurrency = (amount: number, decimals: number = 2): string =>
+  `$${amount.toFixed(decimals)}`;
+
+/**
+ * Formats a 'YYYY-MM-DD' period-start string as a long month + year label,
+ * e.g. formatMonthLabel('2026-07-01') => 'July 2026'
+ */
+export const formatMonthLabel = (isoDateStr: string): string =>
+  parseLocalDate(isoDateStr).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+/**
+ * Formats an amount for the calculator keypad tape/display — integer amounts
+ * are shown without decimals, e.g. formatAmountForCalculator(250) => '250'.
+ */
+export const formatAmountForCalculator = (amount: number): string =>
+  amount % 1 === 0 ? String(amount) : amount.toFixed(2);
 
 /**
  * Formats a time value as HH:MM (24h or 12h depending on locale).
