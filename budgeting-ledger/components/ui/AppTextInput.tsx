@@ -1,5 +1,5 @@
 import React from 'react';
-import { TextInput, TextInputProps, ViewStyle } from 'react-native';
+import { TextInput, TextInputInstance, TextInputProps, ViewStyle } from 'react-native';
 import { useTheme } from '../../providers/ThemeProvider';
 import { useSharedStyles } from '../../theme/styles';
 
@@ -7,7 +7,7 @@ interface AppTextInputProps extends TextInputProps {
   containerStyle?: ViewStyle;
 }
 
-export const AppTextInput = React.forwardRef<TextInput, AppTextInputProps>(
+export const AppTextInput = React.forwardRef<TextInputInstance, AppTextInputProps>(
   ({ style, containerStyle: _containerStyle, ...props }, ref) => {
     const { theme } = useTheme();
     const shared = useSharedStyles();

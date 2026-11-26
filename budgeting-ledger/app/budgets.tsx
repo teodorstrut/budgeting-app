@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   ScrollView,
+  ScrollViewInstance,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -38,7 +39,7 @@ export default function Budgets() {
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
   const calc = useCalculatorKeypad<number>();
 
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
 
   useFocusEffect(
     useCallback(() => {

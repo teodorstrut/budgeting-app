@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   View,
   Text,
-  TextInput,
+  TextInputInstance,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
@@ -40,7 +40,7 @@ export default function AddTransaction() {
   const editId = params.editId ? Number.parseInt(params.editId, 10) : undefined;
   const isEditing = editId != null && !Number.isNaN(editId);
 
-  const noteRef = useRef<TextInput>(null);
+  const noteRef = useRef<TextInputInstance>(null);
 
   const calc = useCalculatorKeypad(!isEditing);
   const [amount, setAmount] = useState('');

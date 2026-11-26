@@ -6,7 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
+  TextInputInstance,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -47,7 +47,7 @@ export default function BillSplitter() {
   const [splits, setSplits] = useState<Split[]>([]);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);
 
-  const noteRef = useRef<TextInput>(null);
+  const noteRef = useRef<TextInputInstance>(null);
 
   const expenseCategories = useMemo(
     () => (step === 2 ? categoryRepository.getAllSortedByUsage().filter((c) => c.type === 'expense') : []),
