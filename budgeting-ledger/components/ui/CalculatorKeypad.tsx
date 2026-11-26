@@ -30,7 +30,7 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
   const [tape, setTape] = useState('');
   // Accumulated running value from previous steps
   const [runningVal, setRunningVal] = useState<number | null>(null);
-  const [pendingOp, setPendingOp] = useState<'+' | '-' | null>(null);
+  const [pendingOp, setPendingOp] = useState<'+' | '-' | '*' | '/' | null>(null);
   // Resets input on the very first digit/dot key after the calculator opens
   const isFirstInputRef = useRef(true);
 
@@ -50,6 +50,21 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
 
   const haptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
+  // Division by zero leaves the running value unchanged rather than producing
+  // Infinity/NaN, which would otherwise leak into a confirmed amount.
+  const applyOp = (a: number, b: number, op: '+' | '-' | '*' | '/'): number => {
+    switch (op) {
+      case '+':
+        return a + b;
+      case '-':
+        return a - b;
+      case '*':
+        return a * b;
+      case '/':
+        return b === 0 ? a : a / b;
+    }
+  };
+
   const handleKey = (key: string) => {
     haptic();
 
@@ -62,8 +77,7 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
     if (key === 'done') {
       let result: number;
       if (runningVal !== null && pendingOp !== null && input !== '') {
-        const inputVal = parseFloat(input);
-        result = pendingOp === '+' ? runningVal + inputVal : runningVal - inputVal;
+        result = applyOp(runningVal, parseFloat(input), pendingOp);
       } else if (runningVal !== null) {
         result = runningVal;
       } else {
@@ -73,7 +87,7 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
       return;
     }
 
-    if (key === '+' || key === '-') {
+    if (key === '+' || key === '-' || key === '*' || key === '/') {
       // No new input typed yet — just swap the pending operator
       if (input === '' && pendingOp !== null) {
         setPendingOp(key);
@@ -92,7 +106,7 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
         setInput('');
       } else {
         // Subsequent operator press — evaluate previous step, show result in tape
-        const newVal = pendingOp === '+' ? runningVal + inputVal : runningVal - inputVal;
+        const newVal = applyOp(runningVal, inputVal, pendingOp!);
         setRunningVal(newVal);
         setPendingOp(key);
         setTape(`${formatAmountForCalculator(newVal)} ${key}`);
@@ -150,13 +164,13 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
         <View style={styles.grid}>
           {/* Row 1 */}
           <View style={styles.row}>
-            {['1', '2', '3'].map((k) => (
+            {['7', '8', '9'].map((k) => (
               <TouchableOpacity key={k} style={keyStyle()} onPress={() => handleKey(k)} activeOpacity={0.7}>
                 <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>{k}</Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('backspace')} activeOpacity={0.7}>
-              <FontAwesome name="long-arrow-left" size={20} color={theme.colors.onSurfaceVariant} />
+            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('/')} activeOpacity={0.7}>
+              <Text style={[styles.operatorText, { color: theme.colors.primary }]}>÷</Text>
             </TouchableOpacity>
           </View>
 
@@ -167,14 +181,14 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
                 <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>{k}</Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('+')} activeOpacity={0.7}>
-              <Text style={[styles.operatorText, { color: theme.colors.primary }]}>+</Text>
+            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('*')} activeOpacity={0.7}>
+              <Text style={[styles.operatorText, { color: theme.colors.primary }]}>×</Text>
             </TouchableOpacity>
           </View>
 
           {/* Row 3 */}
           <View style={styles.row}>
-            {['7', '8', '9'].map((k) => (
+            {['1', '2', '3'].map((k) => (
               <TouchableOpacity key={k} style={keyStyle()} onPress={() => handleKey(k)} activeOpacity={0.7}>
                 <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>{k}</Text>
               </TouchableOpacity>
@@ -186,14 +200,24 @@ export const CalculatorKeypad: React.FC<CalculatorKeypadProps> = ({
 
           {/* Row 4 */}
           <View style={styles.row}>
-            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('.')} activeOpacity={0.7}>
-              <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>.</Text>
+            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('backspace')} activeOpacity={0.7}>
+              <FontAwesome name="long-arrow-left" size={20} color={theme.colors.onSurfaceVariant} />
             </TouchableOpacity>
             <TouchableOpacity style={keyStyle()} onPress={() => handleKey('0')} activeOpacity={0.7}>
               <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>0</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('.')} activeOpacity={0.7}>
+              <Text style={[styles.keyText, { color: theme.colors.onSurfaceVariant }]}>.</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={keyStyle()} onPress={() => handleKey('+')} activeOpacity={0.7}>
+              <Text style={[styles.operatorText, { color: theme.colors.primary }]}>+</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Row 5 */}
+          <View style={styles.row}>
             <TouchableOpacity
-              style={[styles.key, { backgroundColor: theme.colors.primary, flex: 2 }]}
+              style={[styles.key, { backgroundColor: theme.colors.primary }]}
               onPress={() => handleKey('done')}
               activeOpacity={0.85}
             >
@@ -242,6 +266,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    flex: 1,
   },
   keyText: {
     fontSize: 22,
