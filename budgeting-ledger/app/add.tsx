@@ -36,7 +36,7 @@ export default function AddTransaction() {
   const shared = useSharedStyles();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ editId?: string }>();
+  const params = useLocalSearchParams<{ editId?: string; date?: string }>();
   const editId = params.editId ? Number.parseInt(params.editId, 10) : undefined;
   const isEditing = editId != null && !Number.isNaN(editId);
 
@@ -46,7 +46,15 @@ export default function AddTransaction() {
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [note, setNote] = useState('');
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(() => {
+    if (params.date) {
+      const parsed = new Date(params.date);
+      if (!Number.isNaN(parsed.getTime())) {
+        return parsed;
+      }
+    }
+    return new Date();
+  });
   const [categories, setCategories] = useState(categoryRepository.getAllSortedByUsage());
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [categoryPickerVisible, setCategoryPickerVisible] = useState(false);

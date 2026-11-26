@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  TouchableOpacity,
 } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -26,6 +27,7 @@ interface GroupedTransactions {
   key: string;
   heading: string;
   items: Transaction[];
+  total: number;
 }
 
 const formatMonthWindowLabel = (start: Date, end: Date) => {
@@ -150,6 +152,10 @@ export default function History() {
         key,
         heading: formatSectionHeading(value.date),
         items: value.items,
+        total: value.items.reduce(
+          (sum, item) => sum + (item.type === 'income' ? item.amount : -item.amount),
+          0
+        ),
       }));
   // focusTick is intentionally included to force re-fetch from DB on screen focus
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -199,7 +205,28 @@ export default function History() {
           ) : (
             groupedTransactions.map((group) => (
               <View key={group.key} style={styles.daySection}>
-                <Text style={[styles.dayHeading, { color: theme.colors.onSurfaceVariant }]}>{group.heading}</Text>
+                <View style={styles.dayHeadingRow}>
+                  <Text style={[styles.dayHeading, { color: theme.colors.onSurfaceVariant }]}>{group.heading}</Text>
+
+                  <View style={styles.dayHeadingRight}>
+                    <Text
+                      style={[
+                        styles.dayTotal,
+                        { color: group.total >= 0 ? theme.colors.primary : theme.colors.secondary },
+                      ]}
+                    >
+                      {`${group.total >= 0 ? '+' : '-'}$${Math.abs(group.total).toFixed(2)}`}
+                    </Text>
+
+                    <TouchableOpacity
+                      style={[styles.dayAddButton, { backgroundColor: theme.colors.primary }]}
+                      onPress={() => router.push({ pathname: '/add', params: { date: group.items[0].date } })}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.dayAddButtonText, { color: theme.colors.onPrimary }]}>+</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
 
                 <View style={styles.dayItemsWrap}>
                   {group.items.map((transaction) => {
@@ -273,12 +300,38 @@ const styles = StyleSheet.create({
   daySection: {
     gap: 10,
   },
+  dayHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   dayHeading: {
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 1,
     textTransform: 'uppercase',
     marginLeft: 2,
+  },
+  dayHeadingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dayTotal: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  dayAddButton: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayAddButtonText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    lineHeight: 16,
   },
   dayItemsWrap: {
     gap: 8,
