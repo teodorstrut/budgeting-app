@@ -198,7 +198,7 @@ export default function AddTransaction() {
           />
 
           <AppInputLabel>Category</AppInputLabel>
-          <AppSelectorField onPress={() => setCategoryPickerVisible(true)}>
+          <AppSelectorField onPress={() => { Keyboard.dismiss(); setCategoryPickerVisible(true); }}>
             {selectedCategory ? (
               <Text style={[styles.categorySelectorText, { color: theme.colors.onSurface ?? theme.colors.onSurfaceVariant }]}>
                 {selectedCategory.emoji ? `${selectedCategory.emoji} ` : ''}{selectedCategory.name}
