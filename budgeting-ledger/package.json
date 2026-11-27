@@ -17,6 +17,7 @@
     "expo": "^58.0.0",
     "expo-auth-session": "~58.0.20",
     "expo-background-task": "~58.0.13",
+    "expo-build-properties": "~58.0.12",
     "expo-constants": "~58.0.16",
     "expo-crypto": "~58.0.9",
     "expo-font": "~58.0.12",

@@ -137,6 +137,20 @@ module.exports = {
       ['expo-sqlite', { useSQLCipher: true }],
       'expo-secure-store',
       'expo-background-task',
+      [
+        'expo-build-properties',
+        {
+          android: {
+            // R8 strips WorkManager's Room-generated WorkDatabase_Impl constructor,
+            // which crashes the app at launch (androidx.startup InitializationProvider).
+            extraProguardRules: [
+              '-keep class androidx.work.impl.WorkDatabase_Impl { <init>(...); }',
+              '-keep class * extends androidx.room.RoomDatabase { <init>(...); }',
+              '-keep class androidx.work.** { *; }',
+            ].join('\n'),
+          },
+        },
+      ],
       withBackupRules,
       withNetworkSecurityConfig,
     ],
